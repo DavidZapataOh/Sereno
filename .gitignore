@@ -41,3 +41,8 @@ example
 # generated native folders
 /ios
 /android
+
+# Datos sensibles del spike de captura bancaria (Fase 1)
+# Estos volcados contienen movimientos y saldos reales.
+capturas/
+*.capture.json
