@@ -43,6 +43,14 @@ una fase, léelos en `../docs/superpowers/specs/`:
 
 Nunca muevas `docs/` dentro de este repo ni inicialices git en la raíz.
 
+## Dónde está el estado del trabajo
+
+Cada sprint tiene un `progress.md` en `../docs/superpowers/plans/sprint-NN-*/` con lo que
+se hizo, las métricas de calidad, los hallazgos y los bloqueos. **Léelo antes de retomar un
+sprint**: dice qué quedó a medias y por qué.
+
+El tablero global está en `../docs/superpowers/plans/README.md`.
+
 ## Capas
 
 ```
