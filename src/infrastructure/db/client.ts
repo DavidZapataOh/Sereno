@@ -8,7 +8,15 @@ import * as schema from './schema';
 
 export const DATABASE_NAME = 'sereno.db';
 
-export type Database = ReturnType<typeof drizzle<typeof schema>>;
+/**
+ * Tipo concreto del cliente del dispositivo.
+ *
+ * El migrador de Expo exige exactamente este tipo, no el `Database` compartido:
+ * `migrate` toca la sesión de escritura, y ahí el resultado deja de ser
+ * intercambiable. Los repositorios sí usan el tipo compartido, porque solo leen
+ * y escriben filas.
+ */
+type ExpoDatabase = ReturnType<typeof drizzle<typeof schema>>;
 
 /**
  * Abre la base del dispositivo.
@@ -24,7 +32,7 @@ export type Database = ReturnType<typeof drizzle<typeof schema>>;
  *    una. Tiene que ejecutarse antes de `applyMigrations`.
  */
 export function openDatabase(): {
-  readonly db: Database;
+  readonly db: ExpoDatabase;
   readonly sqlite: SQLiteDatabase;
 } {
   // `enableChangeListener` es obligatorio para `useLiveQuery`: esa utilidad se
@@ -42,6 +50,6 @@ export function openDatabase(): {
   return { db: drizzle(sqlite, { schema }), sqlite };
 }
 
-export async function applyMigrations(db: Database): Promise<void> {
+export async function applyMigrations(db: ExpoDatabase): Promise<void> {
   await migrate(db, migraciones);
 }

@@ -1,12 +1,13 @@
-import Database from 'better-sqlite3';
+import SQLite from 'better-sqlite3';
 import { drizzle } from 'drizzle-orm/better-sqlite3';
 import { migrate } from 'drizzle-orm/better-sqlite3/migrator';
 import { join } from 'node:path';
 
+import type { Database } from './database';
 import * as schema from './schema';
 
 export type TestDb = {
-  readonly db: ReturnType<typeof drizzle<typeof schema>>;
+  readonly db: Database;
   readonly close: () => void;
 };
 
@@ -18,7 +19,7 @@ export type TestDb = {
  * más duele, que es una migración que no corre en el dispositivo.
  */
 export function createTestDb(): TestDb {
-  const sqlite = new Database(':memory:');
+  const sqlite = new SQLite(':memory:');
 
   // SQLite trae las claves foráneas DESACTIVADAS por defecto en cada conexión.
   // Sin esto los tests aceptarían apuntes huérfanos que el dispositivo también
