@@ -3,12 +3,13 @@ import migraciones from '../../../drizzle/migrations';
 import { abrirBaseDeDatos, aplicarMigraciones, NOMBRE_BASE_DE_DATOS } from './client';
 
 const mockExecSync = jest.fn();
-const mockOpenDatabaseSync = jest.fn((_nombre: string) => ({
+const mockOpenDatabaseSync = jest.fn((_nombre: string, _opciones?: Record<string, unknown>) => ({
   execSync: mockExecSync,
 }));
 
 jest.mock('expo-sqlite', () => ({
-  openDatabaseSync: (nombre: string) => mockOpenDatabaseSync(nombre),
+  openDatabaseSync: (nombre: string, opciones?: Record<string, unknown>) =>
+    mockOpenDatabaseSync(nombre, opciones),
 }));
 
 const mockMigrate = jest.fn();
@@ -28,7 +29,21 @@ describe('cliente del dispositivo', () => {
   it('abre la base con el nombre esperado', () => {
     abrirBaseDeDatos();
 
-    expect(mockOpenDatabaseSync).toHaveBeenCalledWith(NOMBRE_BASE_DE_DATOS);
+    expect(mockOpenDatabaseSync).toHaveBeenCalledWith(NOMBRE_BASE_DE_DATOS, {
+      enableChangeListener: true,
+    });
+  });
+
+  /**
+   * `useLiveQuery` se suscribe a `addDatabaseChangeListener`, y ese listener
+   * solo emite si la base se abrió con `enableChangeListener`. Sin la opción, la
+   * interfaz se quedaría con datos viejos sin lanzar ningún error.
+   */
+  it('habilita el listener de cambios que necesita useLiveQuery', () => {
+    abrirBaseDeDatos();
+
+    const opciones = mockOpenDatabaseSync.mock.calls[0]?.[1];
+    expect(opciones).toEqual({ enableChangeListener: true });
   });
 
   /**

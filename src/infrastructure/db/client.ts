@@ -27,7 +27,12 @@ export function abrirBaseDeDatos(): {
   readonly db: BaseDeDatos;
   readonly sqlite: SQLiteDatabase;
 } {
-  const sqlite = openDatabaseSync(NOMBRE_BASE_DE_DATOS);
+  // `enableChangeListener` es obligatorio para `useLiveQuery`: esa utilidad se
+  // suscribe a `addDatabaseChangeListener`, que solo emite si la base se abrió
+  // con esta opción. Sin ella la interfaz nunca se refrescaría, y sin error.
+  const sqlite = openDatabaseSync(NOMBRE_BASE_DE_DATOS, {
+    enableChangeListener: true,
+  });
 
   sqlite.execSync('PRAGMA foreign_keys = ON');
   // WAL deja que la interfaz lea mientras la sincronización escribe, en vez de
