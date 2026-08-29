@@ -19,6 +19,7 @@ module.exports = {
     // lógica propia que verificar. `factory.ts` y `arbitraries.ts` sí la
     // tienen y sí se miden.
     '!src/test/render.tsx',
+    '!src/infrastructure/capture/webview-harness.ts',
     '!src/test/sanity-target.ts',
   ],
   coverageThreshold: {
