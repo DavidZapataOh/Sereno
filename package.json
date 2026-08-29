@@ -80,7 +80,8 @@
     "verificar-volcado": "node scripts/verificar-volcado.mjs",
     "db:generate": "drizzle-kit generate",
     "db:check": "drizzle-kit check",
-    "verificar-ledger": "tsx scripts/verificar-ledger.ts"
+    "verificar-ledger": "tsx scripts/verificar-ledger.ts",
+    "integrar": "bash scripts/integrar.sh"
   },
   "private": true,
   "lint-staged": {
