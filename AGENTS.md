@@ -43,12 +43,64 @@ una fase, léelos en `../docs/superpowers/specs/`:
 
 Nunca muevas `docs/` dentro de este repo ni inicialices git en la raíz.
 
+## Dónde está el estado del trabajo
+
+Cada sprint tiene un `progress.md` en `../docs/superpowers/plans/sprint-NN-*/` con lo que
+se hizo, las métricas de calidad, los hallazgos y los bloqueos. **Léelo antes de retomar un
+sprint**: dice qué quedó a medias y por qué.
+
+El tablero global está en `../docs/superpowers/plans/README.md`.
+
+## Capas
+
+```
+src/domain/          TypeScript puro. No importa NADA externo.
+src/application/     Casos de uso. Importa domain.
+src/infrastructure/  SQLite, HTTP, WebView. Implementa puertos de domain.
+src/ui/              Componentes, pantallas y hooks.
+src/app/             Rutas de expo-router.
+src/test/            Utilidades de prueba.
+```
+
+Las dependencias van en un solo sentido y `eslint-plugin-boundaries` lo verifica. Un
+import que cruce una capa en dirección prohibida falla el lint.
+
+Las decisiones estructurales se registran en `docs/adr/`.
+
+## Flujo de trabajo
+
+`main` está protegida: el pipeline debe pasar antes de fusionar. El trabajo va en ramas.
+
+```bash
+git checkout -b feat/lo-que-sea
+npm run verify        # mismo conjunto que corre CI
+git push -u origin feat/lo-que-sea
+```
+
 ## Estado
 
 **Fase 1 de 6:** spike de captura vía WebView contra Bancolombia y Nequi. Es un
 experimento para decidir si la ingesta bancaria se construye sobre esta base o pivota a
 correo y notificaciones push. No es producto: no hay backend, base de datos ni
 categorización todavía.
+
+## Registros y errores
+
+Nunca uses `console` directamente: `no-console` está en error. Usa la capa de
+observabilidad, que redacta datos sensibles antes de emitir.
+
+```ts
+import { observability } from '@/infrastructure/observability';
+
+observability.log('info', 'sincronización completada', { fuente: 'nequi' });
+observability.captureError(error, { operacion: 'conciliar' });
+```
+
+Montos, saldos, números de cuenta, correos y credenciales se redactan automáticamente. Aun
+así, no los pases: lo que no se envía no se puede filtrar.
+
+La interfaz no importa la infraestructura. Un componente que necesite reportar recibe la
+función inyectada desde la capa de composición (`src/app/`).
 
 ## Seguridad — no negociable
 
@@ -91,6 +143,6 @@ No re-litigar sin motivo nuevo. El porqué está en el roadmap.
 ## Contexto del usuario
 
 Rechaza explícitamente las soluciones que exijan trabajo manual —registrar gastos a mano,
-descargar e importar extractos— porque el problema que quiere resolver *es* su falta de
+descargar e importar extractos— porque el problema que quiere resolver _es_ su falta de
 constancia. Prefiere la vía técnicamente más difícil si es la más automatizada.
 No propongas la alternativa manual como si fuera un buen plan B.
