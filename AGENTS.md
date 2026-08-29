@@ -118,6 +118,13 @@ experimento para decidir si la ingesta bancaria se construye sobre esta base o p
 correo y notificaciones push. No es producto: no hay backend, base de datos ni
 categorización todavía.
 
+## Diseño
+
+Las decisiones visuales se arbitran con `docs/diseno/principios.md`. Antes de proponer un
+cambio de interfaz, léelo: cada principio descarta explícitamente algo que suena
+razonable. El resto de `docs/diseno/` explica para quién es la app, cuál es el listón por
+pantalla y cómo se usan color y tipografía.
+
 ## Registros y errores
 
 Nunca uses `console` directamente: `no-console` está en error. Usa la capa de
