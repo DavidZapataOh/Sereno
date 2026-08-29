@@ -69,13 +69,47 @@ Las decisiones estructurales se registran en `docs/adr/`.
 
 ## Flujo de trabajo
 
-`main` está protegida: el pipeline debe pasar antes de fusionar. El trabajo va en ramas.
+El trabajo va en ramas y se integra con **un solo comando**.
 
 ```bash
 git checkout -b feat/lo-que-sea
-npm run verify        # mismo conjunto que corre CI
-git push -u origin feat/lo-que-sea
+# ... trabajo, commits ...
+npm run integrar
 ```
+
+`npm run integrar` verifica en local, sube la rama, **espera a que CI pase antes de tocar
+`main`**, fusiona, vuelve a verificar el árbol fusionado, publica `main` y borra la rama en
+local y en remoto. Si CI falla, o si la fusión rompe algo, `main` queda intacta.
+
+Existe porque el flujo anterior pedía acordarse de dos push por sprint —el de la rama y el
+de `main`— y el segundo no da ninguna señal cuando falta: `main` se quedó dos sprints atrás
+sin que nadie lo notara.
+
+`npm run verify` corre el mismo conjunto que CI, por separado.
+
+**`main` no está protegida en GitHub.** La disciplina la impone el guion, no el servidor.
+Activar la protección de rama es pendiente conocido; con un solo desarrollador añade
+fricción sin añadir garantías, porque nadie más puede empujar.
+
+### Node: hay dos en esta máquina
+
+`/usr/bin/node` es v18 y el de nvm es el que el proyecto exige. **Un shell no interactivo
+—el que abre `wsl -- npm`, un cron, un hook de editor— no carga nvm y coge el v18.** Con
+ese, el binario nativo de `better-sqlite3` no avisa: mata el proceso con `SIGSEGV`, y se
+ve como ocho suites de pruebas muriendo con «A jest worker process was terminated» sin
+mencionar a Node.
+
+`npm test` y `npm run verify` lo comprueban antes de empezar y explican el arreglo;
+`npm run integrar` además lo repara solo. Trabajar desde la terminal de Ubuntu evita el
+problema entero.
+
+Dos detalles que cuestan tiempo si no se saben:
+
+- **`bash -lc` no carga nvm.** El `.bashrc` de Ubuntu se corta en su primera línea cuando
+  el shell no es interactivo, y nvm vive ahí. Desde PowerShell hace falta `bash -ic`.
+- **`nvm use` no sirve dentro de un script de npm.** npm exporta `npm_config_prefix` y nvm
+  se niega a correr con esa variable puesta. Por eso `integrar.sh` localiza el binario a
+  mano en vez de usar nvm.
 
 ## Estado
 
@@ -133,8 +167,11 @@ No re-litigar sin motivo nuevo. El porqué está en el roadmap.
 
 ## Convenciones
 
-- Código, identificadores y comentarios en **inglés**. Textos de interfaz y documentación
-  en **español**.
+- **Identificadores en inglés** (`createAccount`, `buildInjectedScript`). **Comentarios,
+  mensajes de error, textos de interfaz y documentación en español.** Los comentarios
+  explican por qué, y quien los lee piensa en español; el idioma que ayuda gana al que
+  queda uniforme. Los identificadores van en inglés porque conviven con los de las
+  librerías.
 - Montos como enteros en la unidad mínima, nunca `float`. El peso colombiano no usa
   decimales en la práctica, pero cripto y USD sí: usa enteros escalados.
 - Fechas en ISO 8601 con zona horaria explícita.
