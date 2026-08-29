@@ -62,8 +62,8 @@ describe('esquema y migraciones', () => {
       'idx_accounts_owner',
       'idx_postings_account',
       'idx_postings_transaction',
-      'idx_transactions_fecha',
-      'idx_transactions_owner',
+      'idx_transactions_origen',
+      'idx_transactions_owner_fecha',
     ]);
   });
 

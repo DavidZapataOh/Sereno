@@ -34,8 +34,14 @@ export const transactions = sqliteTable(
     referencia: text('referencia'),
   },
   (tabla) => [
-    index('idx_transactions_fecha').on(tabla.fecha),
-    index('idx_transactions_owner').on(tabla.ownerId),
+    // Sostiene el listado paginado: se ordena por fecha descendente dentro de un
+    // propietario, y `id` desempata para que el cursor no salte ni repita
+    // filas cuando dos transacciones comparten fecha.
+    index('idx_transactions_owner_fecha').on(tabla.ownerId, tabla.fecha, tabla.id),
+    // Sostiene la deduplicación. Sin él, `existsByOrigin` escanea la tabla
+    // entera en cada movimiento importado, que es justo la operación que más
+    // veces se repite durante una sincronización.
+    index('idx_transactions_origen').on(tabla.ownerId, tabla.fuente, tabla.referencia),
   ],
 );
 
