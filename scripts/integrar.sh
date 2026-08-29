@@ -15,6 +15,25 @@ set -euo pipefail
 REPO="DavidZapataOh/Sereno"
 PRINCIPAL="main"
 
+# Se trabaja desde la raíz del repo pase lo que pase, no desde donde se invoque.
+cd "$(dirname "${BASH_SOURCE[0]}")/.."
+
+# Un shell NO interactivo —el que abre `wsl -- npm`— no carga nvm y coge el
+# /usr/bin/node del sistema. Con ese, better-sqlite3 mata el proceso con
+# SIGSEGV. En vez de exigir que quien lo lanza se acuerde, se carga nvm aquí.
+if ! node scripts/comprobar-node.mjs >/dev/null 2>&1; then
+  if [ -s "$HOME/.nvm/nvm.sh" ]; then
+    set +u
+    # shellcheck disable=SC1091
+    . "$HOME/.nvm/nvm.sh" >/dev/null 2>&1 || true
+    nvm use >/dev/null 2>&1 || true
+    set -u
+  fi
+fi
+
+# Si después de eso sigue mal, que lo diga con detalle y pare antes de tocar nada.
+node scripts/comprobar-node.mjs
+
 rojo()  { printf '\033[31m%s\033[0m\n' "$1"; }
 verde() { printf '\033[32m%s\033[0m\n' "$1"; }
 paso()  { printf '\n\033[1m▸ %s\033[0m\n' "$1"; }
