@@ -33,7 +33,7 @@ describe('PortalSession', () => {
     const { getByTestId } = await renderWithProviders(
       <PortalSession portal={portal} injectedScript={SCRIPT} />,
     );
-    expect(getByTestId('contador-capturas')).toHaveTextContent('0 capturas');
+    expect(getByTestId('contador-capturas')).toHaveTextContent(/0 capturas/);
   });
 
   it('advierte del límite de sesión cuando el portal lo declara', async () => {
@@ -69,7 +69,7 @@ describe('PortalSession', () => {
 
     // El store se actualiza fuera del ciclo de React: hay que esperar al re-render.
     await waitFor(() => {
-      expect(getByTestId('contador-capturas')).toHaveTextContent('1 captura');
+      expect(getByTestId('contador-capturas')).toHaveTextContent(/1 captura/);
     });
   });
 });

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { WebView, type WebViewMessageEvent, type WebViewNavigation } from 'react-native-webview';
 import { perteneceAlPortal, type Portal } from '@/domain/portals/registry';
 import { useCaptureStore } from './store';
@@ -10,6 +10,8 @@ const USER_AGENT =
 
 interface Props {
   portal: Portal;
+  /** Abre la bandeja de capturas sin perder la sesión. */
+  onVerCapturas?: () => void;
   /**
    * JavaScript que se inyecta antes de cargar el portal.
    *
@@ -22,7 +24,7 @@ interface Props {
   injectedScript: string;
 }
 
-export function PortalSession({ portal, injectedScript }: Props) {
+export function PortalSession({ portal, injectedScript, onVerCapturas }: Props) {
   const handleMessage = useCaptureStore((state) => state.handleMessage);
   const total = useCaptureStore((state) => state.captures.length);
 
@@ -82,9 +84,15 @@ export function PortalSession({ portal, injectedScript }: Props) {
         testID="webview-portal"
       />
 
-      <View style={styles.footer}>
+      <Pressable
+        style={styles.footer}
+        onPress={onVerCapturas}
+        accessibilityRole="button"
+        accessibilityLabel="Ver capturas"
+        testID="pie-capturas"
+      >
         <Text style={styles.contador} testID="contador-capturas">
-          {total} {total === 1 ? 'captura' : 'capturas'}
+          {total} {total === 1 ? 'captura' : 'capturas'} · toca para verlas
         </Text>
         <Text style={styles.url} numberOfLines={1} testID="url-actual">
           {urlActual}
@@ -94,7 +102,7 @@ export function PortalSession({ portal, injectedScript }: Props) {
             Bloqueada: {bloqueada}
           </Text>
         )}
-      </View>
+      </Pressable>
     </View>
   );
 }

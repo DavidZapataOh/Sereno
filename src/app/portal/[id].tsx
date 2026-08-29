@@ -1,4 +1,4 @@
-import { Stack, useLocalSearchParams } from 'expo-router';
+import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { getPortal } from '@/domain/portals/registry';
@@ -24,7 +24,13 @@ export default function PortalRoute() {
   return (
     <>
       <Stack.Screen options={{ title: portal.nombre }} />
-      <PortalSession portal={portal} injectedScript={script} />
+      <PortalSession
+        portal={portal}
+        injectedScript={script}
+        onVerCapturas={() => {
+          router.push('/capturas');
+        }}
+      />
     </>
   );
 }
