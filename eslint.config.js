@@ -3,6 +3,7 @@ const { defineConfig } = require('eslint/config');
 const expoConfig = require('eslint-config-expo/flat');
 const tseslint = require('typescript-eslint');
 const prettier = require('eslint-config-prettier');
+const boundaries = require('eslint-plugin-boundaries');
 
 module.exports = defineConfig([
   expoConfig,
@@ -61,6 +62,78 @@ module.exports = defineConfig([
       '@typescript-eslint/no-unsafe-assignment': 'off',
       '@typescript-eslint/no-unsafe-member-access': 'off',
       '@typescript-eslint/no-non-null-assertion': 'off',
+    },
+  },
+
+  // Fronteras entre capas. Las dependencias van en un solo sentido.
+  {
+    files: ['src/**/*.ts', 'src/**/*.tsx'],
+    plugins: { boundaries },
+    settings: {
+      'boundaries/elements': [
+        { type: 'domain', pattern: 'src/domain/**' },
+        { type: 'application', pattern: 'src/application/**' },
+        { type: 'infrastructure', pattern: 'src/infrastructure/**' },
+        { type: 'ui', pattern: 'src/ui/**' },
+        { type: 'routes', pattern: 'src/app/**' },
+        { type: 'test', pattern: 'src/test/**' },
+      ],
+    },
+    rules: {
+      'boundaries/dependencies': [
+        'error',
+        {
+          default: 'disallow',
+          policies: [
+            // El dominio es autosuficiente: no conoce nada más.
+            {
+              from: { element: { type: 'domain' } },
+              allow: { to: { element: { type: 'domain' } } },
+            },
+            // Los casos de uso orquestan el dominio.
+            {
+              from: { element: { type: 'application' } },
+              allow: { to: { element: { types: { anyOf: ['domain', 'application'] } } } },
+            },
+            // La infraestructura implementa los puertos del dominio.
+            {
+              from: { element: { type: 'infrastructure' } },
+              allow: {
+                to: {
+                  element: { types: { anyOf: ['domain', 'application', 'infrastructure'] } },
+                },
+              },
+            },
+            // La interfaz consume casos de uso y tipos del dominio.
+            {
+              from: { element: { type: 'ui' } },
+              allow: { to: { element: { types: { anyOf: ['domain', 'application', 'ui'] } } } },
+            },
+            // Las rutas solo componen interfaz.
+            {
+              from: { element: { type: 'routes' } },
+              allow: {
+                to: { element: { types: { anyOf: ['ui', 'application', 'domain', 'routes'] } } },
+              },
+            },
+            // Las utilidades de prueba pueden tocar todo.
+            {
+              from: { element: { type: 'test' } },
+              allow: {
+                to: {
+                  element: {
+                    types: {
+                      anyOf: ['domain', 'application', 'infrastructure', 'ui', 'routes', 'test'],
+                    },
+                  },
+                },
+              },
+            },
+            // Las dependencias externas no las gobierna esta regla.
+            { allow: { to: { module: { origin: 'external' } } } },
+          ],
+        },
+      ],
     },
   },
 

@@ -43,6 +43,32 @@ una fase, léelos en `../docs/superpowers/specs/`:
 
 Nunca muevas `docs/` dentro de este repo ni inicialices git en la raíz.
 
+## Capas
+
+```
+src/domain/          TypeScript puro. No importa NADA externo.
+src/application/     Casos de uso. Importa domain.
+src/infrastructure/  SQLite, HTTP, WebView. Implementa puertos de domain.
+src/ui/              Componentes, pantallas y hooks.
+src/app/             Rutas de expo-router.
+src/test/            Utilidades de prueba.
+```
+
+Las dependencias van en un solo sentido y `eslint-plugin-boundaries` lo verifica. Un
+import que cruce una capa en dirección prohibida falla el lint.
+
+Las decisiones estructurales se registran en `docs/adr/`.
+
+## Flujo de trabajo
+
+`main` está protegida: el pipeline debe pasar antes de fusionar. El trabajo va en ramas.
+
+```bash
+git checkout -b feat/lo-que-sea
+npm run verify        # mismo conjunto que corre CI
+git push -u origin feat/lo-que-sea
+```
+
 ## Estado
 
 **Fase 1 de 6:** spike de captura vía WebView contra Bancolombia y Nequi. Es un
