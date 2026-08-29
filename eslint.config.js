@@ -78,6 +78,9 @@ module.exports = defineConfig([
         { type: 'routes', pattern: 'src/app/**' },
         { type: 'test', pattern: 'src/test/**' },
       ],
+      // Los archivos de prueba se identifican por su nombre, no por su carpeta:
+      // viven junto al código que prueban, en cualquier capa.
+      'boundaries/files': [{ category: 'test', pattern: '**/*.test.{ts,tsx}' }],
     },
     rules: {
       'boundaries/dependencies': [
@@ -109,11 +112,18 @@ module.exports = defineConfig([
               from: { element: { type: 'ui' } },
               allow: { to: { element: { types: { anyOf: ['domain', 'application', 'ui'] } } } },
             },
-            // Las rutas solo componen interfaz.
+            // Las rutas son la capa de composición: cablean la interfaz con la
+            // infraestructura. Es el único sitio donde se juntan.
             {
               from: { element: { type: 'routes' } },
               allow: {
-                to: { element: { types: { anyOf: ['ui', 'application', 'domain', 'routes'] } } },
+                to: {
+                  element: {
+                    types: {
+                      anyOf: ['ui', 'application', 'domain', 'infrastructure', 'routes'],
+                    },
+                  },
+                },
               },
             },
             // Las utilidades de prueba pueden tocar todo.
@@ -128,6 +138,13 @@ module.exports = defineConfig([
                   },
                 },
               },
+            },
+            // Cualquier archivo de prueba puede usar las utilidades de prueba,
+            // sea cual sea la capa en la que viva. Abrir la frontera de la capa
+            // entera dejaría que el código de producción las importara también.
+            {
+              from: { file: { categories: 'test' } },
+              allow: { to: { element: { type: 'test' } } },
             },
             // Las dependencias externas no las gobierna esta regla.
             { allow: { to: { module: { origin: 'external' } } } },
