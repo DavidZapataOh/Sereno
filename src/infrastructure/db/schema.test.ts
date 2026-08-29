@@ -1,19 +1,19 @@
 import { sql } from 'drizzle-orm';
 
 import { accounts, postings, transactions } from './schema';
-import { crearClienteDePrueba } from './test-client';
+import { createTestDb } from './test-client';
 
-type ClienteDePrueba = ReturnType<typeof crearClienteDePrueba>;
+type TestDb = ReturnType<typeof createTestDb>;
 
 describe('esquema y migraciones', () => {
-  let cliente: ClienteDePrueba;
+  let cliente: TestDb;
 
   beforeEach(() => {
-    cliente = crearClienteDePrueba();
+    cliente = createTestDb();
   });
 
   afterEach(() => {
-    cliente.cerrar();
+    cliente.close();
   });
 
   const insertarCuenta = (id: string): void => {
@@ -172,12 +172,12 @@ describe('esquema y migraciones', () => {
 
   it('cada base en memoria está aislada de las demás', () => {
     insertarCuenta('cuenta-1');
-    const otro = crearClienteDePrueba();
+    const otro = createTestDb();
 
     try {
       expect(otro.db.select().from(accounts).all()).toEqual([]);
     } finally {
-      otro.cerrar();
+      otro.close();
     }
   });
 });

@@ -5,7 +5,7 @@ import {
   splitIntoFragments,
   type CaptureMeta,
 } from './protocol';
-import { exigir } from '@/test/exigir';
+import { mustExist } from '@/test/must-exist';
 
 describe('splitIntoFragments', () => {
   it('devuelve un solo fragmento cuando el cuerpo cabe', () => {
@@ -32,7 +32,7 @@ describe('splitIntoFragments', () => {
   it('devuelve un fragmento vacío para un cuerpo vacío', () => {
     const fragments = splitIntoFragments('abc', '');
     expect(fragments).toHaveLength(1);
-    expect(exigir(fragments[0]).data).toBe('');
+    expect(mustExist(fragments[0]).data).toBe('');
   });
 
   it('respeta el límite de tamaño en cada fragmento', () => {

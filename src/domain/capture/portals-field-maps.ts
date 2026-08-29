@@ -26,4 +26,4 @@ export const BANCOLOMBIA_MOVIMIENTOS: FieldMap = {
   tipo: { path: 'type', debito: 'CREDITO' },
 };
 
-export const extraerBancolombia = createExtractor('bancolombia', BANCOLOMBIA_MOVIMIENTOS);
+export const extractBancolombia = createExtractor('bancolombia', BANCOLOMBIA_MOVIMIENTOS);

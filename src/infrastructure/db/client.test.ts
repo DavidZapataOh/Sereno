@@ -1,6 +1,6 @@
 import migraciones from '../../../drizzle/migrations';
 
-import { abrirBaseDeDatos, aplicarMigraciones, NOMBRE_BASE_DE_DATOS } from './client';
+import { openDatabase, applyMigrations, DATABASE_NAME } from './client';
 
 const mockExecSync = jest.fn();
 const mockOpenDatabaseSync = jest.fn((_nombre: string, _opciones?: Record<string, unknown>) => ({
@@ -27,9 +27,9 @@ jest.mock('drizzle-orm/expo-sqlite/migrator', () => ({
 
 describe('cliente del dispositivo', () => {
   it('abre la base con el nombre esperado', () => {
-    abrirBaseDeDatos();
+    openDatabase();
 
-    expect(mockOpenDatabaseSync).toHaveBeenCalledWith(NOMBRE_BASE_DE_DATOS, {
+    expect(mockOpenDatabaseSync).toHaveBeenCalledWith(DATABASE_NAME, {
       enableChangeListener: true,
     });
   });
@@ -40,7 +40,7 @@ describe('cliente del dispositivo', () => {
    * interfaz se quedaría con datos viejos sin lanzar ningún error.
    */
   it('habilita el listener de cambios que necesita useLiveQuery', () => {
-    abrirBaseDeDatos();
+    openDatabase();
 
     const opciones = mockOpenDatabaseSync.mock.calls[0]?.[1];
     expect(opciones).toEqual({ enableChangeListener: true });
@@ -53,19 +53,19 @@ describe('cliente del dispositivo', () => {
    * entera en verde y la integridad referencial solo existiría en el papel.
    */
   it('activa las claves foráneas, que en el dispositivo vienen apagadas', () => {
-    abrirBaseDeDatos();
+    openDatabase();
 
     expect(mockExecSync).toHaveBeenCalledWith('PRAGMA foreign_keys = ON');
   });
 
   it('activa WAL para que leer no se bloquee contra la sincronización', () => {
-    abrirBaseDeDatos();
+    openDatabase();
 
     expect(mockExecSync).toHaveBeenCalledWith('PRAGMA journal_mode = WAL');
   });
 
   it('fija los PRAGMA antes de que las migraciones abran una transacción', () => {
-    abrirBaseDeDatos();
+    openDatabase();
 
     // El PRAGMA es un no-op dentro de una transacción: si se ejecutara después
     // de migrar, SQLite lo aceptaría sin protestar y no haría nada.
@@ -90,9 +90,9 @@ describe('cliente del dispositivo', () => {
   });
 
   it('aplica las migraciones incrustadas sobre la base abierta', async () => {
-    const { db } = abrirBaseDeDatos();
+    const { db } = openDatabase();
 
-    await aplicarMigraciones(db);
+    await applyMigrations(db);
 
     expect(mockMigrate).toHaveBeenCalledWith(db, migraciones);
   });

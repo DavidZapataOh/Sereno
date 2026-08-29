@@ -1,4 +1,4 @@
-import { getPortal, perteneceAlPortal, PORTALS } from './registry';
+import { getPortal, belongsToPortal, PORTALS } from './registry';
 
 describe('registro de portales', () => {
   it('incluye Nequi y Bancolombia', () => {
@@ -41,44 +41,42 @@ describe('registro de portales', () => {
   });
 });
 
-describe('perteneceAlPortal', () => {
+describe('belongsToPortal', () => {
   const nequi = getPortal('nequi');
   const bancolombia = getPortal('bancolombia');
   if (nequi === undefined || bancolombia === undefined) throw new Error('portal ausente');
 
   it('acepta el dominio principal', () => {
-    expect(perteneceAlPortal(nequi, 'https://www.nequi.com.co/')).toBe(true);
+    expect(belongsToPortal(nequi, 'https://www.nequi.com.co/')).toBe(true);
   });
 
   it('acepta subdominios: el login suele vivir en otro host', () => {
-    expect(perteneceAlPortal(nequi, 'https://id.nequi.com.co/login')).toBe(true);
-    expect(perteneceAlPortal(nequi, 'https://transacciones.nequi.co/')).toBe(true);
+    expect(belongsToPortal(nequi, 'https://id.nequi.com.co/login')).toBe(true);
+    expect(belongsToPortal(nequi, 'https://transacciones.nequi.co/')).toBe(true);
   });
 
   it('acepta el host de login observado en campo', () => {
     // Observado el 2026-08-29: la portada es nequi.com.co pero el login vive en
     // transacciones.nequi.com — dominio distinto, no subdominio.
-    expect(perteneceAlPortal(nequi, 'https://transacciones.nequi.com/bdigital/login.jsp')).toBe(
-      true,
-    );
+    expect(belongsToPortal(nequi, 'https://transacciones.nequi.com/bdigital/login.jsp')).toBe(true);
   });
 
   it('acepta la sucursal virtual de Bancolombia', () => {
-    expect(perteneceAlPortal(bancolombia, 'https://sucursalvirtual.grupobancolombia.com/')).toBe(
+    expect(belongsToPortal(bancolombia, 'https://sucursalvirtual.grupobancolombia.com/')).toBe(
       true,
     );
   });
 
   it('rechaza un dominio ajeno', () => {
-    expect(perteneceAlPortal(nequi, 'https://google.com/')).toBe(false);
+    expect(belongsToPortal(nequi, 'https://google.com/')).toBe(false);
   });
 
   it('rechaza un dominio que solo contiene el nombre', () => {
     // «nequi.com.co.atacante.com» no es Nequi.
-    expect(perteneceAlPortal(nequi, 'https://nequi.com.co.atacante.com/')).toBe(false);
+    expect(belongsToPortal(nequi, 'https://nequi.com.co.atacante.com/')).toBe(false);
   });
 
   it('rechaza una URL inválida sin lanzar', () => {
-    expect(perteneceAlPortal(nequi, 'no-es-una-url')).toBe(false);
+    expect(belongsToPortal(nequi, 'no-es-una-url')).toBe(false);
   });
 });

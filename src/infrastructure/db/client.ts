@@ -6,9 +6,9 @@ import migraciones from '../../../drizzle/migrations';
 
 import * as schema from './schema';
 
-export const NOMBRE_BASE_DE_DATOS = 'sereno.db';
+export const DATABASE_NAME = 'sereno.db';
 
-export type BaseDeDatos = ReturnType<typeof drizzle<typeof schema>>;
+export type Database = ReturnType<typeof drizzle<typeof schema>>;
 
 /**
  * Abre la base del dispositivo.
@@ -21,16 +21,16 @@ export type BaseDeDatos = ReturnType<typeof drizzle<typeof schema>>;
  *    aquí: estarían en verde mientras el dispositivo acepta apuntes huérfanos.
  *    Por eso hay una prueba dedicada que verifica esta llamada.
  * 2. El PRAGMA se ignora dentro de una transacción, y las migraciones corren en
- *    una. Tiene que ejecutarse antes de `aplicarMigraciones`.
+ *    una. Tiene que ejecutarse antes de `applyMigrations`.
  */
-export function abrirBaseDeDatos(): {
-  readonly db: BaseDeDatos;
+export function openDatabase(): {
+  readonly db: Database;
   readonly sqlite: SQLiteDatabase;
 } {
   // `enableChangeListener` es obligatorio para `useLiveQuery`: esa utilidad se
   // suscribe a `addDatabaseChangeListener`, que solo emite si la base se abrió
   // con esta opción. Sin ella la interfaz nunca se refrescaría, y sin error.
-  const sqlite = openDatabaseSync(NOMBRE_BASE_DE_DATOS, {
+  const sqlite = openDatabaseSync(DATABASE_NAME, {
     enableChangeListener: true,
   });
 
@@ -42,6 +42,6 @@ export function abrirBaseDeDatos(): {
   return { db: drizzle(sqlite, { schema }), sqlite };
 }
 
-export async function aplicarMigraciones(db: BaseDeDatos): Promise<void> {
+export async function applyMigrations(db: Database): Promise<void> {
   await migrate(db, migraciones);
 }

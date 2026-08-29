@@ -5,9 +5,9 @@ import { join } from 'node:path';
 
 import * as schema from './schema';
 
-export type ClienteDePrueba = {
+export type TestDb = {
   readonly db: ReturnType<typeof drizzle<typeof schema>>;
-  readonly cerrar: () => void;
+  readonly close: () => void;
 };
 
 /**
@@ -17,7 +17,7 @@ export type ClienteDePrueba = {
  * a mano: si las pruebas montan su propio esquema dejan de detectar el caso que
  * más duele, que es una migración que no corre en el dispositivo.
  */
-export function crearClienteDePrueba(): ClienteDePrueba {
+export function createTestDb(): TestDb {
   const sqlite = new Database(':memory:');
 
   // SQLite trae las claves foráneas DESACTIVADAS por defecto en cada conexión.
@@ -30,7 +30,7 @@ export function crearClienteDePrueba(): ClienteDePrueba {
 
   return {
     db,
-    cerrar: () => {
+    close: () => {
       sqlite.close();
     },
   };

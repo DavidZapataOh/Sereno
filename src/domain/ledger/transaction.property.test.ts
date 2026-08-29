@@ -7,7 +7,7 @@ import {
   UnbalancedTransactionError,
   type Posting,
 } from './transaction';
-import { exigir } from '@/test/exigir';
+import { mustExist } from '@/test/must-exist';
 
 const base = {
   id: transactionId('tx'),
@@ -55,7 +55,7 @@ describe('propiedades de la invariante', () => {
   it('alterar un solo apunte hace que deje de poder construirse', () => {
     assert(
       property(apuntesQueCuadran, bigInt({ min: 1n, max: 1_000_000n }), (postings, desvio) => {
-        const primero = exigir(postings[0]);
+        const primero = mustExist(postings[0]);
         const alterados = [
           { ...primero, amount: money(primero.amount.amount + desvio, 'COP') },
           ...postings.slice(1),
