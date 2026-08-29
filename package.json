@@ -4,6 +4,7 @@
   "version": "1.0.0",
   "dependencies": {
     "@expo/ui": "~57.0.14",
+    "@types/jest": "29.5.14",
     "expo": "~57.0.18",
     "expo-constants": "~57.0.16",
     "expo-device": "~57.0.1",
@@ -31,7 +32,7 @@
     "@commitlint/cli": "^21.2.2",
     "@commitlint/config-conventional": "^21.2.2",
     "@testing-library/react-native": "^14.0.1",
-    "@types/jest": "^30.0.0",
+    "@types/jest": "29.5.14",
     "@types/node": "^26.4.0",
     "@types/react": "~19.2.2",
     "eslint": "^9.0.0",
