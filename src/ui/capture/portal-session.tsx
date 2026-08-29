@@ -1,6 +1,7 @@
+import { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { WebView, type WebViewMessageEvent } from 'react-native-webview';
-import type { Portal } from '@/domain/portals/registry';
+import { WebView, type WebViewMessageEvent, type WebViewNavigation } from 'react-native-webview';
+import { perteneceAlPortal, type Portal } from '@/domain/portals/registry';
 import { useCaptureStore } from './store';
 
 /** User-Agent de Chrome en Android, para no ser tratados como WebView. */
@@ -25,8 +26,29 @@ export function PortalSession({ portal, injectedScript }: Props) {
   const handleMessage = useCaptureStore((state) => state.handleMessage);
   const total = useCaptureStore((state) => state.captures.length);
 
+  const [urlActual, setUrlActual] = useState(portal.url);
+  const [bloqueada, setBloqueada] = useState<string | null>(null);
+
   const onMessage = (event: WebViewMessageEvent): void => {
     handleMessage(event.nativeEvent.data);
+  };
+
+  /**
+   * Decide si la navegación se queda dentro de la sesión.
+   *
+   * Sin esto, `originWhitelist` expulsa al navegador del sistema cualquier salto
+   * a otro host —y el login de los bancos vive casi siempre en un subdominio
+   * distinto—. Al salir, la sesión se abre fuera de la app y no se captura nada.
+   */
+  const onShouldStartLoadWithRequest = (request: WebViewNavigation): boolean => {
+    const permitida = perteneceAlPortal(portal, request.url);
+    if (permitida) {
+      setUrlActual(request.url);
+      setBloqueada(null);
+    } else {
+      setBloqueada(request.url);
+    }
+    return permitida;
   };
 
   return (
@@ -42,7 +64,8 @@ export function PortalSession({ portal, injectedScript }: Props) {
 
       <WebView
         source={{ uri: portal.url }}
-        originWhitelist={[`${portal.origen}/*`]}
+        originWhitelist={['https://*']}
+        onShouldStartLoadWithRequest={onShouldStartLoadWithRequest}
         userAgent={USER_AGENT}
         injectedJavaScriptBeforeContentLoaded={injectedScript}
         onMessage={onMessage}
@@ -58,6 +81,14 @@ export function PortalSession({ portal, injectedScript }: Props) {
         <Text style={styles.contador} testID="contador-capturas">
           {total} {total === 1 ? 'captura' : 'capturas'}
         </Text>
+        <Text style={styles.url} numberOfLines={1} testID="url-actual">
+          {urlActual}
+        </Text>
+        {bloqueada !== null && (
+          <Text style={styles.bloqueada} numberOfLines={2} testID="url-bloqueada">
+            Bloqueada: {bloqueada}
+          </Text>
+        )}
       </View>
     </View>
   );
@@ -69,6 +100,8 @@ const styles = StyleSheet.create({
   banner: { backgroundColor: '#FEF3C7', padding: 12, gap: 4 },
   instrucciones: { fontSize: 13, color: '#78350F' },
   aviso: { fontSize: 11, color: '#92400E', fontWeight: '600' },
-  footer: { backgroundColor: '#1F2937', padding: 14, alignItems: 'center' },
-  contador: { color: '#F9FAFB', fontWeight: '600' },
+  footer: { backgroundColor: '#1F2937', padding: 12, gap: 4 },
+  contador: { color: '#F9FAFB', fontWeight: '600', textAlign: 'center' },
+  url: { color: '#9CA3AF', fontSize: 10 },
+  bloqueada: { color: '#FCA5A5', fontSize: 10 },
 });
