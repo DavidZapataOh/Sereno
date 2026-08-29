@@ -1,10 +1,14 @@
 name: CI
 
 on:
+  # Cualquier rama: interesa saber que algo se rompió antes de abrir el pull
+  # request, no al abrirlo.
   push:
-    branches: [main]
+    branches: ['**']
   pull_request:
     branches: [main]
+  # Permite lanzarlo a mano desde la pestaña Actions.
+  workflow_dispatch:
 
 # Una corrida nueva sobre la misma rama cancela la anterior.
 concurrency:
