@@ -8,7 +8,9 @@ jest.mock('expo-clipboard', () => ({
   setStringAsync: jest.fn().mockResolvedValue(true),
 }));
 
-const escribirArchivo = jest.fn();
+// El prefijo `mock` es obligatorio: jest.mock() no admite referencias a
+// variables externas salvo que se llamen así.
+const mockEscribirArchivo = jest.fn();
 
 jest.mock('expo-file-system', () => ({
   Paths: { cache: 'file:///cache' },
@@ -16,7 +18,7 @@ jest.mock('expo-file-system', () => ({
     readonly uri = 'file:///cache/volcado.json';
     create = jest.fn();
     write = (contenido: string): void => {
-      escribirArchivo(contenido);
+      mockEscribirArchivo(contenido);
     };
   },
 }));
@@ -94,8 +96,8 @@ describe('CaptureTray', () => {
     const { getByLabelText } = await renderWithProviders(<CaptureTray />);
     await fireEvent.press(getByLabelText('Exportar volcado como archivo'));
 
-    expect(escribirArchivo).toHaveBeenCalledTimes(1);
-    expect(escribirArchivo.mock.calls[0][0]).toContain('datos bancarios reales');
+    expect(mockEscribirArchivo).toHaveBeenCalledTimes(1);
+    expect(mockEscribirArchivo.mock.calls[0][0]).toContain('datos bancarios reales');
     await waitFor(() => {
       expect(Sharing.shareAsync).toHaveBeenCalledTimes(1);
     });
