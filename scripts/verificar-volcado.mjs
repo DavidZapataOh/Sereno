@@ -55,8 +55,25 @@ if (archivos.length === 0) {
 let fallos = 0;
 
 for (const archivo of archivos) {
-  const dump = JSON.parse(readFileSync(join(DIR, archivo), 'utf8'));
-  const capturas = dump.captures ?? [];
+  let dump;
+  try {
+    dump = JSON.parse(readFileSync(join(DIR, archivo), 'utf8'));
+  } catch {
+    console.error(
+      `${archivo}: NO es JSON válido. Suele significar que se copió el texto visible ` +
+        `de la pantalla en vez de exportar el volcado, o que el portapapeles lo truncó.`,
+    );
+    fallos += 1;
+    continue;
+  }
+
+  if (!Array.isArray(dump.captures)) {
+    console.error(`${archivo}: no tiene el campo "captures". No es un volcado de Sereno.`);
+    fallos += 1;
+    continue;
+  }
+
+  const capturas = dump.captures;
 
   const urlsSensibles = capturas.filter((c) => PATRONES.some((p) => p.test(c.url)));
   const cuerposSospechosos = capturas.flatMap((c) =>

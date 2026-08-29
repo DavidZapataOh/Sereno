@@ -1,4 +1,6 @@
 import * as Clipboard from 'expo-clipboard';
+import { File, Paths } from 'expo-file-system';
+import * as Sharing from 'expo-sharing';
 import { Alert, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { buildDump } from '@/domain/capture/dump';
 import { useCaptureStore } from './store';
@@ -14,6 +16,30 @@ export function CaptureTray() {
         'Copiado',
         `${String(captures.length)} capturas en el portapapeles. Contienen datos reales: pégalas en un archivo y bórralo al terminar.`,
       );
+    });
+  };
+
+  /**
+   * Escribe el volcado a un archivo y abre el diálogo de compartir.
+   *
+   * Es la vía fiable: el portapapeles de Android trunca los textos grandes, y un
+   * volcado de una sesión bancaria pasa de los cien kilobytes con facilidad.
+   */
+  const exportarArchivo = (): void => {
+    const nombre = `sereno-capturas-${String(Date.now())}.json`;
+    const archivo = new File(Paths.cache, nombre);
+    archivo.create({ overwrite: true });
+    archivo.write(buildDump(captures));
+
+    void Sharing.isAvailableAsync().then((disponible) => {
+      if (!disponible) {
+        Alert.alert('No disponible', `Archivo guardado en ${archivo.uri}`);
+        return;
+      }
+      return Sharing.shareAsync(archivo.uri, {
+        mimeType: 'application/json',
+        dialogTitle: 'Enviar el volcado de capturas',
+      });
     });
   };
 
@@ -51,11 +77,19 @@ export function CaptureTray() {
       <View style={styles.actions}>
         <Pressable
           style={styles.button}
+          onPress={exportarArchivo}
+          accessibilityRole="button"
+          accessibilityLabel="Exportar volcado como archivo"
+        >
+          <Text style={styles.buttonText}>Exportar archivo</Text>
+        </Pressable>
+        <Pressable
+          style={styles.button}
           onPress={exportar}
           accessibilityRole="button"
           accessibilityLabel="Copiar volcado de capturas"
         >
-          <Text style={styles.buttonText}>Copiar volcado</Text>
+          <Text style={styles.buttonText}>Copiar</Text>
         </Pressable>
         <Pressable
           style={[styles.button, styles.danger]}

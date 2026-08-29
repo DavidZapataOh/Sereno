@@ -8,6 +8,24 @@ jest.mock('expo-clipboard', () => ({
   setStringAsync: jest.fn().mockResolvedValue(true),
 }));
 
+const escribirArchivo = jest.fn();
+
+jest.mock('expo-file-system', () => ({
+  Paths: { cache: 'file:///cache' },
+  File: class {
+    readonly uri = 'file:///cache/volcado.json';
+    create = jest.fn();
+    write = (contenido: string): void => {
+      escribirArchivo(contenido);
+    };
+  },
+}));
+
+jest.mock('expo-sharing', () => ({
+  isAvailableAsync: jest.fn().mockResolvedValue(true),
+  shareAsync: jest.fn().mockResolvedValue(undefined),
+}));
+
 function guardarCaptura(id: string, body: string): void {
   const { handleMessage } = useCaptureStore.getState();
   handleMessage(
@@ -67,6 +85,19 @@ describe('CaptureTray', () => {
     // El store de Zustand notifica fuera del ciclo de React: hay que esperar.
     await waitFor(() => {
       expect(getByTestId('titulo-bandeja')).toHaveTextContent(/0 capturas/);
+    });
+  });
+
+  it('exportar escribe el volcado a un archivo y lo comparte', async () => {
+    const Sharing = jest.requireMock<{ shareAsync: jest.Mock }>('expo-sharing');
+    guardarCaptura('a', '{"v":1}');
+    const { getByLabelText } = await renderWithProviders(<CaptureTray />);
+    await fireEvent.press(getByLabelText('Exportar volcado como archivo'));
+
+    expect(escribirArchivo).toHaveBeenCalledTimes(1);
+    expect(escribirArchivo.mock.calls[0][0]).toContain('datos bancarios reales');
+    await waitFor(() => {
+      expect(Sharing.shareAsync).toHaveBeenCalledTimes(1);
     });
   });
 
