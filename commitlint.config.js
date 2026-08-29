@@ -1,5 +1,8 @@
 module.exports = {
   extends: ['@commitlint/config-conventional'],
+  // Los mensajes de fusión no siguen el formato convencional por diseño: los
+  // genera git. Sin esta excepción, `git merge` falla y deja la fusión a medias.
+  ignores: [(mensaje) => /^Merge /.test(mensaje)],
   rules: {
     'type-enum': [
       2,
