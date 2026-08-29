@@ -91,6 +91,6 @@ No re-litigar sin motivo nuevo. El porqué está en el roadmap.
 ## Contexto del usuario
 
 Rechaza explícitamente las soluciones que exijan trabajo manual —registrar gastos a mano,
-descargar e importar extractos— porque el problema que quiere resolver *es* su falta de
+descargar e importar extractos— porque el problema que quiere resolver _es_ su falta de
 constancia. Prefiere la vía técnicamente más difícil si es la más automatizada.
 No propongas la alternativa manual como si fuera un buen plan B.
