@@ -6,3 +6,8 @@ coverage
 android
 ios
 package-lock.json
+
+# Generado por drizzle-kit: se regenera en cada `db:generate` y volvería a
+# desformatearse, dejando CI en rojo sin que nadie haya tocado nada.
+drizzle/meta/
+drizzle/migrations.js
