@@ -119,19 +119,19 @@ export function allocate(a: Money, ratios: number[]): Money[] {
   const magnitud = negativo ? -a.amount : a.amount;
   const totalBig = BigInt(total);
 
-  const partes = ratios.map((ratio) => (magnitud * BigInt(ratio)) / totalBig);
-  let resto = magnitud - partes.reduce((acc, parte) => acc + parte, 0n);
-
-  // El resto se reparte de una unidad en una, empezando por las primeras partes.
-  for (let i = 0; resto > 0n; i = (i + 1) % partes.length) {
-    if (ratios[i] > 0) {
-      partes[i] += 1n;
-      resto -= 1n;
-    }
-  }
-
-  return partes.map((parte) => ({
-    amount: negativo ? -parte : parte,
-    currency: a.currency,
+  const cuotas = ratios.map((ratio) => ({
+    ratio,
+    parte: (magnitud * BigInt(ratio)) / totalBig,
   }));
+  let resto = magnitud - cuotas.reduce((acc, cuota) => acc + cuota.parte, 0n);
+
+  // Cada división trunca hacia abajo, así que el resto es siempre MENOR que el
+  // número de cuotas con proporción positiva. Por eso basta una sola pasada
+  // dando una unidad a cada una: no hace falta dar vueltas al arreglo.
+  return cuotas.map(({ ratio, parte }) => {
+    const recibeUnidad = resto > 0n && ratio > 0;
+    if (recibeUnidad) resto -= 1n;
+    const ajustada = recibeUnidad ? parte + 1n : parte;
+    return { amount: negativo ? -ajustada : ajustada, currency: a.currency };
+  });
 }

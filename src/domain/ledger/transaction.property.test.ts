@@ -7,6 +7,7 @@ import {
   UnbalancedTransactionError,
   type Posting,
 } from './transaction';
+import { exigir } from '@/test/exigir';
 
 const base = {
   id: transactionId('tx'),
@@ -54,11 +55,11 @@ describe('propiedades de la invariante', () => {
   it('alterar un solo apunte hace que deje de poder construirse', () => {
     assert(
       property(apuntesQueCuadran, bigInt({ min: 1n, max: 1_000_000n }), (postings, desvio) => {
-        const alterados = [...postings];
-        alterados[0] = {
-          ...alterados[0],
-          amount: money(alterados[0].amount.amount + desvio, 'COP'),
-        };
+        const primero = exigir(postings[0]);
+        const alterados = [
+          { ...primero, amount: money(primero.amount.amount + desvio, 'COP') },
+          ...postings.slice(1),
+        ];
         expect(() => createTransaction({ ...base, postings: alterados })).toThrow(
           UnbalancedTransactionError,
         );

@@ -95,10 +95,20 @@ describe('propiedades de allocate', () => {
 });
 
 describe('propiedades de compare', () => {
+  /**
+   * Normaliza -0 a 0.
+   *
+   * `toBe` usa `Object.is`, que distingue 0 de -0, y negar un `compare` que
+   * devolvió 0 —el caso de dos importes iguales— produce exactamente -0. Sin
+   * esta normalización la propiedad falla de forma intermitente, solo cuando
+   * fast-check genera por azar dos montos iguales.
+   */
+  const sinCeroNegativo = (n: number): number => (Object.is(n, -0) ? 0 : n);
+
   it('es antisimétrica', () => {
     assert(
       property(monto, monto, (a, b) => {
-        expect(compare(a, b)).toBe(-compare(b, a));
+        expect(compare(a, b)).toBe(sinCeroNegativo(-compare(b, a)));
       }),
     );
   });

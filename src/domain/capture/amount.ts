@@ -55,7 +55,7 @@ function extractIntegerPart(cleaned: string): string {
   const separatorAt = lastDot !== -1 ? lastDot : lastComma;
   if (separatorAt === -1) return onlyDigits(cleaned);
 
-  const separator = cleaned[separatorAt];
+  const separator = cleaned.charAt(separatorAt);
   const occurrences = cleaned.split(separator).length - 1;
   if (occurrences > 1) return onlyDigits(cleaned);
 

@@ -1,5 +1,6 @@
 import { useCaptureStore } from './store';
 import { CAPTURE_PROTOCOL_VERSION, splitIntoFragments } from '@/domain/capture/protocol';
+import { exigir } from '@/test/exigir';
 
 function metaMessage(id: string, url: string, totalFragments: number): string {
   return JSON.stringify({
@@ -35,7 +36,7 @@ describe('useCaptureStore', () => {
     handleMessage(metaMessage('a', 'https://banco.example/api/x', 1));
     handleMessage(fragmentMessage('a', '{"v":1}'));
     expect(useCaptureStore.getState().captures).toHaveLength(1);
-    expect(useCaptureStore.getState().captures[0].body).toBe('{"v":1}');
+    expect(exigir(useCaptureStore.getState().captures[0]).body).toBe('{"v":1}');
   });
 
   it('cuenta los mensajes que no cumplen el protocolo', () => {

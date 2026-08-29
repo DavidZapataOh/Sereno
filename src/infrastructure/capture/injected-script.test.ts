@@ -1,6 +1,7 @@
 import { buildInjectedScript } from './injected-script';
 import { FakeResponse, FakeXHR, flush, installScript } from './webview-harness';
 import { SENSITIVE_PATTERNS } from '@/domain/capture/sensitive-routes';
+import { exigir } from '@/test/exigir';
 
 const URL_DATOS = 'https://banco.example/api/movimientos';
 
@@ -40,10 +41,10 @@ describe('script inyectado — fetch', () => {
     await flush();
 
     expect(captures).toHaveLength(1);
-    expect(captures[0].body).toBe('{"a":1}');
-    expect(captures[0].url).toBe(URL_DATOS);
-    expect(captures[0].kind).toBe('fetch');
-    expect(captures[0].status).toBe(200);
+    expect(exigir(captures[0]).body).toBe('{"a":1}');
+    expect(exigir(captures[0]).url).toBe(URL_DATOS);
+    expect(exigir(captures[0]).kind).toBe('fetch');
+    expect(exigir(captures[0]).status).toBe(200);
   });
 
   it('NO captura una ruta de autenticación', async () => {
@@ -95,7 +96,7 @@ describe('script inyectado — fetch', () => {
     );
     await win.fetch(URL_DATOS);
     await flush();
-    expect(captures[0].body).toBe(grande);
+    expect(exigir(captures[0]).body).toBe(grande);
   });
 
   it('instalarlo dos veces no duplica capturas', async () => {
@@ -126,9 +127,9 @@ describe('script inyectado — XMLHttpRequest', () => {
     await flush();
 
     expect(captures).toHaveLength(1);
-    expect(captures[0].body).toBe('{"saldo":5000}');
-    expect(captures[0].kind).toBe('xhr');
-    expect(captures[0].method).toBe('GET');
+    expect(exigir(captures[0]).body).toBe('{"saldo":5000}');
+    expect(exigir(captures[0]).kind).toBe('xhr');
+    expect(exigir(captures[0]).method).toBe('GET');
   });
 
   it('NO captura una ruta de autenticación', async () => {

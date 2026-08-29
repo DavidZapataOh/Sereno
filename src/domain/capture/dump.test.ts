@@ -1,5 +1,6 @@
 import { buildDump } from './dump';
 import type { Capture } from './reassembler';
+import { exigir } from '@/test/exigir';
 
 const capture: Capture = {
   id: 'a',
@@ -27,7 +28,7 @@ describe('buildDump', () => {
 
   it('conserva el cuerpo íntegro', () => {
     const dump = JSON.parse(buildDump([capture])) as { captures: Capture[] };
-    expect(dump.captures[0].body).toBe('{"saldo":1000}');
+    expect(exigir(dump.captures[0]).body).toBe('{"saldo":1000}');
   });
 
   it('maneja una lista vacía', () => {
