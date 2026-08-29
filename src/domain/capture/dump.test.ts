@@ -1,5 +1,6 @@
 import { buildDump } from './dump';
 import type { Capture } from './reassembler';
+import { mustExist } from '@/test/must-exist';
 
 const capture: Capture = {
   id: 'a',
@@ -27,7 +28,7 @@ describe('buildDump', () => {
 
   it('conserva el cuerpo íntegro', () => {
     const dump = JSON.parse(buildDump([capture])) as { captures: Capture[] };
-    expect(dump.captures[0].body).toBe('{"saldo":1000}');
+    expect(mustExist(dump.captures[0]).body).toBe('{"saldo":1000}');
   });
 
   it('maneja una lista vacía', () => {

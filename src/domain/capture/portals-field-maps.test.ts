@@ -1,5 +1,6 @@
-import { extraerBancolombia } from './portals-field-maps';
+import { extractBancolombia } from './portals-field-maps';
 import type { Capture } from './reassembler';
+import { mustExist } from '@/test/must-exist';
 
 function capture(body: unknown): Capture {
   return {
@@ -103,41 +104,41 @@ const MUESTRA_BANCOLOMBIA = {
 
 describe('extractor de Bancolombia', () => {
   it('extrae todas las transacciones de la muestra', () => {
-    expect(extraerBancolombia(capture(MUESTRA_BANCOLOMBIA))).toHaveLength(3);
+    expect(extractBancolombia(capture(MUESTRA_BANCOLOMBIA))).toHaveLength(3);
   });
 
   it('su CREDITO es nuestro débito: las compras son dinero que sale', () => {
-    const [compra] = extraerBancolombia(capture(MUESTRA_BANCOLOMBIA));
+    const compra = mustExist(extractBancolombia(capture(MUESTRA_BANCOLOMBIA))[0]);
     expect(compra.descripcion).toBe('COMPRA COMERCIO GENERICO');
     expect(compra.tipo).toBe('debito');
   });
 
   it('su DEBITO es nuestro crédito: los abonos son dinero que entra', () => {
-    const abono = extraerBancolombia(capture(MUESTRA_BANCOLOMBIA))[1];
+    const abono = mustExist(extractBancolombia(capture(MUESTRA_BANCOLOMBIA))[1]);
     expect(abono.descripcion).toBe('ABONO GENERICO');
     expect(abono.tipo).toBe('credito');
   });
 
   it('el monto es siempre positivo, con el signo en el tipo', () => {
-    extraerBancolombia(capture(MUESTRA_BANCOLOMBIA)).forEach((tx) => {
+    extractBancolombia(capture(MUESTRA_BANCOLOMBIA)).forEach((tx) => {
       expect(tx.monto).toBeGreaterThanOrEqual(0);
     });
   });
 
   it('trunca los decimales que trae el portal', () => {
-    const retiro = extraerBancolombia(capture(MUESTRA_BANCOLOMBIA))[2];
+    const retiro = mustExist(extractBancolombia(capture(MUESTRA_BANCOLOMBIA))[2]);
     expect(retiro.monto).toBe(20000);
   });
 
   it('conserva la referencia', () => {
-    const [primera] = extraerBancolombia(capture(MUESTRA_BANCOLOMBIA));
+    const primera = mustExist(extractBancolombia(capture(MUESTRA_BANCOLOMBIA))[0]);
     expect(primera.referencia).toBe('000000000000000000000000001');
   });
 
   it('conserva la fecha en el formato del portal', () => {
     // Bancolombia entrega AAAA/MM/DD, no ISO 8601. La conversión ocurre al
     // llevarlo al ledger, no aquí.
-    const [primera] = extraerBancolombia(capture(MUESTRA_BANCOLOMBIA));
+    const primera = mustExist(extractBancolombia(capture(MUESTRA_BANCOLOMBIA))[0]);
     expect(primera.fecha).toBe('2026/08/28');
   });
 });

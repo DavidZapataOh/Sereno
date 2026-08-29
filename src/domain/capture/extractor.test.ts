@@ -1,5 +1,6 @@
 import { createExtractor, getByPath } from './extractor';
 import type { Capture } from './reassembler';
+import { mustExist } from '@/test/must-exist';
 
 function capture(body: string): Capture {
   return {
@@ -81,7 +82,7 @@ describe('createExtractor — por signo del monto', () => {
         movimientos: [{ fechaTransaccion: '2026-08-21', descripcion: 'NOMINA', valor: 3200000 }],
       },
     });
-    const [tx] = extractor(capture(body));
+    const tx = mustExist(extractor(capture(body))[0]);
     expect(tx.tipo).toBe('credito');
     expect(tx.monto).toBe(3200000);
     expect(tx.referencia).toBeNull();
@@ -93,7 +94,7 @@ describe('createExtractor — por signo del monto', () => {
         movimientos: [{ fechaTransaccion: '2026-08-21', descripcion: 'X', valor: '-12.500,00' }],
       },
     });
-    const [tx] = extractor(capture(body));
+    const tx = mustExist(extractor(capture(body))[0]);
     expect(tx.monto).toBe(12500);
     expect(tx.tipo).toBe('debito');
   });
@@ -122,7 +123,7 @@ describe('createExtractor — por signo del monto', () => {
     });
     const resultado = extractor(capture(body));
     expect(resultado).toHaveLength(1);
-    expect(resultado[0].descripcion).toBe('BUENA');
+    expect(mustExist(resultado[0]).descripcion).toBe('BUENA');
   });
 });
 
@@ -149,6 +150,6 @@ describe('createExtractor — por campo de tipo', () => {
     const body = JSON.stringify([
       { date: '2026-08-22', title: 'ENVIO', amount: 5000, movementType: 'DEBIT' },
     ]);
-    expect(extractor(capture(body))[0].fuente).toBe('nequi');
+    expect(mustExist(extractor(capture(body))[0]).fuente).toBe('nequi');
   });
 });

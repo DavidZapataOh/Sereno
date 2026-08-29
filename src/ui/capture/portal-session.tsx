@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { WebView, type WebViewMessageEvent, type WebViewNavigation } from 'react-native-webview';
-import { perteneceAlPortal, type Portal } from '@/domain/portals/registry';
+import { belongsToPortal, type Portal } from '@/domain/portals/registry';
 import { useCaptureStore } from './store';
 
 /**
@@ -49,7 +49,7 @@ export function PortalSession({ portal, injectedScript, onVerCapturas }: Props) 
    * distinto—. Al salir, la sesión se abre fuera de la app y no se captura nada.
    */
   const onShouldStartLoadWithRequest = (request: WebViewNavigation): boolean => {
-    const permitida = perteneceAlPortal(portal, request.url);
+    const permitida = belongsToPortal(portal, request.url);
     if (permitida) {
       setUrlActual(request.url);
       setBloqueada(null);

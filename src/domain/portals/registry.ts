@@ -60,7 +60,7 @@ export function getPortal(id: string): Portal | undefined {
  * Compara por sufijo de host para cubrir los subdominios: el login, la sucursal
  * virtual y la portada suelen vivir en hosts distintos del mismo dominio.
  */
-export function perteneceAlPortal(portal: Portal, url: string): boolean {
+export function belongsToPortal(portal: Portal, url: string): boolean {
   let host: string;
   try {
     host = new URL(url).hostname.toLowerCase();
