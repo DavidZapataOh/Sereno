@@ -100,8 +100,16 @@ ve como ocho suites de pruebas muriendo con «A jest worker process was terminat
 mencionar a Node.
 
 `npm test` y `npm run verify` lo comprueban antes de empezar y explican el arreglo;
-`npm run integrar` además carga nvm por su cuenta. Trabajar desde la terminal de Ubuntu
-evita el problema entero.
+`npm run integrar` además lo repara solo. Trabajar desde la terminal de Ubuntu evita el
+problema entero.
+
+Dos detalles que cuestan tiempo si no se saben:
+
+- **`bash -lc` no carga nvm.** El `.bashrc` de Ubuntu se corta en su primera línea cuando
+  el shell no es interactivo, y nvm vive ahí. Desde PowerShell hace falta `bash -ic`.
+- **`nvm use` no sirve dentro de un script de npm.** npm exporta `npm_config_prefix` y nvm
+  se niega a correr con esa variable puesta. Por eso `integrar.sh` localiza el binario a
+  mano en vez de usar nvm.
 
 ## Estado
 

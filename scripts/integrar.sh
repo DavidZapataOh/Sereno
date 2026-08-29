@@ -18,16 +18,25 @@ PRINCIPAL="main"
 # Se trabaja desde la raíz del repo pase lo que pase, no desde donde se invoque.
 cd "$(dirname "${BASH_SOURCE[0]}")/.."
 
-# Un shell NO interactivo —el que abre `wsl -- npm`— no carga nvm y coge el
-# /usr/bin/node del sistema. Con ese, better-sqlite3 mata el proceso con
-# SIGSEGV. En vez de exigir que quien lo lanza se acuerde, se carga nvm aquí.
+# Un shell NO interactivo —el que abre `wsl -- npm`, un cron, un hook de editor—
+# no carga nvm y coge el /usr/bin/node del sistema. Con ese, better-sqlite3 mata
+# el proceso con SIGSEGV. En vez de exigir que quien lo lanza se acuerde, se
+# resuelve aquí.
+#
+# NO se usa `nvm use`, aunque sea lo obvio: nvm se niega a correr cuando npm ha
+# exportado `npm_config_prefix` —«nvm is not compatible with the
+# "npm_config_prefix" environment variable»— y npm lo exporta siempre que lanza
+# un script. Es decir, justo aquí. Se localiza el binario a mano, que además no
+# depende de que nvm esté cargado.
 if ! node scripts/comprobar-node.mjs >/dev/null 2>&1; then
-  if [ -s "$HOME/.nvm/nvm.sh" ]; then
-    set +u
-    # shellcheck disable=SC1091
-    . "$HOME/.nvm/nvm.sh" >/dev/null 2>&1 || true
-    nvm use >/dev/null 2>&1 || true
-    set -u
+  candidato=$(ls -d "$HOME"/.nvm/versions/node/*/bin 2>/dev/null | sort -V | tail -n 1 || true)
+  if [ -n "${candidato:-}" ]; then
+    unset npm_config_prefix
+    PATH="$candidato:$PATH"
+    export PATH
+    # bash cachea la ruta de los comandos ya ejecutados; sin esto seguiría
+    # usando el node viejo aunque el PATH ya apunte al nuevo.
+    hash -r
   fi
 fi
 
