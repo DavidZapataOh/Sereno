@@ -45,19 +45,38 @@ describe('scripts/verificar-ledger', () => {
     return ruta;
   };
 
-  const ejecutar = (ruta: string): { salida: string; codigo: number } => {
+  const ejecutar = (...argumentos: string[]): { salida: string; error: string; codigo: number } => {
     try {
       return {
-        salida: execFileSync('npx', ['tsx', 'scripts/verificar-ledger.ts', ruta], {
+        salida: execFileSync('npx', ['tsx', 'scripts/verificar-ledger.ts', ...argumentos], {
           cwd: join(__dirname, '..'),
           encoding: 'utf8',
         }),
+        error: '',
         codigo: 0,
       };
-    } catch (error) {
-      const fallo = error as { stdout?: string; status?: number };
-      return { salida: fallo.stdout ?? '', codigo: fallo.status ?? -1 };
+    } catch (fallo) {
+      const detalle = fallo as { stdout?: string; stderr?: string; status?: number };
+      return {
+        salida: detalle.stdout ?? '',
+        error: detalle.stderr ?? '',
+        codigo: detalle.status ?? -1,
+      };
     }
+  };
+
+  /**
+   * Un volcado de pila es un fallo del programa, no un mensaje al usuario.
+   *
+   * Esta comprobación existe porque la versión anterior de estas pruebas solo
+   * miraba el código de salida, y dejó pasar exactamente eso: llamarlo sin ruta
+   * moría con «In-memory/temporary databases cannot be readonly» y treinta
+   * líneas de pila. El código de salida era distinto de cero, así que la prueba
+   * pasaba.
+   */
+  const sinVolcadoDePila = (texto: string): void => {
+    expect(texto).not.toContain('    at ');
+    expect(texto).not.toContain('node_modules');
   };
 
   beforeAll(() => {
@@ -85,9 +104,39 @@ describe('scripts/verificar-ledger', () => {
     expect(codigo).toBe(1);
   });
 
-  it('sin argumento explica cómo usarlo, sin fingir que revisó algo', () => {
-    const { codigo } = ejecutar('');
+  describe('uso incorrecto', () => {
+    it('sin argumento explica cómo usarlo', () => {
+      const { error, codigo } = ejecutar();
 
-    expect(codigo).not.toBe(0);
+      expect(error).toContain('Uso: npm run verificar-ledger');
+      expect(codigo).toBe(2);
+      sinVolcadoDePila(error);
+    });
+
+    it('con la ruta vacía explica cómo usarlo, no revienta', () => {
+      // `npm run verificar-ledger --` sin ruta pasa una cadena vacía, no
+      // `undefined`. Es el caso que se coló.
+      const { error, codigo } = ejecutar('');
+
+      expect(error).toContain('Uso: npm run verificar-ledger');
+      expect(codigo).toBe(2);
+      sinVolcadoDePila(error);
+    });
+
+    it('con un archivo que no existe lo dice en una línea', () => {
+      const { error, codigo } = ejecutar(join(carpeta, 'no-existe.db'));
+
+      expect(error).toContain('No se puede abrir');
+      expect(codigo).toBe(2);
+      sinVolcadoDePila(error);
+    });
+
+    it('con un archivo que no es una base lo dice en una línea', () => {
+      const { error, codigo } = ejecutar(join(__dirname, '../package.json'));
+
+      expect(error).toContain('no parece una base de datos de Sereno');
+      expect(codigo).toBe(2);
+      sinVolcadoDePila(error);
+    });
   });
 });

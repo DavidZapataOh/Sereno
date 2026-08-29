@@ -19,16 +19,42 @@ import { checkLedger } from '@/infrastructure/db/ledger-check';
 import * as schema from '@/infrastructure/db/schema';
 
 function main(): void {
-  const ruta = process.argv[2];
-  if (ruta === undefined) {
+  // Se comprueba que haya contenido, no solo que el argumento exista. `npm run
+  // verificar-ledger --` sin ruta pasa una cadena vacía, no `undefined`, y
+  // `new SQLite('')` la interpreta como base en memoria: revienta con un
+  // «In-memory/temporary databases cannot be readonly» y un volcado de pila,
+  // en vez de decir cómo se usa.
+  const ruta = process.argv[2]?.trim();
+  if (ruta === undefined || ruta.length === 0) {
     process.stderr.write('Uso: npm run verificar-ledger -- <ruta-a-sereno.db>\n');
     process.exit(2);
   }
 
   // Solo lectura: un diagnóstico no debe poder empeorar lo que diagnostica.
-  const sqlite = new SQLite(ruta, { readonly: true, fileMustExist: true });
+  let sqlite;
   try {
-    const reporte = checkLedger(drizzle(sqlite, { schema }) as Database);
+    sqlite = new SQLite(ruta, { readonly: true, fileMustExist: true });
+  } catch (error) {
+    // Un archivo que no existe o que no es una base es un error de uso, no un
+    // fallo del programa: se dice en una línea, sin volcado de pila.
+    const detalle = error instanceof Error ? error.message : String(error);
+    process.stderr.write(`No se puede abrir "${ruta}": ${detalle}\n`);
+    process.exit(2);
+  }
+  try {
+    let reporte;
+    try {
+      reporte = checkLedger(drizzle(sqlite, { schema }) as Database);
+    } catch (error) {
+      // Un archivo que no es una base de Sereno falla al consultar, no al
+      // abrir: SQLite acepta cualquier archivo y se queja cuando busca las
+      // tablas. También es un error de uso.
+      const detalle = error instanceof Error ? error.message : String(error);
+      process.stderr.write(`"${ruta}" no parece una base de datos de Sereno: ${detalle}\n`);
+      process.exitCode = 2;
+      return;
+    }
+
     const { cuentas, transacciones, apuntes } = reporte.revisado;
 
     process.stdout.write(
