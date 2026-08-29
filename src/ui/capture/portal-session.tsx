@@ -66,6 +66,11 @@ export function PortalSession({ portal, injectedScript }: Props) {
         source={{ uri: portal.url }}
         originWhitelist={['https://*']}
         onShouldStartLoadWithRequest={onShouldStartLoadWithRequest}
+        // En Android, los enlaces con target="_blank" se abren en el navegador
+        // del sistema y ni siquiera pasan por la comprobación de arriba. El
+        // botón de entrar de los bancos suele ser uno de ellos: sin esto, el
+        // usuario acaba iniciando sesión fuera de la app.
+        setSupportMultipleWindows={false}
         userAgent={USER_AGENT}
         injectedJavaScriptBeforeContentLoaded={injectedScript}
         onMessage={onMessage}

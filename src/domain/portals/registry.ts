@@ -27,7 +27,9 @@ export const PORTALS: readonly Portal[] = [
     nombre: 'Nequi',
     url: 'https://www.nequi.com.co/',
     origen: 'https://www.nequi.com.co',
-    dominiosPermitidos: ['nequi.com.co', 'nequi.co'],
+    // La portada vive en nequi.com.co, pero el login está en
+    // transacciones.nequi.com — otro dominio, no un subdominio del primero.
+    dominiosPermitidos: ['nequi.com.co', 'nequi.co', 'nequi.com'],
     instrucciones:
       'Entra con tu número de celular y tu clave de 4 dígitos, y abre tus movimientos.',
     minutosDeSesion: null,

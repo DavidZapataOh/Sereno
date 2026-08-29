@@ -55,6 +55,14 @@ describe('perteneceAlPortal', () => {
     expect(perteneceAlPortal(nequi, 'https://transacciones.nequi.co/')).toBe(true);
   });
 
+  it('acepta el host de login observado en campo', () => {
+    // Observado el 2026-08-29: la portada es nequi.com.co pero el login vive en
+    // transacciones.nequi.com — dominio distinto, no subdominio.
+    expect(perteneceAlPortal(nequi, 'https://transacciones.nequi.com/bdigital/login.jsp')).toBe(
+      true,
+    );
+  });
+
   it('acepta la sucursal virtual de Bancolombia', () => {
     expect(perteneceAlPortal(bancolombia, 'https://sucursalvirtual.grupobancolombia.com/')).toBe(
       true,
