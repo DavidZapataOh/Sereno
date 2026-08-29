@@ -4,9 +4,15 @@ import { WebView, type WebViewMessageEvent, type WebViewNavigation } from 'react
 import { perteneceAlPortal, type Portal } from '@/domain/portals/registry';
 import { useCaptureStore } from './store';
 
-/** User-Agent de Chrome en Android, para no ser tratados como WebView. */
+/**
+ * User-Agent de Chrome en Android.
+ *
+ * La WebView de Android añade `; wv` al suyo, y los portales bancarios lo usan
+ * para rechazar la sesión. Se declara uno de Chrome real y **con versión
+ * reciente**: algunos portales rechazan también las versiones antiguas.
+ */
 const USER_AGENT =
-  'Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Mobile Safari/537.36';
+  'Mozilla/5.0 (Linux; Android 15; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Mobile Safari/537.36';
 
 interface Props {
   portal: Portal;
