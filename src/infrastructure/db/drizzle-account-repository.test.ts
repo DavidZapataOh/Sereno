@@ -181,6 +181,42 @@ describe('AccountRepository sobre Drizzle', () => {
     });
   });
 
+  describe('naturalezas distintas bajo la misma abstracción', () => {
+    it('una tarjeta de crédito es un pasivo y su saldo crece hacia lo negativo', async () => {
+      // Comprar con tarjeta aumenta lo que se debe. El repositorio no sabe nada
+      // de tarjetas: solo guarda una cuenta de naturaleza `pasivo`, y el signo
+      // sale del ledger.
+      await repo.save(nuevaCuenta('tc', 'RappiPay', { kind: 'pasivo' }));
+      asentar([
+        { id: 'p1', cuenta: 'tc', monto: '-120000' },
+        { id: 'p2', cuenta: 'tc', monto: '-80000' },
+      ]);
+
+      const cuenta = await repo.findById(accountId('tc'));
+      expect(cuenta?.kind).toBe('pasivo');
+      expect(await repo.balanceOf(accountId('tc'))).toEqual(money(-200000, 'COP'));
+    });
+
+    it('pagar la tarjeta acerca el saldo a cero', async () => {
+      await repo.save(nuevaCuenta('tc', 'Nu', { kind: 'pasivo' }));
+      asentar([{ id: 'p1', cuenta: 'tc', monto: '-200000' }]);
+      asentar([{ id: 'p2', cuenta: 'tc', monto: '200000' }], 't2');
+
+      expect(await repo.balanceOf(accountId('tc'))).toEqual(zero('COP'));
+    });
+
+    it('guarda las cinco naturalezas y las devuelve intactas', async () => {
+      const naturalezas = ['activo', 'pasivo', 'ingreso', 'gasto', 'patrimonio'] as const;
+
+      await Promise.all(
+        naturalezas.map((kind, i) => repo.save(nuevaCuenta(`c${String(i)}`, kind, { kind }))),
+      );
+
+      const guardadas = await repo.listByOwner(ownerId('david'));
+      expect(guardadas.map((c) => c.kind).sort()).toEqual([...naturalezas].sort());
+    });
+  });
+
   describe('archivado', () => {
     it('archivar no borra la historia de la cuenta', async () => {
       await repo.save(nuevaCuenta('c1', 'Vieja'));
