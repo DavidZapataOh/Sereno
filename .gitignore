@@ -21,6 +21,9 @@ expo-env.d.ts
 # Metro
 .metro-health-check*
 
+# Reportes de cobertura: se generan en cada corrida
+coverage/
+
 # debug
 npm-debug.*
 yarn-debug.*
