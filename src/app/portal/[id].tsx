@@ -11,7 +11,7 @@ export default function PortalRoute() {
 
   // La ruta es la capa de composición: aquí se junta la interfaz con la
   // infraestructura. Se genera una sola vez para no reinstalar el interceptor.
-  const [script] = useState(() => buildInjectedScript());
+  const [script] = useState(() => buildInjectedScript(portal?.dominiosPermitidos ?? []));
 
   if (portal === undefined) {
     return (

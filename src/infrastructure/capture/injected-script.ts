@@ -24,7 +24,8 @@ function serializePatterns(): string {
  *   - Ante cualquier error propio, calla y deja pasar: la página del banco debe
  *     funcionar exactamente igual con el script que sin él.
  */
-export function buildInjectedScript(): string {
+export function buildInjectedScript(dominiosPermitidos: readonly string[] = []): string {
+  const dominios = JSON.stringify([...dominiosPermitidos]);
   return `
 (function () {
   if (window.__serenoInstalled) return;
@@ -33,6 +34,7 @@ export function buildInjectedScript(): string {
   var VERSION = ${String(CAPTURE_PROTOCOL_VERSION)};
   var MAX = ${String(MAX_FRAGMENT_BYTES)};
   var SENSITIVE = [${serializePatterns()}];
+  var DOMINIOS = ${dominios};
   var MAX_DECODE_PASSES = 3;
 
   function fullyDecode(url) {
@@ -54,9 +56,36 @@ export function buildInjectedScript(): string {
     return false;
   }
 
+  /**
+   * Solo el propio banco. Sin este filtro, la sesión captura las peticiones de
+   * los rastreadores que la página incrusta —analítica, publicidad, encuestas—,
+   * que no aportan nada y engordan el volcado.
+   */
+  function esDelBanco(url) {
+    if (DOMINIOS.length === 0) return true;
+
+    // Una ruta relativa siempre pertenece al origen de la página, es decir al
+    // banco. Los endpoints internos suelen llegar así: /bdigital/rest/...
+    // Se compara sin expresión regular a propósito: los escapes dentro de este
+    // template literal se pierden al generar el script y producen un patrón
+    // distinto del escrito.
+    if (url.indexOf('://') === -1) return true;
+
+    var host;
+    try { host = new URL(url).hostname.toLowerCase(); }
+    catch (e) { return false; }
+    for (var i = 0; i < DOMINIOS.length; i++) {
+      if (host === DOMINIOS[i] || host.slice(-(DOMINIOS[i].length + 1)) === '.' + DOMINIOS[i]) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   function shouldCapture(url, contentType) {
     if (!url) return false;
     if (isSensitive(url)) return false;
+    if (!esDelBanco(url)) return false;
     return /\\bjson\\b/i.test(contentType || '');
   }
 

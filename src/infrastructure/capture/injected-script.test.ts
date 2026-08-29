@@ -180,3 +180,65 @@ describe('script inyectado — robustez', () => {
     await expect(win.fetch()).rejects.toThrow('sin red');
   });
 });
+
+describe('script inyectado — filtro de dominios del banco', () => {
+  const SCRIPT = buildInjectedScript(['banco.example']);
+
+  it('captura del dominio del banco', async () => {
+    const url = 'https://banco.example/api/movimientos';
+    const { win, captures } = installScript(
+      SCRIPT,
+      new FakeResponse(url, 200, 'application/json', '{"a":1}'),
+    );
+    await win.fetch(url);
+    await flush();
+    expect(captures).toHaveLength(1);
+  });
+
+  it('captura de un subdominio del banco', async () => {
+    const url = 'https://transacciones.banco.example/api/saldo';
+    const { win, captures } = installScript(
+      SCRIPT,
+      new FakeResponse(url, 200, 'application/json', '{"a":1}'),
+    );
+    await win.fetch(url);
+    await flush();
+    expect(captures).toHaveLength(1);
+  });
+
+  it('NO captura rastreadores de terceros incrustados en la página', async () => {
+    const url = 'https://analytics.medallia.com/api/web/events';
+    const { win, captures } = installScript(
+      SCRIPT,
+      new FakeResponse(url, 200, 'application/json', '{"evento":1}'),
+    );
+    await win.fetch(url);
+    await flush();
+    expect(captures).toHaveLength(0);
+  });
+
+  it('sin dominios declarados no filtra: mantiene el comportamiento anterior', async () => {
+    const url = 'https://cualquiera.example/api/x';
+    const { win, captures } = installScript(
+      buildInjectedScript(),
+      new FakeResponse(url, 200, 'application/json', '{"a":1}'),
+    );
+    await win.fetch(url);
+    await flush();
+    expect(captures).toHaveLength(1);
+  });
+});
+
+describe('script inyectado — rutas relativas', () => {
+  it('captura una ruta relativa: pertenece al origen del banco', async () => {
+    // Caso observado en campo: Nequi emite /bdigital/rest/services/... sin host.
+    const url = '/bdigital/rest/services/private/MovimientosService/consultar';
+    const { win, captures } = installScript(
+      buildInjectedScript(['nequi.com']),
+      new FakeResponse(url, 200, 'application/json', '{"a":1}'),
+    );
+    await win.fetch(url);
+    await flush();
+    expect(captures).toHaveLength(1);
+  });
+});
