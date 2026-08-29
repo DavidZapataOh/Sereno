@@ -11,9 +11,25 @@ import { join } from 'node:path';
 const DIR = 'capturas';
 
 const PATRONES = [
-  /login/i, /logon/i, /signin/i, /signup/i, /registro/i, /auth/i, /autentic/i,
-  /contrase/i, /token/i, /session/i, /password/i, /clave/i, /credential/i,
-  /otp/i, /mfa/i, /2fa/i, /segundo-factor/i, /captcha/i, /challenge/i,
+  /login/i,
+  /logon/i,
+  /signin/i,
+  /signup/i,
+  /registro/i,
+  /auth/i,
+  /autentic/i,
+  /contrase/i,
+  /token/i,
+  /session/i,
+  /password/i,
+  /clave/i,
+  /credential/i,
+  /otp/i,
+  /mfa/i,
+  /2fa/i,
+  /segundo-factor/i,
+  /captcha/i,
+  /challenge/i,
 ];
 
 /** Formas de secreto que no deberían aparecer en ningún cuerpo capturado. */
