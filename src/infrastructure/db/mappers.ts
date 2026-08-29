@@ -36,6 +36,13 @@ export function toMoney(amount: string, currency: string): Money {
   return money(BigInt(amount), currency as CurrencyCode);
 }
 
+/**
+ * Fila tal como se LEE de la base.
+ *
+ * `kind` y `currency` son `string` a propósito: la base puede contener lo que
+ * sea —una migración vieja, una escritura a mano— y fingir que ya vienen
+ * validados es justo el error que `toAccount` existe para evitar.
+ */
 export interface AccountRow {
   id: string;
   ownerId: string;
@@ -45,7 +52,18 @@ export interface AccountRow {
   archivedAt: string | null;
 }
 
-export function fromAccount(account: Account): AccountRow {
+/**
+ * Fila tal como se ESCRIBE.
+ *
+ * Aquí los valores vienen del dominio, así que ya son válidos y se declaran con
+ * su tipo estrecho: es lo que exige la columna del esquema.
+ */
+export interface AccountRowWrite extends AccountRow {
+  kind: AccountKind;
+  currency: CurrencyCode;
+}
+
+export function fromAccount(account: Account): AccountRowWrite {
   return {
     id: account.id,
     ownerId: account.owner,
