@@ -12,6 +12,8 @@ describe('SyncSummaryCard', () => {
     nuevas: 12,
     duplicadas: 28,
     fusionadas: 0,
+    omitidas: 0,
+    motivosOmision: [],
     transferencias: 1,
     conciliacion: null,
   };
@@ -36,5 +38,12 @@ describe('SyncSummaryCard', () => {
       />,
     );
     expect(getByText('Nada nuevo desde la última vez')).toBeOnTheScreen();
+  });
+
+  it('cuenta las filas omitidas para que no pasen en silencio', async () => {
+    const { getByText } = await renderWithProviders(
+      <SyncSummaryCard summary={{ ...resumen, omitidas: 1 }} onDismiss={() => undefined} />,
+    );
+    expect(getByText('1 fila sin monto, omitida')).toBeOnTheScreen();
   });
 });

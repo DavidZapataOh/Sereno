@@ -30,6 +30,7 @@ const run = (
   nuevas: 8,
   duplicadas: 2,
   fusionadas: 0,
+  omitidas: 0,
   transferencias: 0,
   error: null,
 });

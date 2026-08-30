@@ -23,4 +23,8 @@ export interface IngestSummary {
   duplicadas: number;
   /** Otra fuente ya las tenía: se sumaron como observación a esa transacción. */
   fusionadas: number;
+  /** No se pudieron convertir (monto cero, fecha inexistente…). Nombradas en `motivosOmision`. */
+  omitidas: number;
+  /** Hasta cinco motivos, para diagnosticar sin volcar el lote entero. */
+  motivosOmision: string[];
 }

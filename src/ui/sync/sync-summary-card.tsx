@@ -27,6 +27,9 @@ export function SyncSummaryCard({ summary: s, onDismiss }: Props) {
     s.transferencias > 0
       ? plural(s.transferencias, 'transferencia detectada', 'transferencias detectadas')
       : null,
+    s.omitidas > 0
+      ? plural(s.omitidas, 'fila sin monto, omitida', 'filas sin monto, omitidas')
+      : null,
     s.conciliacion === null
       ? null
       : s.conciliacion.veredicto === 'cuadra'

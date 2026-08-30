@@ -151,6 +151,34 @@ describe('ingestNormalized — deduplicación entre fuentes', () => {
     expect(despues).toBe(antes);
   });
 
+  it('una fila con monto cero se omite y no tumba el lote', async () => {
+    // Lo encontró la sesión de campo: Bancolombia trae lineas informativas
+    // con monto cero, y rechazarlas hacía fallar la importación entera.
+    const d = deps();
+    const resumen = await ingestNormalized(
+      d,
+      porWeb([
+        { ...web, monto: 0, referencia: 'CERO' },
+        { ...web, referencia: 'REF-2' },
+      ]),
+    );
+
+    expect(resumen).toMatchObject({ nuevas: 1, omitidas: 1 });
+    expect(resumen.motivosOmision[0]).toMatch(/CERO: .*cero/i);
+    expect(d.transactions.all().map((t) => t.id)).toEqual(['bancolombia:REF-2']);
+    expect(mustExist(await d.ingest.findLastRun(owner, 'bancolombia'))).toMatchObject({
+      omitidas: 1,
+      error: null,
+    });
+  });
+
+  it('una fila con fecha inexistente se omite igual', async () => {
+    const d = deps();
+    const resumen = await ingestNormalized(d, porWeb([{ ...web, fecha: '2026/02/30' }]));
+    expect(resumen).toMatchObject({ nuevas: 0, omitidas: 1 });
+    expect(resumen.motivosOmision[0]).toMatch(/no existe/);
+  });
+
   it('la corrida registra las capturas cuando vienen de capturas', async () => {
     const d = deps();
     await ingestNormalized(d, { ...porWeb([web]), capturas: 4 });
