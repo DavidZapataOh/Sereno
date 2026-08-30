@@ -33,8 +33,15 @@ yarn-error.*
 .DS_Store
 *.pem
 
-# local env files
-.env*.local
+# Variables de entorno: ninguna se sube.
+# `.env*.local` sola dejaba pasar un `.env` pelado, que es justo donde acaban
+# las credenciales del servidor (contraseña de aplicación, clave de cifrado).
+.env
+.env.*
+!.env.example
+servidor/.env
+servidor/.env.*
+!servidor/.env.example
 
 # typescript
 *.tsbuildinfo
