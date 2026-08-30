@@ -20,6 +20,8 @@ export interface IngestRun {
   fusionadas: number;
   /** No se pudieron convertir (monto cero, fecha inexistente…). Se cuentan, no tumban el lote. */
   omitidas: number;
+  /** Anteriores al día de inicio de la cuenta: no entran. Ver `account-start.ts`. */
+  anteriores: number;
   transferencias: number;
   error: string | null;
 }

@@ -21,6 +21,7 @@ module.exports = {
     '!src/infrastructure/capture/webview-harness.ts',
     '!src/test/sanity-target.ts',
   ],
+  globalSetup: '<rootDir>/jest.global-setup.js',
   coverageThreshold: {
     global: { statements: 80, branches: 75, functions: 80, lines: 80 },
   },

@@ -25,6 +25,12 @@ export function createInMemoryIngestRepository(): InMemoryIngestRepository {
           .filter((r) => r.owner === owner && r.fuente === fuente)
           .sort((a, b) => b.iniciadoEn.localeCompare(a.iniciadoEn))[0] ?? null,
       ),
+    findFirstRun: (owner, fuente) =>
+      Promise.resolve(
+        [...corridas.values()]
+          .filter((r) => r.owner === owner && r.fuente === fuente)
+          .sort((a, b) => a.iniciadoEn.localeCompare(b.iniciadoEn))[0] ?? null,
+      ),
     saveObservation: (o) => {
       observaciones.set(o.id, { ...o });
       return Promise.resolve();

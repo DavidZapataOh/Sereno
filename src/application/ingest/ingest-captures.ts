@@ -1,5 +1,6 @@
 import { extractorFor } from '@/domain/capture/extractors';
 import type { Capture } from '@/domain/capture/reassembler';
+import { startDayOf } from '@/domain/ingest/account-start';
 import type { OwnerId } from '@/domain/ledger/ids';
 import { getPortal, type PortalId } from '@/domain/portals/registry';
 
@@ -29,6 +30,11 @@ export async function ingestCaptures(deps: IngestDeps, input: IngestInput): Prom
 
   const lote = input.captures.flatMap(extraer);
   const capturadoEn = input.captures[0]?.capturedAt ?? deps.clock();
+  // Sereno cuenta esta fuente desde el día de su primera corrida.
+  const desde = startDayOf(
+    await deps.ingest.findFirstRun(input.owner, input.portalId),
+    deps.clock(),
+  );
 
   return ingestNormalized(deps, {
     owner: input.owner,
@@ -37,5 +43,6 @@ export async function ingestCaptures(deps: IngestDeps, input: IngestInput): Prom
     lote,
     capturadoEn,
     capturas: input.captures.length,
+    desde,
   });
 }

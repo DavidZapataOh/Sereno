@@ -50,7 +50,8 @@ function capturaBancolombia(movimientos: Movimiento[]): Capture {
   };
 }
 
-function deps() {
+/** El reloj por defecto cae en el día del movimiento más antiguo de las fixtures. */
+function deps(clock: string | (() => string) = '2026-08-27T10:00:00.000-05:00') {
   const accounts = createInMemoryAccountRepository();
   const transactions = createInMemoryTransactionRepository(accounts.postings);
   const ingest = createInMemoryIngestRepository();
@@ -60,7 +61,7 @@ function deps() {
     ingest,
     transfers: createInMemoryTransferRepository(),
     ids: createSequentialIds('run'),
-    clock: () => '2026-08-28T10:00:00.000-05:00',
+    clock: typeof clock === 'string' ? () => clock : clock,
   };
   return { ...d, accounts, transactions, ingest };
 }
@@ -212,6 +213,42 @@ describe('ingestCaptures', () => {
     expect(d.ingest.observations()[0]?.referencia).toMatch(/^h:/);
   });
 
+  it('los movimientos anteriores al día de la primera sincronización no entran', async () => {
+    const d = deps('2026-08-28T10:00:00.000-05:00');
+    const resumen = await ingestCaptures(d, {
+      owner,
+      portalId: 'bancolombia',
+      captures: [capturaBancolombia([compra, nomina])],
+    });
+
+    // La nómina es del 27; la compra, del 28: solo la compra cuenta.
+    expect(resumen).toMatchObject({ extraidas: 2, nuevas: 1, anteriores: 1, desde: '2026-08-28' });
+    expect(d.transactions.all()).toHaveLength(1);
+    expect(d.ingest.observations()).toHaveLength(1);
+    expect(mustExist(await d.ingest.findLastRun(owner, 'bancolombia')).anteriores).toBe(1);
+  });
+
+  it('el inicio es el día de la primera corrida, aunque el reloj avance', async () => {
+    let ahora = '2026-08-28T10:00:00.000-05:00';
+    const d = deps(() => ahora);
+    await ingestCaptures(d, {
+      owner,
+      portalId: 'bancolombia',
+      captures: [capturaBancolombia([compra])],
+    });
+
+    ahora = '2026-09-15T10:00:00.000-05:00';
+    const segunda = await ingestCaptures(d, {
+      owner,
+      portalId: 'bancolombia',
+      captures: [
+        capturaBancolombia([{ ...compra, fecha: '2026/09/01', referencia: 'REF-9' }, nomina]),
+      ],
+    });
+
+    expect(segunda).toMatchObject({ nuevas: 1, anteriores: 1, desde: '2026-08-28' });
+  });
+
   it('para un portal sin extractor falla antes de tocar nada', async () => {
     const d = deps();
     await expect(ingestCaptures(d, { owner, portalId: 'nequi', captures: [] })).rejects.toThrow(
@@ -258,7 +295,7 @@ describe('ingestCaptures', () => {
       asyncProperty(
         uniqueArray(movimiento, { minLength: 1, maxLength: 30, selector: (m) => m.referencia }),
         async (lote) => {
-          const d = deps();
+          const d = deps('2026-08-01T00:00:00.000-05:00');
           const primera = await ingestCaptures(d, {
             owner,
             portalId: 'bancolombia',

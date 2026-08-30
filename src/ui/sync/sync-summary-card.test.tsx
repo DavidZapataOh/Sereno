@@ -18,6 +18,8 @@ describe('SyncSummaryCard', () => {
     fusionadas: 0,
     omitidas: 0,
     motivosOmision: [],
+    anteriores: 0,
+    desde: null,
     transferencias: 1,
     conciliacion: null,
     saldoInicial: null,
@@ -93,5 +95,15 @@ describe('SyncSummaryCard', () => {
     );
     expect(getByText(/Saldo del banco: \$ 700\.000 \(Ahorros \*\*\*\*8901\)/)).toBeOnTheScreen();
     expect(getByText(/Cuadra con lo que Sereno tiene/)).toBeOnTheScreen();
+  });
+
+  it('dice cuántos movimientos quedaron antes del inicio y desde qué día cuenta', async () => {
+    const { getByText } = await renderWithProviders(
+      <SyncSummaryCard
+        summary={{ ...resumen, anteriores: 23, desde: '2026-08-29' }}
+        onDismiss={() => undefined}
+      />,
+    );
+    expect(getByText(/23 movimientos anteriores al 29 ago no cuentan/)).toBeOnTheScreen();
   });
 });

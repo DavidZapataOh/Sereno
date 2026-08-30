@@ -6,6 +6,8 @@ import type { Observation } from './observation';
 export interface IngestRepository {
   saveRun: (run: IngestRun) => Promise<void>;
   findLastRun: (owner: OwnerId, fuente: string) => Promise<IngestRun | null>;
+  /** La primera corrida de una fuente marca el día en que Sereno empieza a contar. */
+  findFirstRun: (owner: OwnerId, fuente: string) => Promise<IngestRun | null>;
   saveObservation: (observation: Observation) => Promise<void>;
   findObservationByOrigin: (
     owner: OwnerId,

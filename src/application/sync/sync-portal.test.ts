@@ -108,14 +108,21 @@ describe('syncPortal', () => {
       captures: [movimientos, saldos],
     });
 
-    expect(resumen).toMatchObject({ capturas: 2, extraidas: 3, nuevas: 3, transferencias: 1 });
+    // La nómina del 27 es anterior al inicio (28): no entra.
+    expect(resumen).toMatchObject({
+      capturas: 2,
+      extraidas: 3,
+      nuevas: 2,
+      anteriores: 1,
+      transferencias: 1,
+    });
     // Conciliado DESPUÉS de ingerir y del saldo inicial: el calculado incluye
     // lo recién entrado y lo que había antes, y cuadra con el banco.
     const c = mustExist(resumen.conciliacion);
     expect(c.saldoReal.amount).toBe(700000n);
     expect(c.saldoCalculado.amount).toBe(700000n);
     expect(c.veredicto).toBe('cuadra');
-    expect(resumen.saldoInicial?.amount).toBe(700000n - (1000000n - 45000n - 200000n));
+    expect(resumen.saldoInicial?.amount).toBe(700000n - (-45000n - 200000n));
   });
 
   it('en la primera sincronización fija el saldo inicial y la cuenta queda como en el banco', async () => {
@@ -128,7 +135,7 @@ describe('syncPortal', () => {
       captures: [movimientos, saldos],
     });
 
-    expect(resumen.saldoInicial?.amount).toBe(700000n - (1000000n - 45000n - 200000n));
+    expect(resumen.saldoInicial?.amount).toBe(700000n - (-45000n - 200000n));
     expect((await d.accounts.balanceOf(accountId('bancolombia:ahorros'))).amount).toBe(700000n);
     expect(resumen.conciliacion?.veredicto).toBe('cuadra');
     const apertura = d.transactions.all().find((t) => t.origen.fuente === 'manual');
@@ -189,11 +196,25 @@ describe('syncPortal', () => {
 
   it('si la primera sincronización ya cuadra, no asienta un saldo inicial de cero', async () => {
     const d = deps();
-    const saldosExactos = { ...saldos, body: saldos.body.replace('700000', '755000') };
+    // Un solo abono del día de inicio y un saldo del banco que es exactamente ese abono.
+    const soloAbono = captura(`${HOST}/account/transactions`, {
+      data: {
+        transactions: [
+          {
+            transactionDate: '2026/08/28',
+            description: 'ABONO',
+            amount: 50000,
+            type: 'DEBITO',
+            reference1: 'A1',
+          },
+        ],
+      },
+    });
+    const saldosExactos = { ...saldos, body: saldos.body.replace('700000', '50000') };
     const resumen = await syncPortal(d, {
       owner,
       portalId: 'bancolombia',
-      captures: [movimientos, saldosExactos],
+      captures: [soloAbono, saldosExactos],
     });
 
     expect(resumen.saldoInicial).toBeNull();
@@ -208,7 +229,7 @@ describe('syncPortal', () => {
       captures: [movimientos],
     });
     expect(resumen.conciliacion).toBeNull();
-    expect(resumen.nuevas).toBe(3);
+    expect(resumen.nuevas).toBe(2);
   });
 
   it('es idempotente de punta a punta', async () => {
@@ -222,11 +243,12 @@ describe('syncPortal', () => {
 
     expect(segunda).toMatchObject({
       nuevas: 0,
-      duplicadas: 3,
+      duplicadas: 2,
+      anteriores: 1,
       transferencias: 0,
       saldoInicial: null,
     });
-    // 3 movimientos + 1 saldo inicial de la primera vez; la segunda no añade nada.
-    expect(d.transactions.all()).toHaveLength(4);
+    // 2 movimientos + 1 saldo inicial de la primera vez; la segunda no añade nada.
+    expect(d.transactions.all()).toHaveLength(3);
   });
 });
