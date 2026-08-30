@@ -41,6 +41,13 @@ export function formatShortDate(iso: string): string {
 }
 
 /** «28 de agosto de 2026». */
+/** «Agosto de 2026»: el mes de Colombia al que pertenece el instante. */
+export function formatMonthYear(iso: string): string {
+  const p = partes(iso);
+  const mes = MESES_LARGOS[p.mes] ?? '';
+  return `${mes.charAt(0).toUpperCase()}${mes.slice(1)} de ${String(p.anio)}`;
+}
+
 export function formatLongDate(iso: string): string {
   const p = partes(iso);
   return `${String(p.dia)} de ${MESES_LARGOS[p.mes] ?? ''} de ${String(p.anio)}`;

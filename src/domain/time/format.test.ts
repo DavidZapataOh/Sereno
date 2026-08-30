@@ -1,4 +1,4 @@
-import { formatLongDate, formatRelative, formatShortDate } from './format';
+import { formatMonthYear, formatLongDate, formatRelative, formatShortDate } from './format';
 
 describe('formatShortDate', () => {
   it('día y mes abreviado en español, en hora de Colombia', () => {
@@ -33,5 +33,10 @@ describe('formatRelative', () => {
 
   it('un instante futuro se trata como ahora, no como negativo', () => {
     expect(formatRelative('2026-08-28T12:05:00.000-05:00', ahora)).toBe('justo ahora');
+  });
+
+  it('formatMonthYear: el mes de Colombia con mayúscula inicial', () => {
+    expect(formatMonthYear('2026-08-31T23:30:00.000Z')).toBe('Agosto de 2026');
+    expect(formatMonthYear('2026-09-01T03:00:00.000Z')).toBe('Agosto de 2026');
   });
 });
