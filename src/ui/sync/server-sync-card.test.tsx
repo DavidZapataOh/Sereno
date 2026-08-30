@@ -1,6 +1,6 @@
 import { fireEvent, renderWithProviders } from '@/test/render';
 
-import { ServerSyncCard } from './server-sync-card';
+import { ServerSyncCard, TEXTO_INGESTA } from './server-sync-card';
 
 const now = '2026-08-30T18:00:00.000-05:00';
 
@@ -52,5 +52,27 @@ describe('ServerSyncCard', () => {
     );
     await fireEvent.press(getByRole('button', { name: 'Traer ahora' }));
     expect(onTraer).not.toHaveBeenCalled();
+  });
+
+  it('dice el estado de la ingesta del servidor en palabras', async () => {
+    const { getByText } = await renderWithProviders(
+      <ServerSyncCard
+        estado={{ ultima: null, now, pendiente: false, error: false, ingesta: 'detenida' }}
+        onTraer={() => undefined}
+      />,
+    );
+    expect(getByText('La ingesta lleva horas sin correr')).toBeOnTheScreen();
+  });
+
+  it('ninguno de los cinco estados dramatiza', () => {
+    // Principio 3: informa sin alarmar. Ni admiraciones ni mayúsculas
+    // gritadas, incluso cuando la noticia es mala.
+    const estados = ['nunca', 'al-dia', 'atrasada', 'detenida', 'con-error'] as const;
+    expect(Object.keys(TEXTO_INGESTA).sort()).toEqual([...estados].sort());
+    for (const estado of estados) {
+      const texto = TEXTO_INGESTA[estado];
+      expect(texto).toMatch(/^[^!¡]*$/);
+      expect(texto).not.toBe(texto.toUpperCase());
+    }
   });
 });

@@ -70,6 +70,11 @@ describe('API del servidor', () => {
     expect(cuerpo.ultimaCorrida.terminadoEn).not.toBeNull();
   });
 
+  it('dice cuánto queda por entregar y cuánto en revisión', async () => {
+    const res = await app.request('/salud', con(TOKEN));
+    expect(await res.json()).toMatchObject({ movimientosPendientes: 0, enRevision: 0 });
+  });
+
   it('sin ninguna corrida todavía, lo dice en vez de inventar', async () => {
     const res = await app.request('/salud', con(TOKEN));
     expect(((await res.json()) as { ultimaCorrida: unknown }).ultimaCorrida).toBeNull();

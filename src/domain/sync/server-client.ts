@@ -20,9 +20,25 @@ export const serverPageSchema = z.object({
 });
 export type ServerPage = z.infer<typeof serverPageSchema>;
 
+/** Lo que `/salud` cuenta del servidor. */
+export const serverHealthSchema = z.object({
+  estado: z.string(),
+  movimientosPendientes: z.number().int().nonnegative(),
+  enRevision: z.number().int().nonnegative(),
+  ultimaCorrida: z
+    .object({
+      iniciadoEn: z.string(),
+      terminadoEn: z.string().nullable(),
+      error: z.string().nullable(),
+    })
+    .nullable(),
+});
+export type ServerHealth = z.infer<typeof serverHealthSchema>;
+
 export interface ServerClient {
   traer: (desde: number, limite: number) => Promise<ServerPage>;
   confirmar: (cursor: number) => Promise<void>;
+  salud: () => Promise<ServerHealth>;
 }
 
 /** Dónde va el dispositivo y cuándo fue la última vez. */

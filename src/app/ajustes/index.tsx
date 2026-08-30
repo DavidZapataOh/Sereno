@@ -3,6 +3,7 @@ import { router, Stack } from 'expo-router';
 import { ScrollView, View } from 'react-native';
 
 import { pullFromServer } from '@/application/sync/pull-from-server';
+import { estadoDeIngesta } from '@/domain/sync/health';
 import { PORTALS } from '@/domain/portals/registry';
 import { useAppDeps } from '@/infrastructure/composition/use-app-deps';
 import { observability } from '@/infrastructure/observability';
@@ -30,6 +31,14 @@ export default function AjustesScreen() {
   const estadoSync = useQuery({
     queryKey: ['sync-state', CURRENT_OWNER],
     queryFn: () => deps.sync.ultimaTraida(),
+  });
+  // La salud del servidor, si se puede preguntar. Sin servidor configurado o
+  // sin conexión, la consulta falla y la tarjeta simplemente no la muestra.
+  const salud = useQuery({
+    queryKey: ['server-health', CURRENT_OWNER],
+    queryFn: () => deps.servidor.salud(),
+    staleTime: 60 * 1000,
+    retry: false,
   });
   const traer = useMutation({
     mutationFn: () => pullFromServer(deps, { owner: CURRENT_OWNER }),
@@ -72,6 +81,12 @@ export default function AjustesScreen() {
               now: deps.clock(),
               pendiente: traer.isPending,
               error: traer.isError,
+              ingesta:
+                salud.data === undefined
+                  ? undefined
+                  : estadoDeIngesta(salud.data.ultimaCorrida, deps.clock(), {
+                      iniciadoEn: salud.data.ultimaCorrida?.iniciadoEn,
+                    }),
             }}
             onTraer={() => {
               traer.mutate();

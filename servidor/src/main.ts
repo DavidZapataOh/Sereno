@@ -3,9 +3,13 @@ import { migrate } from 'drizzle-orm/postgres-js/migrator';
 
 import { crearApp } from './api/app';
 import { leerConfig } from './config';
+import { crearFuenteGmail } from './correo/gmail';
+import { crearFuenteImap } from './correo/imap';
 import { crearBase } from './db/cliente';
 import { crearRepositorios } from './db/repositorios';
+import { ingerirCorreos } from './ingesta/ciclo';
 import { crearObservabilidad } from './observabilidad';
+import { crearPlanificador } from './planificador';
 
 /**
  * Arranque.
@@ -27,7 +31,33 @@ async function arrancar(): Promise<void> {
   const repos = crearRepositorios(base, { clave: config.claveCifrado });
   const app = crearApp({ repos, token: config.token, observabilidad });
   serve({ fetch: app.fetch, port: config.puerto });
-  observabilidad.log('info', 'servidor arriba', { puerto: config.puerto });
+
+  // IMAP salvo que haya credenciales completas de Gmail. Ver «Decisiones» en
+  // el README del sprint 06: una app de Google en «Testing» caduca su token a
+  // los siete días.
+  const fuente =
+    config.gmail === null ? crearFuenteImap(config.imap) : crearFuenteGmail(config.gmail);
+  const planificador = crearPlanificador({
+    intervaloMs: config.intervaloMinutos * 60_000,
+    tarea: async () => {
+      await ingerirCorreos({ fuente, repos, observabilidad }, { limite: 200 });
+    },
+    observabilidad,
+  });
+  planificador.arrancar();
+
+  for (const senal of ['SIGTERM', 'SIGINT'] as const) {
+    process.on(senal, () => {
+      planificador.parar();
+      process.exit(0);
+    });
+  }
+
+  observabilidad.log('info', 'servidor arriba', {
+    puerto: config.puerto,
+    fuente: fuente.id,
+    intervaloMinutos: config.intervaloMinutos,
+  });
 }
 
 arrancar().catch((error: unknown) => {
