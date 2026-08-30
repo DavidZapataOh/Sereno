@@ -35,6 +35,9 @@ export function SyncSummaryCard({ summary: s, onDismiss }: Props) {
     s.anteriores > 0 && s.desde !== null
       ? `${plural(s.anteriores, 'movimiento anterior', 'movimientos anteriores')} al ${formatShortDate(`${s.desde}T12:00:00.000-05:00`)} no cuentan: Sereno empieza ese día`
       : null,
+    s.clasificadas + s.porRevisar > 0
+      ? `${String(s.clasificadas)} clasificados solos · ${String(s.porRevisar)} por revisar`
+      : null,
     s.saldoInicial === null
       ? null
       : `Saldo inicial fijado en $ ${formatCOP(s.saldoInicial.amount)}: lo que había antes de estos movimientos`,

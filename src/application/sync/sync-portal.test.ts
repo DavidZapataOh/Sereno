@@ -1,9 +1,11 @@
 import type { Capture } from '@/domain/capture/reassembler';
+import { categoryAccountId } from '@/domain/categorization/taxonomy';
 import { accountId, ownerId } from '@/domain/ledger/ids';
 import { money } from '@/domain/money/money';
 import { createInMemoryAccountRepository } from '@/test/fakes/in-memory-account-repository';
 import { createInMemoryCategoryRepository } from '@/test/fakes/in-memory-category-repository';
 import { createInMemoryClassificationRepository } from '@/test/fakes/in-memory-classification-repository';
+import { createInMemoryEvidenceRepository } from '@/test/fakes/in-memory-evidence-repository';
 import { createInMemoryRuleRepository } from '@/test/fakes/in-memory-rule-repository';
 import { createInMemoryIngestRepository } from '@/test/fakes/in-memory-ingest-repository';
 import { createInMemoryReconciliationRepository } from '@/test/fakes/in-memory-reconciliation-repository';
@@ -31,6 +33,7 @@ function deps() {
     categories: createInMemoryCategoryRepository(),
     classifications: createInMemoryClassificationRepository(),
     rules: createInMemoryRuleRepository(),
+    evidence: createInMemoryEvidenceRepository(),
     ids: createSequentialIds('id'),
     clock: () => '2026-08-28T12:00:00.000-05:00',
   };
@@ -121,7 +124,11 @@ describe('syncPortal', () => {
       nuevas: 2,
       anteriores: 1,
       transferencias: 1,
+      // La compra en Éxito sale por catálogo; la transferencia no se clasifica.
+      clasificadas: 1,
+      porRevisar: 0,
     });
+    expect((await d.accounts.balanceOf(categoryAccountId('mercado'))).amount).toBe(45000n);
     // Conciliado DESPUÉS de ingerir y del saldo inicial: el calculado incluye
     // lo recién entrado y lo que había antes, y cuadra con el banco.
     const c = mustExist(resumen.conciliacion);

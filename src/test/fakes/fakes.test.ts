@@ -6,6 +6,7 @@ import { money } from '@/domain/money/money';
 import { createInMemoryAccountRepository } from './in-memory-account-repository';
 import { createInMemoryCategoryRepository } from './in-memory-category-repository';
 import { createInMemoryClassificationRepository } from './in-memory-classification-repository';
+import { createInMemoryEvidenceRepository } from './in-memory-evidence-repository';
 import { createInMemoryIngestRepository } from './in-memory-ingest-repository';
 import { createInMemoryRuleRepository } from './in-memory-rule-repository';
 import { createInMemoryTransactionRepository } from './in-memory-transaction-repository';
@@ -236,5 +237,23 @@ describe('createInMemoryRuleRepository', () => {
     expect(await repo.listByOwner(ownerId('david'))).toEqual([regla]);
     await repo.delete('r1');
     expect(await repo.findById('r1')).toBeNull();
+  });
+});
+
+describe('createInMemoryEvidenceRepository', () => {
+  it('suma, no baja de cero, lista solo lo pedido del propietario y suma por categoría', async () => {
+    const repo = createInMemoryEvidenceRepository();
+    const owner = ownerId('david');
+    const mercado = accountId('categoria:mercado');
+    await repo.add(owner, ['comercio:exito', 'palabra:exito'], mercado, 1);
+    await repo.add(owner, ['comercio:exito'], mercado, 1);
+    await repo.add(ownerId('otro'), ['comercio:exito'], mercado, 1);
+    expect(await repo.listByFeatures(owner, ['comercio:exito'])).toEqual([
+      { feature: 'comercio:exito', categoria: mercado, cuenta: 2 },
+    ]);
+    for (const _ of [1, 2, 3]) await repo.add(owner, ['comercio:exito'], mercado, -1);
+    expect(await repo.listByFeatures(owner, ['comercio:exito'])).toEqual([]);
+    expect(await repo.countByCategory(owner)).toEqual(new Map([[mercado, 1]]));
+    expect(await repo.vocabularySize(owner)).toBe(1);
   });
 });

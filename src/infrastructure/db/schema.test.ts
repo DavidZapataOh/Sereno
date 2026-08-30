@@ -42,7 +42,7 @@ describe('esquema y migraciones', () => {
       .run();
   };
 
-  it('aplica las migraciones y crea las diez tablas', () => {
+  it('aplica las migraciones y crea las once tablas', () => {
     const tablas = cliente.db
       .all<{ name: string }>(sql`SELECT name FROM sqlite_master WHERE type = 'table' ORDER BY name`)
       .map((fila) => fila.name)
@@ -51,6 +51,7 @@ describe('esquema y migraciones', () => {
     expect(tablas).toEqual([
       'accounts',
       'categories',
+      'classifier_evidence',
       'ingest_runs',
       'postings',
       'reconciliations',
@@ -62,7 +63,7 @@ describe('esquema y migraciones', () => {
     ]);
   });
 
-  it('crea los quince índices declarados', () => {
+  it('crea los dieciséis índices declarados', () => {
     const indices = cliente.db
       .all<{ name: string }>(
         sql`SELECT name FROM sqlite_master WHERE type = 'index' AND name LIKE 'idx_%' ORDER BY name`,
@@ -73,6 +74,7 @@ describe('esquema y migraciones', () => {
       'idx_accounts_owner',
       'idx_categories_owner',
       'idx_classifications_owner_origen',
+      'idx_evidence_owner_feature',
       'idx_ingest_runs_owner_fuente',
       'idx_observations_huella',
       'idx_observations_origen',
