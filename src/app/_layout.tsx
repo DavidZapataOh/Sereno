@@ -1,8 +1,12 @@
 import { Stack, ThemeProvider as NavigationThemeProvider } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect, type ReactNode } from 'react';
+import { View } from 'react-native';
 
+import { DatabaseProvider } from '@/infrastructure/db/database-provider';
+import { useDatabaseBoot } from '@/infrastructure/db/use-database-boot';
 import { observability } from '@/infrastructure/observability';
+import { ErrorState, LoadingState } from '@/ui/components/states';
 import { ErrorBoundary } from '@/ui/error-boundary';
 import { toNavigationTheme } from '@/ui/theme/theme';
 import { ThemeProvider } from '@/ui/theme/theme-provider';
@@ -31,6 +35,44 @@ function NavigationTheme({ children }: { children: ReactNode }) {
   );
 }
 
+/**
+ * Abre la base y aplica las migraciones antes de mostrar cualquier pantalla.
+ *
+ * Una pantalla que consulta una tabla que todavía no existe falla con «no such
+ * table», que no dice nada de la causa. Si el arranque falla, se dice: quedarse
+ * en el logo para siempre —el hallazgo 8 del sprint 01— es lo único peor.
+ */
+function AppBoot() {
+  const theme = useTheme();
+  const boot = useDatabaseBoot();
+
+  useEffect(() => {
+    if (boot.estado === 'error') {
+      observability.captureError(boot.error, { operacion: 'arranque-base-de-datos' });
+    }
+  }, [boot]);
+
+  if (boot.estado !== 'listo') {
+    return (
+      <View style={{ flex: 1, backgroundColor: theme.palette.background }}>
+        {boot.estado === 'cargando' ? (
+          <LoadingState />
+        ) : (
+          <ErrorState description="No se pudo preparar el almacenamiento. Cierra y vuelve a abrir la aplicación." />
+        )}
+      </View>
+    );
+  }
+
+  return (
+    <DatabaseProvider db={boot.db}>
+      <Stack screenOptions={{ headerShadowVisible: false }}>
+        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+      </Stack>
+    </DatabaseProvider>
+  );
+}
+
 export default function RootLayout() {
   const fuentesListas = useAppFonts();
 
@@ -48,7 +90,7 @@ export default function RootLayout() {
     <ErrorBoundary onError={reportarError}>
       <ThemeProvider>
         <NavigationTheme>
-          <Stack />
+          <AppBoot />
         </NavigationTheme>
       </ThemeProvider>
     </ErrorBoundary>

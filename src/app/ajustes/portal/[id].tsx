@@ -1,11 +1,15 @@
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { View } from 'react-native';
+
 import { getPortal } from '@/domain/portals/registry';
 import { buildInjectedScript } from '@/infrastructure/capture/injected-script';
 import { PortalSession } from '@/ui/capture/portal-session';
+import { ErrorState } from '@/ui/components/states';
+import { useTheme } from '@/ui/theme/use-theme';
 
 export default function PortalRoute() {
+  const theme = useTheme();
   const { id } = useLocalSearchParams<{ id: string }>();
   const portal = getPortal(id);
 
@@ -15,8 +19,9 @@ export default function PortalRoute() {
 
   if (portal === undefined) {
     return (
-      <View style={styles.center}>
-        <Text>No conocemos el portal «{id}».</Text>
+      <View style={{ flex: 1, backgroundColor: theme.palette.background }}>
+        <Stack.Screen options={{ title: 'Portal' }} />
+        <ErrorState description={`No conocemos el portal «${id}».`} />
       </View>
     );
   }
@@ -28,13 +33,9 @@ export default function PortalRoute() {
         portal={portal}
         injectedScript={script}
         onVerCapturas={() => {
-          router.push('/capturas');
+          router.push('/ajustes/capturas');
         }}
       />
     </>
   );
 }
-
-const styles = StyleSheet.create({
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 },
-});
