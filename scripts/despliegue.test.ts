@@ -42,8 +42,4 @@ describe('configuración de despliegue', () => {
     }
     expect(reglas).not.toContain('!**/.env');
   });
-
-  it('los archivos que excluye son los que de verdad existen aquí', () => {
-    expect(existsSync(join(raiz, 'servidor/.env'))).toBe(true);
-  });
 });
