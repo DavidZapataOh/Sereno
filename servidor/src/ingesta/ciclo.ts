@@ -3,6 +3,7 @@ import { parseMessage } from '@/domain/mail/parsers/parser';
 
 import type { Repositorios } from '../db/repositorios';
 import type { Observabilidad } from '../observabilidad';
+import { reintentar } from '../resiliencia/reintentar';
 
 export interface CorridaCorreo {
   mensajesVistos: number;
@@ -43,9 +44,26 @@ export async function ingerirCorreos(
 
   try {
     const guardado = await deps.repos.cursores.leer(deps.fuente.id);
-    const { mensajes, cursor } = await deps.fuente.buscar(
-      guardado === null ? null : { tipo: deps.fuente.id, valor: guardado },
-      opciones.limite,
+    // La única salida a la red de esta función. Se reintenta lo transitorio
+    // —una desconexión, un límite de tasa—; una credencial revocada sube a la
+    // primera.
+    const { mensajes, cursor } = await reintentar(
+      () =>
+        deps.fuente.buscar(
+          guardado === null ? null : { tipo: deps.fuente.id, valor: guardado },
+          opciones.limite,
+        ),
+      {
+        intentos: 3,
+        baseMs: 2000,
+        topeMs: 30_000,
+        alReintentar: (intento, _error, espera) => {
+          deps.observabilidad.log('warn', 'reintentando la lectura del correo', {
+            intento,
+            esperaMs: espera,
+          });
+        },
+      },
     );
 
     for (const mensaje of mensajes) {
