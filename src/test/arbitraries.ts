@@ -1,4 +1,8 @@
-import { date as dateArbitrary, integer } from 'fast-check';
+import { array, bigInt, date as dateArbitrary, integer } from 'fast-check';
+
+import { accountId } from '@/domain/ledger/ids';
+import type { Posting } from '@/domain/ledger/transaction';
+import { money } from '@/domain/money/money';
 
 /**
  * Montos positivos en pesos, hasta mil millones.
@@ -19,3 +23,20 @@ export const isoDate = dateArbitrary({
   max: new Date('2030-12-31T23:59:59.999Z'),
   noInvalidDate: true,
 }).map((valor) => valor.toISOString());
+
+/**
+ * Apuntes que cuadran: n montos libres y uno final que compensa.
+ *
+ * Es el generador de la invariante de doble partida. Lo usan las propiedades
+ * del ledger, del códec y de los ajustes manuales.
+ */
+export const apuntesQueCuadran = array(bigInt({ min: -100_000_000n, max: 100_000_000n }), {
+  minLength: 1,
+  maxLength: 8,
+}).map((montos): Posting[] => {
+  const compensacion = -montos.reduce((acc, m) => acc + m, 0n);
+  return [...montos, compensacion].map((amount, indice) => ({
+    accountId: accountId(`cuenta-${String(indice)}`),
+    amount: money(amount, 'COP'),
+  }));
+});

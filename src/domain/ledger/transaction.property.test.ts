@@ -1,12 +1,8 @@
-import { array, assert, bigInt, property } from 'fast-check';
+import { assert, bigInt, property } from 'fast-check';
 import { money, sum } from '@/domain/money/money';
-import { accountId, ownerId, transactionId } from './ids';
-import {
-  createTransaction,
-  imbalanceOf,
-  UnbalancedTransactionError,
-  type Posting,
-} from './transaction';
+import { ownerId, transactionId } from './ids';
+import { createTransaction, imbalanceOf, UnbalancedTransactionError } from './transaction';
+import { apuntesQueCuadran } from '@/test/arbitraries';
 import { mustExist } from '@/test/must-exist';
 
 const base = {
@@ -16,18 +12,6 @@ const base = {
   descripcion: 'Generada',
   origen: { fuente: 'prueba', referencia: null },
 };
-
-/** Genera apuntes que cuadran: n montos libres y uno final que compensa. */
-const apuntesQueCuadran = array(bigInt({ min: -100_000_000n, max: 100_000_000n }), {
-  minLength: 1,
-  maxLength: 8,
-}).map((montos): Posting[] => {
-  const compensacion = -montos.reduce((acc, m) => acc + m, 0n);
-  return [...montos, compensacion].map((amount, indice) => ({
-    accountId: accountId(`cuenta-${String(indice)}`),
-    amount: money(amount, 'COP'),
-  }));
-});
 
 describe('propiedades de la invariante', () => {
   it('toda transacción construida cuadra', () => {
