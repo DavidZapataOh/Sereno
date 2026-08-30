@@ -35,10 +35,13 @@ export function SyncSummaryCard({ summary: s, onDismiss }: Props) {
       ? null
       : `Saldo inicial fijado en $ ${formatCOP(s.saldoInicial.amount)}: lo que había antes de estos movimientos`,
     s.conciliacion === null
+      ? 'No vi el saldo del banco: abre «Cuentas» en el portal antes de importar'
+      : `Saldo del banco: $ ${formatCOP(s.conciliacion.saldoReal.amount)} (${s.conciliacion.detalle})`,
+    s.conciliacion === null
       ? null
       : s.conciliacion.veredicto === 'cuadra'
-        ? 'El saldo cuadra con el banco'
-        : 'El saldo no cuadra: mira «Hoy»',
+        ? 'Cuadra con lo que Sereno tiene'
+        : 'No cuadra con lo que Sereno tiene: mira «Hoy»',
   ].filter((l): l is string => l !== null);
 
   return (

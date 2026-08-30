@@ -1,9 +1,12 @@
 import { fireEvent } from '@testing-library/react-native';
 
+import { accountId, ownerId } from '@/domain/ledger/ids';
 import { money } from '@/domain/money/money';
 import { renderWithProviders } from '@/test/render';
 
 import { SyncSummaryCard } from './sync-summary-card';
+
+const resumenOwner = ownerId('local');
 
 describe('SyncSummaryCard', () => {
   const resumen = {
@@ -57,5 +60,38 @@ describe('SyncSummaryCard', () => {
       />,
     );
     expect(getByText(/Saldo inicial fijado en \$ 735\.000/)).toBeOnTheScreen();
+  });
+
+  it('sin saldo del banco lo dice y explica cómo conseguirlo', async () => {
+    const { getByText } = await renderWithProviders(
+      <SyncSummaryCard summary={resumen} onDismiss={() => undefined} />,
+    );
+    expect(getByText(/No vi el saldo del banco/)).toBeOnTheScreen();
+  });
+
+  it('con saldo del banco muestra la cifra que usó y si cuadra', async () => {
+    const { getByText } = await renderWithProviders(
+      <SyncSummaryCard
+        summary={{
+          ...resumen,
+          conciliacion: {
+            id: 'r1',
+            owner: resumenOwner,
+            accountId: accountId('bancolombia:ahorros'),
+            fecha: '2026-08-28T10:00:00.000-05:00',
+            saldoReal: money(700000, 'COP'),
+            saldoCalculado: money(700000, 'COP'),
+            diferencia: money(0, 'COP'),
+            veredicto: 'cuadra',
+            fuente: 'bancolombia',
+            detalle: 'Ahorros ****8901',
+            creadoEn: '2026-08-28T10:00:00.000-05:00',
+          },
+        }}
+        onDismiss={() => undefined}
+      />,
+    );
+    expect(getByText(/Saldo del banco: \$ 700\.000 \(Ahorros \*\*\*\*8901\)/)).toBeOnTheScreen();
+    expect(getByText(/Cuadra con lo que Sereno tiene/)).toBeOnTheScreen();
   });
 });

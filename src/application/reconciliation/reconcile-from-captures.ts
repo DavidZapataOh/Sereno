@@ -1,5 +1,5 @@
-import { balanceExtractorFor } from '@/domain/capture/extractors';
 import type { Capture } from '@/domain/capture/reassembler';
+import { summarizeSession } from '@/domain/capture/session-summary';
 import type { OwnerId } from '@/domain/ledger/ids';
 import { sourceAccountId } from '@/domain/ledger/system-accounts';
 import { money } from '@/domain/money/money';
@@ -23,18 +23,9 @@ export async function reconcileFromCaptures(
   deps: ReconciliationDeps,
   input: { owner: OwnerId; portalId: PortalId; captures: Capture[] },
 ): Promise<Reconciliation[]> {
-  const extraer = balanceExtractorFor(input.portalId);
-  if (extraer === null) return [];
-
-  const conSaldos = input.captures
-    .map((c) => ({ captura: c, saldos: extraer(c) }))
-    .filter((x) => x.saldos.length > 0)
-    .sort((a, b) => b.captura.capturedAt.localeCompare(a.captura.capturedAt));
-  const reciente = conSaldos[0];
-  if (reciente === undefined) return [];
-
-  const ahorros = reciente.saldos.find((s) => /ahorro/i.test(s.nombre)) ?? reciente.saldos[0];
-  if (ahorros === undefined) return [];
+  const { saldo } = summarizeSession(input.portalId, input.captures);
+  if (saldo === null) return [];
+  const ahorros = saldo.balance;
 
   const cuenta = sourceAccountId(input.portalId);
   if ((await deps.accounts.findById(cuenta)) === null) return [];
@@ -43,7 +34,7 @@ export async function reconcileFromCaptures(
     owner: input.owner,
     accountId: cuenta,
     saldoReal: money(ahorros.saldo, ahorros.moneda),
-    fecha: reciente.captura.capturedAt,
+    fecha: saldo.capturedAt,
     fuente: input.portalId,
     detalle: `${ahorros.nombre} ****${ahorros.numero.slice(-4)}`,
   });

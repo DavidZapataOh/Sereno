@@ -116,4 +116,51 @@ describe('PortalSession', () => {
     );
     expect(getByTestId('error-importacion')).toHaveTextContent('No se pudo importar.');
   });
+
+  it('dice si el saldo del banco ya se vio, y si no, cómo conseguirlo', async () => {
+    const bancolombia = getPortal('bancolombia');
+    if (bancolombia === undefined) throw new Error('portal ausente');
+    const { getByTestId } = await renderWithProviders(
+      <PortalSession portal={bancolombia} injectedScript={SCRIPT} />,
+    );
+    expect(getByTestId('saldo-visto')).toHaveTextContent(/aún no visto/);
+    expect(getByTestId('movimientos-vistos')).toHaveTextContent(/Movimientos vistos: 0/);
+
+    const { handleMessage } = useCaptureStore.getState();
+    const cuerpo = JSON.stringify({
+      data: {
+        accounts: [
+          {
+            number: '12345678901',
+            name: 'Ahorros',
+            type: 'CUENTA_AHORRO',
+            currency: 'COP',
+            status: 'ACTIVA',
+            balances: { available: 4523.4, current: 4523.4, effective: 4523.4 },
+          },
+        ],
+      },
+    });
+    handleMessage(
+      JSON.stringify({
+        type: 'sereno:meta',
+        v: CAPTURE_PROTOCOL_VERSION,
+        id: 's',
+        url: 'https://canalpersonas-ext.apps.bancolombia.com/super-svp/api/v1/security-filters/ch-ms-deposits/hybrid/accounts/customization/consolidated',
+        method: 'GET',
+        status: 200,
+        contentType: 'application/json',
+        kind: 'fetch',
+        capturedAt: '2026-08-28T15:00:00.000Z',
+        totalFragments: 1,
+      }),
+    );
+    handleMessage(JSON.stringify(splitIntoFragments('s', cuerpo)[0]));
+
+    await waitFor(() => {
+      expect(getByTestId('saldo-visto')).toHaveTextContent(
+        /Saldo del banco: \$ 4\.523 \(Ahorros \*\*\*\*8901\)/,
+      );
+    });
+  });
 });
