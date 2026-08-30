@@ -34,11 +34,12 @@ ledger. Un `number` se acepta solo si es entero y seguro; con decimales, lanza.
 
 ### Estado de `fontVariant` en Android
 
-**Pendiente de verificación en dispositivo.** La propiedad `fontVariant:
-['tabular-nums']` tiene soporte irregular con fuentes cargadas por `expo-font`. Las
-pruebas confirman que se aplica; no que el motor de fuentes la respete. Se comprueba en la
-sesión de campo del sprint con la pantalla de diagnóstico, que apila montos de anchos
-distintos. Si no alinean, el cambio afecta solo a `typography.ts` y `money.tsx`.
+**Verificado en dispositivo el 2026-08-29** (Android, Expo Go, Inter cargada por
+`expo-font`): la muestra tipográfica de `Ajustes → Diagnóstico` alinea en columna. Inter
+respeta `tabular-nums`; no hace falta una fuente de ancho fijo para los montos.
+
+Si alguna vez deja de alinear —otra fuente, otra versión de Android—, el cambio afecta
+solo a los niveles de monto en `typography.ts` y a `money.tsx`.
 
 ## Escala
 
