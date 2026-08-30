@@ -6,6 +6,7 @@ import type { Repositorios } from '../db/repositorios';
 import type { Observabilidad } from '../observabilidad';
 
 import { montarMovimientos } from './movimientos';
+import { montarRevision } from './revision';
 
 export interface Dependencias {
   repos: Repositorios;
@@ -51,6 +52,7 @@ export function crearApp(deps: Dependencias) {
   });
 
   montarMovimientos(app, deps.repos);
+  montarRevision(app, deps.repos, deps.observabilidad);
 
   app.notFound((c) => c.json({ error: 'No existe' }, 404));
 
