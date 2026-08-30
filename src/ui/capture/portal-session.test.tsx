@@ -1,6 +1,6 @@
 import { PortalSession } from './portal-session';
 import { useCaptureStore } from './store';
-import { renderWithProviders, waitFor } from '@/test/render';
+import { fireEvent, renderWithProviders, waitFor } from '@/test/render';
 import { getPortal } from '@/domain/portals/registry';
 import { CAPTURE_PROTOCOL_VERSION, splitIntoFragments } from '@/domain/capture/protocol';
 
@@ -71,5 +71,37 @@ describe('PortalSession', () => {
     await waitFor(() => {
       expect(getByTestId('contador-capturas')).toHaveTextContent(/1 captura/);
     });
+  });
+
+  it('con capturas ofrece importar y entrega las capturas a quien las procese', async () => {
+    const onImportar = jest.fn();
+    const { getByRole } = await renderWithProviders(
+      <PortalSession portal={portal} injectedScript={SCRIPT} onImportar={onImportar} />,
+    );
+    expect(getByRole('button', { name: 'Importar las capturas al ledger' })).toBeDisabled();
+
+    const { handleMessage } = useCaptureStore.getState();
+    handleMessage(
+      JSON.stringify({
+        type: 'sereno:meta',
+        v: CAPTURE_PROTOCOL_VERSION,
+        id: 'a',
+        url: 'https://banco.example/api/x',
+        method: 'GET',
+        status: 200,
+        contentType: 'application/json',
+        kind: 'fetch',
+        capturedAt: '2026-08-28T15:00:00.000Z',
+        totalFragments: 1,
+      }),
+    );
+    handleMessage(JSON.stringify(splitIntoFragments('a', '{}')[0]));
+
+    await waitFor(() => {
+      expect(getByRole('button', { name: 'Importar las capturas al ledger' })).not.toBeDisabled();
+    });
+    await fireEvent.press(getByRole('button', { name: 'Importar las capturas al ledger' }));
+    expect(onImportar).toHaveBeenCalledTimes(1);
+    expect(onImportar.mock.calls[0]?.[0]).toHaveLength(1);
   });
 });
