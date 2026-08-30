@@ -16,6 +16,8 @@ export interface IngestRun {
   extraidas: number;
   nuevas: number;
   duplicadas: number;
+  /** Vistas por otra fuente: se sumaron como observación a una transacción existente. */
+  fusionadas: number;
   transferencias: number;
   error: string | null;
 }

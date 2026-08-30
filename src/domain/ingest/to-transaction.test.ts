@@ -3,7 +3,7 @@ import { systemAccountId } from '@/domain/ledger/system-accounts';
 import { imbalanceOf } from '@/domain/ledger/transaction';
 import { mustExist } from '@/test/must-exist';
 
-import { ingestedTransactionId, toLedgerTransaction } from './to-transaction';
+import { ingestedTransactionId, SIN_DESCRIPCION, toLedgerTransaction } from './to-transaction';
 
 const owner = ownerId('david');
 const ahorros = accountId('bancolombia:ahorros');
@@ -87,6 +87,14 @@ describe('toLedgerTransaction', () => {
     expect(tx.origen).toEqual({ fuente: 'bancolombia', referencia: 'REF-1' });
     expect(tx.owner).toBe(owner);
     expect(tx.id).toBe('bancolombia:REF-1');
+  });
+
+  it('una descripción en blanco no tumba el movimiento: deja constancia', () => {
+    // Lo encontró fast-check: el banco puede mandar la descripción vacía y
+    // rechazarla habría reventado el lote entero por un movimiento.
+    expect(toLedgerTransaction({ ...compra, descripcion: '   ' }, ctx).descripcion).toBe(
+      SIN_DESCRIPCION,
+    );
   });
 
   it('rechaza un monto cero: no hay movimiento que registrar', () => {

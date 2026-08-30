@@ -85,6 +85,7 @@ export const ingestRuns = sqliteTable(
     extraidas: integer('extraidas').notNull().default(0),
     nuevas: integer('nuevas').notNull().default(0),
     duplicadas: integer('duplicadas').notNull().default(0),
+    fusionadas: integer('fusionadas').notNull().default(0),
     transferencias: integer('transferencias').notNull().default(0),
     error: text('error'),
   },

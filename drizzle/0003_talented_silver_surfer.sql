@@ -1,0 +1,1 @@
+ALTER TABLE `ingest_runs` ADD `fusionadas` integer DEFAULT 0 NOT NULL;

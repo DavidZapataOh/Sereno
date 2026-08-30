@@ -31,6 +31,7 @@ function toRun(fila: RunRow): IngestRun {
     extraidas: fila.extraidas,
     nuevas: fila.nuevas,
     duplicadas: fila.duplicadas,
+    fusionadas: fila.fusionadas,
     transferencias: fila.transferencias,
     error: fila.error,
   };
@@ -70,6 +71,7 @@ export function createDrizzleIngestRepository(db: Database): IngestRepository {
           extraidas: run.extraidas,
           nuevas: run.nuevas,
           duplicadas: run.duplicadas,
+          fusionadas: run.fusionadas,
           transferencias: run.transferencias,
           error: run.error,
         };

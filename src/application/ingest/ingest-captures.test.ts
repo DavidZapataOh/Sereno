@@ -197,13 +197,17 @@ describe('ingestCaptures', () => {
     expect(resumen).toMatchObject({ capturas: 1, extraidas: 0, nuevas: 0 });
   });
 
-  it('un movimiento sin referencia se cuenta aparte y no entra: no tiene id determinista', async () => {
+  it('un movimiento sin referencia recibe una derivada y entra una sola vez aunque se reprocese', async () => {
     const d = deps();
     const sinRef = capturaBancolombia([{ ...compra, referencia: '' }]);
 
-    const resumen = await ingestCaptures(d, { owner, portalId: 'bancolombia', captures: [sinRef] });
+    const primera = await ingestCaptures(d, { owner, portalId: 'bancolombia', captures: [sinRef] });
+    const segunda = await ingestCaptures(d, { owner, portalId: 'bancolombia', captures: [sinRef] });
 
-    expect(resumen).toMatchObject({ extraidas: 1, nuevas: 0, sinReferencia: 1 });
+    expect(primera).toMatchObject({ extraidas: 1, nuevas: 1 });
+    expect(segunda).toMatchObject({ extraidas: 1, nuevas: 0, duplicadas: 1 });
+    expect(d.transactions.all()).toHaveLength(1);
+    expect(d.ingest.observations()[0]?.referencia).toMatch(/^h:/);
   });
 
   it('para un portal sin extractor falla antes de tocar nada', async () => {
@@ -272,7 +276,7 @@ describe('ingestCaptures', () => {
           expect(saldos.reduce((acc, s) => acc + s.amount, 0n)).toBe(0n);
         },
       ),
-      { numRuns: 40 },
+      { numRuns: 80 },
     );
   });
 });

@@ -23,6 +23,14 @@ describe('normalizeDescription', () => {
     expect(normalizeDescription('Pago en EXITO SUR')).toBe('exito sur');
   });
 
+  it('un comercio que se llame como un conector no desaparece', () => {
+    // Lo encontró fast-check: «a» es conector en «transferencia a nequi» pero
+    // comercio en «compra a». Las dos fuentes tienen que dar la misma huella.
+    expect(normalizeDescription('COMPRA A')).toBe('a');
+    expect(normalizeDescription('Pago en A')).toBe('a');
+    expect(normalizeDescription('TRANSFERENCIA A NEQUI')).toBe('nequi');
+  });
+
   it('no deja la descripción vacía aunque todo fuera ruido', () => {
     expect(normalizeDescription('COMPRA *0000')).toBe('compra *0000');
   });

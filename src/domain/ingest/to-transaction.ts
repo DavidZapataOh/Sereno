@@ -31,6 +31,7 @@ interface Context {
 }
 
 const FORMATO_PORTAL = /^\d{4}\/\d{2}\/\d{2}$/;
+export const SIN_DESCRIPCION = 'Sin descripción';
 
 /**
  * Convierte lo capturado en una transacción de doble partida.
@@ -44,6 +45,9 @@ export function toLedgerTransaction(n: NormalizedTransaction, ctx: Context): Tra
 
   const importe = money(n.monto, n.moneda);
   const fecha = FORMATO_PORTAL.test(n.fecha) ? parsePortalDate(n.fecha) : n.fecha;
+  // Un banco puede mandar la descripción en blanco. Rechazarlo tumbaría el
+  // lote entero por un movimiento; se deja constancia de que no vino nada.
+  const descripcion = n.descripcion.trim().length > 0 ? n.descripcion : SIN_DESCRIPCION;
 
   const contraparte =
     n.tipo === 'debito'
@@ -55,7 +59,7 @@ export function toLedgerTransaction(n: NormalizedTransaction, ctx: Context): Tra
     id: ctx.id,
     owner: ctx.owner,
     fecha,
-    descripcion: n.descripcion,
+    descripcion,
     origen: { fuente: n.fuente, referencia: n.referencia },
     postings: [
       { accountId: ctx.assetAccountId, amount: money(signoActivo * importe.amount, n.moneda) },

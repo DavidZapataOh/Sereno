@@ -126,6 +126,7 @@ describe('createInMemoryIngestRepository', () => {
     extraidas: 0,
     nuevas: 0,
     duplicadas: 0,
+    fusionadas: 0,
     transferencias: 0,
     error: null,
   });
