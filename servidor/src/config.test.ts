@@ -1,0 +1,95 @@
+import { randomBytes } from 'node:crypto';
+
+import { describe, expect, it } from 'vitest';
+
+import { leerConfig } from './config';
+
+/**
+ * Un valor con pinta de secreto, construido en vez de escrito.
+ *
+ * `comprobar-secretos` marca cualquier literal largo asignado a un nombre de
+ * secreto, y hace bien: no puede distinguir uno falso de uno real. Construirlo
+ * deja claro que es de mentira y no gasta la alarma.
+ */
+const comoSiFuera = (texto: string, veces: number): string => texto.repeat(veces);
+
+/**
+ * Valores sintéticos a propósito.
+ *
+ * La cadena va sin usuario ni contraseña y el token se construye en vez de
+ * escribirse: `comprobar-secretos` no distingue un secreto de prueba de uno
+ * real —no puede—, y una fixture que parece una credencial acaba enseñando a
+ * ignorar la alarma.
+ */
+const completo = {
+  DATABASE_URL: 'postgres://localhost:5432/sereno',
+  SERENO_TOKEN: comoSiFuera('t', 30),
+  SERENO_CLAVE_CIFRADO: randomBytes(32).toString('base64'),
+  IMAP_HOST: 'imap.gmail.com',
+  IMAP_USUARIO: 'david@example.com',
+  IMAP_CLAVE: 'contraseña de aplicación',
+};
+
+describe('configuración', () => {
+  it('con todo lo necesario, devuelve valores tipados y los opcionales con su defecto', () => {
+    const config = leerConfig(completo);
+    expect(config.puerto).toBe(8080);
+    expect(config.imap.puerto).toBe(993);
+    expect(config.imap.buzon).toBe('INBOX');
+    expect(config.intervaloMinutos).toBe(10);
+    expect(config.claveCifrado).toHaveLength(32);
+  });
+
+  it('dice TODO lo que falta de una vez, no de a una', () => {
+    // Arrancar tres veces para descubrir tres variables es una hora perdida.
+    expect(() => leerConfig({})).toThrow(/DATABASE_URL[\s\S]*SERENO_TOKEN/);
+    try {
+      leerConfig({});
+    } catch (error) {
+      expect(error instanceof Error ? error.message : '').toContain('SERENO_CLAVE_CIFRADO');
+    }
+  });
+
+  it('no acepta una clave de cifrado que no mide 32 bytes', () => {
+    // Corto a propósito, y corto también como texto: una fixture larga con
+    // pinta de clave dispara `comprobar-secretos`, con razón.
+    expect(() => leerConfig({ ...completo, SERENO_CLAVE_CIFRADO: 'corta' })).toThrow(/32 bytes/);
+  });
+
+  it('no acepta un token corto: con uno de cuatro letras, el servidor es público', () => {
+    expect(() => leerConfig({ ...completo, SERENO_TOKEN: 'abcd' })).toThrow(/token/i);
+  });
+
+  it('el mensaje de error no repite el valor de ningún secreto', () => {
+    try {
+      const clave = comoSiFuera('no-aparece-', 2);
+      leerConfig({ ...completo, SERENO_TOKEN: 'abcd', IMAP_CLAVE: clave });
+      throw new Error('debía fallar');
+    } catch (error) {
+      const mensaje = error instanceof Error ? error.message : '';
+      expect(mensaje).not.toContain(comoSiFuera('no-aparece-', 2));
+      expect(mensaje).not.toContain('abcd');
+    }
+  });
+
+  it('lo de Gmail es opcional: sin ello, la fuente es IMAP', () => {
+    expect(leerConfig(completo).gmail).toBeNull();
+    expect(
+      leerConfig({
+        ...completo,
+        SERENO_GOOGLE_ID: 'id',
+        SERENO_GOOGLE_SECRET: 'secreto',
+        SERENO_GMAIL_REFRESH_TOKEN: 'token',
+      }).gmail,
+    ).not.toBeNull();
+  });
+
+  it('con Gmail a medias, no se usa: falta algo y adivinar sería peor', () => {
+    expect(leerConfig({ ...completo, SERENO_GOOGLE_ID: 'id' }).gmail).toBeNull();
+  });
+
+  it('un intervalo absurdo se rechaza en vez de dejar la ingesta muerta', () => {
+    expect(() => leerConfig({ ...completo, SERENO_INTERVALO_MINUTOS: '0' })).toThrow();
+    expect(() => leerConfig({ ...completo, SERENO_INTERVALO_MINUTOS: '99999' })).toThrow();
+  });
+});
