@@ -1,4 +1,4 @@
-import { desc, eq } from 'drizzle-orm';
+import { desc, eq, sql } from 'drizzle-orm';
 
 import { accountId, type OwnerId } from '@/domain/ledger/ids';
 import type { Reconciliation } from '@/domain/reconciliation/reconciliation';
@@ -70,7 +70,9 @@ export function createDrizzleReconciliationRepository(db: Database): Reconciliat
           .select()
           .from(reconciliations)
           .where(eq(reconciliations.accountId, cuenta))
-          .orderBy(desc(reconciliations.fecha))
+          // Dos conciliaciones pueden compartir fecha (la de la captura y la que
+          // cierra un ajuste): gana la registrada de último.
+          .orderBy(desc(reconciliations.fecha), desc(reconciliations.creadoEn), desc(sql`rowid`))
           .limit(1)
           .all();
         return fila === undefined ? null : toReconciliation(fila);

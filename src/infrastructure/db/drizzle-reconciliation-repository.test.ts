@@ -64,6 +64,20 @@ describe('ReconciliationRepository sobre Drizzle', () => {
     expect(mustExist(await repo.findLatest(ahorros)).id).toBe('nueva');
   });
 
+  it('con la misma fecha, la última es la registrada de último: la que cierra un ajuste', async () => {
+    const fecha = '2026-08-28T10:00:00.000-05:00';
+    await repo.save(conciliacion('captura', fecha, { creadoEn: '2026-08-28T10:00:01.000-05:00' }));
+    await repo.save(
+      conciliacion('ajuste', fecha, {
+        veredicto: 'cuadra',
+        fuente: 'ajuste',
+        creadoEn: '2026-08-28T10:00:02.000-05:00',
+      }),
+    );
+
+    expect(mustExist(await repo.findLatest(ahorros)).id).toBe('ajuste');
+  });
+
   it('lista por cuenta en orden descendente de fecha', async () => {
     await repo.save(conciliacion('a', '2026-08-20T10:00:00.000-05:00'));
     await repo.save(conciliacion('b', '2026-08-28T10:00:00.000-05:00'));
