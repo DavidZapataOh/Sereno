@@ -41,7 +41,9 @@ export function stripBankPrefix(texto: string): string {
 }
 
 export function stripTerminals(texto: string): string {
-  return texto.replace(TERMINALES, '').replace(/\s+/g, ' ').trim();
+  // Se sustituye por espacio, no por nada: «RAPPI*RAPPI PRO» debe quedar
+  // «rappi pro», no «rappipro».
+  return texto.replace(TERMINALES, ' ').replace(/\s+/g, ' ').trim();
 }
 
 /**
