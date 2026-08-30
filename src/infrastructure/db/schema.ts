@@ -1,4 +1,4 @@
-import { index, sqliteTable, text } from 'drizzle-orm/sqlite-core';
+import { index, integer, sqliteTable, text } from 'drizzle-orm/sqlite-core';
 
 /**
  * Cuentas del ledger.
@@ -70,5 +70,55 @@ export const postings = sqliteTable(
   (tabla) => [
     index('idx_postings_account').on(tabla.accountId),
     index('idx_postings_transaction').on(tabla.transactionId),
+  ],
+);
+
+export const ingestRuns = sqliteTable(
+  'ingest_runs',
+  {
+    id: text('id').primaryKey(),
+    ownerId: text('owner_id').notNull(),
+    fuente: text('fuente').notNull(),
+    iniciadoEn: text('iniciado_en').notNull(),
+    terminadoEn: text('terminado_en'),
+    capturas: integer('capturas').notNull().default(0),
+    extraidas: integer('extraidas').notNull().default(0),
+    nuevas: integer('nuevas').notNull().default(0),
+    duplicadas: integer('duplicadas').notNull().default(0),
+    transferencias: integer('transferencias').notNull().default(0),
+    error: text('error'),
+  },
+  (tabla) => [
+    // «Última sincronización de esta fuente»: la consulta más frecuente.
+    index('idx_ingest_runs_owner_fuente').on(tabla.ownerId, tabla.fuente, tabla.iniciadoEn),
+  ],
+);
+
+/**
+ * Observaciones: quién vio cada transacción.
+ *
+ * `crudo` guarda la transacción normalizada tal como llegó, en JSON. Es lo que
+ * permite deshacer una fusión: la observación puede volver a ser una
+ * transacción propia sin pedirle nada al banco.
+ */
+export const transactionObservations = sqliteTable(
+  'transaction_observations',
+  {
+    id: text('id').primaryKey(),
+    transactionId: text('transaction_id')
+      .notNull()
+      .references(() => transactions.id, { onDelete: 'cascade' }),
+    ownerId: text('owner_id').notNull(),
+    fuente: text('fuente').notNull(),
+    referencia: text('referencia'),
+    huella: text('huella').notNull(),
+    capturadoEn: text('capturado_en').notNull(),
+    runId: text('run_id'),
+    crudo: text('crudo').notNull(),
+  },
+  (tabla) => [
+    index('idx_observations_origen').on(tabla.ownerId, tabla.fuente, tabla.referencia),
+    index('idx_observations_huella').on(tabla.ownerId, tabla.huella),
+    index('idx_observations_transaction').on(tabla.transactionId),
   ],
 );

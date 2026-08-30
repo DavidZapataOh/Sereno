@@ -4,6 +4,7 @@ import { createTransaction } from '@/domain/ledger/transaction';
 import { money } from '@/domain/money/money';
 
 import { createInMemoryAccountRepository } from './in-memory-account-repository';
+import { createInMemoryIngestRepository } from './in-memory-ingest-repository';
 import { createInMemoryTransactionRepository } from './in-memory-transaction-repository';
 import { createSequentialIds } from './sequential-ids';
 
@@ -111,5 +112,58 @@ describe('createInMemoryTransactionRepository', () => {
     await repo.delete(transactionId('t1'));
     expect(await repo.findById(transactionId('t1'))).toBeNull();
     await expect(repo.delete(transactionId('t1'))).rejects.toThrow(/t1/);
+  });
+});
+
+describe('createInMemoryIngestRepository', () => {
+  const corrida = (id: string, iniciadoEn: string) => ({
+    id,
+    owner,
+    fuente: 'bancolombia',
+    iniciadoEn,
+    terminadoEn: null,
+    capturas: 0,
+    extraidas: 0,
+    nuevas: 0,
+    duplicadas: 0,
+    transferencias: 0,
+    error: null,
+  });
+
+  it('la última corrida es la de iniciadoEn mayor, no la guardada de último', async () => {
+    const repo = createInMemoryIngestRepository();
+    await repo.saveRun(corrida('nueva', '2026-08-28T10:00:00.000-05:00'));
+    await repo.saveRun(corrida('vieja', '2026-08-20T10:00:00.000-05:00'));
+    expect((await repo.findLastRun(owner, 'bancolombia'))?.id).toBe('nueva');
+    expect(await repo.findLastRun(owner, 'nequi')).toBeNull();
+  });
+
+  it('encuentra por origen y por huella, y borra', async () => {
+    const repo = createInMemoryIngestRepository();
+    const o = {
+      id: 't1@bancolombia',
+      transactionId: transactionId('t1'),
+      owner,
+      fuente: 'bancolombia',
+      referencia: 'REF-1',
+      huella: 'h1',
+      capturadoEn: '2026-08-28T10:00:00.000-05:00',
+      runId: null,
+      crudo: {
+        fecha: '2026/08/28',
+        descripcion: 'X',
+        monto: 1,
+        moneda: 'COP' as const,
+        tipo: 'debito' as const,
+        fuente: 'bancolombia' as const,
+        referencia: 'REF-1',
+      },
+    };
+    await repo.saveObservation(o);
+    expect((await repo.findObservationByOrigin(owner, 'bancolombia', 'REF-1'))?.id).toBe(o.id);
+    expect(await repo.findObservationsByFingerprint(owner, ['h0', 'h1'])).toHaveLength(1);
+    expect(await repo.listObservations(transactionId('t1'))).toHaveLength(1);
+    await repo.deleteObservation(o.id);
+    expect(await repo.listObservations(transactionId('t1'))).toEqual([]);
   });
 });
