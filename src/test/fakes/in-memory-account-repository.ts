@@ -9,11 +9,6 @@ export type PostingConFecha = Posting & { fecha: string };
 
 export interface InMemoryAccountRepository extends AccountRepository {
   all: () => Account[];
-  /**
-   * Con `hasta`, solo los apuntes de transacciones con esa fecha o anterior.
-   * El puerto real lo gana en el plan 04; el doble lo tiene desde ya.
-   */
-  balanceOf: (id: AccountId, options?: { hasta?: string }) => Promise<Money>;
   /** Los apuntes que el doble usa para derivar saldos. Lo alimenta el doble de transacciones. */
   postings: PostingConFecha[];
 }
@@ -48,7 +43,7 @@ export function createInMemoryAccountRepository(): InMemoryAccountRepository {
         ),
       ),
 
-    balanceOf: (id, options?: { hasta?: string }): Promise<Money> => {
+    balanceOf: (id, options): Promise<Money> => {
       const cuenta = cuentas.get(id);
       if (cuenta === undefined) return Promise.reject(new Error(`No existe la cuenta "${id}"`));
       const hasta = options?.hasta;

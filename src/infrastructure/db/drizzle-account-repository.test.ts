@@ -1,3 +1,5 @@
+import { sql } from 'drizzle-orm';
+
 import { createAccount, type AccountKind } from '@/domain/ledger/account';
 import type { AccountRepository } from '@/domain/ledger/account-repository';
 import { accountId, ownerId } from '@/domain/ledger/ids';
@@ -162,6 +164,23 @@ describe('AccountRepository sobre Drizzle', () => {
       // 10^19 + 1 está por encima del máximo de SQLite (~9,22×10^18): si el
       // saldo pasara por INTEGER o por `number`, este dígito final se perdería.
       expect((await repo.balanceOf(accountId('c1'))).amount).toBe(10000000000000000001n);
+    });
+
+    it('calcula el saldo a una fecha, incluyéndola', async () => {
+      await repo.save(nuevaCuenta('c1', 'Ahorros'));
+      asentar([{ id: 'p1', cuenta: 'c1', monto: '100' }], 't1');
+      cliente.db.run(
+        sql`UPDATE transactions SET fecha = '2026-08-25T00:00:00.000-05:00' WHERE id = 't1'`,
+      );
+      asentar([{ id: 'p2', cuenta: 'c1', monto: '50' }], 't2');
+
+      expect(
+        (await repo.balanceOf(accountId('c1'), { hasta: '2026-08-20T23:59:59.999-05:00' })).amount,
+      ).toBe(50n);
+      expect(
+        (await repo.balanceOf(accountId('c1'), { hasta: '2026-08-25T00:00:00.000-05:00' })).amount,
+      ).toBe(150n);
+      expect((await repo.balanceOf(accountId('c1'))).amount).toBe(150n);
     });
 
     it('falla si la cuenta no existe, en vez de fingir un saldo de cero', async () => {
