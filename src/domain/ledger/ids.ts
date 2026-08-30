@@ -30,3 +30,14 @@ export function ownerId(valor: string): OwnerId {
   requerirNoVacio(valor, 'OwnerId');
   return valor as OwnerId;
 }
+
+/**
+ * Fuente de identificadores nuevos.
+ *
+ * Es un puerto: el dominio no decide cómo se generan. En producción es un UUID
+ * de `expo-crypto`; en pruebas, una secuencia predecible, para que las
+ * aserciones puedan nombrar el id que esperan.
+ */
+export interface IdGenerator {
+  next: () => string;
+}
