@@ -11,6 +11,10 @@
 import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 
+/** Variables cuyo valor nunca puede estar en el repositorio. */
+const NOMBRES =
+  '(SERENO_TOKEN|SERENO_CLAVE_CIFRADO|IMAP_CLAVE|SERENO_GOOGLE_SECRET|SERENO_GMAIL_REFRESH_TOKEN|EXPO_PUBLIC_SERENO_TOKEN)';
+
 const PATRONES = [
   {
     nombre: 'contraseña en una URL de Postgres',
@@ -21,9 +25,16 @@ const PATRONES = [
   { nombre: 'clave privada', patron: /-----BEGIN [A-Z ]*PRIVATE KEY-----/ },
   { nombre: 'clave de AWS', patron: /\bAKIA[0-9A-Z]{16}\b/ },
   {
-    nombre: 'asignación de secreto con valor',
-    patron:
-      /(SERENO_TOKEN|SERENO_CLAVE_CIFRADO|IMAP_CLAVE|SERENO_GOOGLE_SECRET|SERENO_GMAIL_REFRESH_TOKEN|EXPO_PUBLIC_SERENO_TOKEN)\s*[=:]\s*['"]?[A-Za-z0-9+/_-]{8,}/,
+    // En un archivo de entorno: `NOMBRE=valor`, sin comillas, hasta el final.
+    nombre: 'secreto en un archivo de entorno',
+    patron: new RegExp(`^\\s*${NOMBRES}\\s*=\\s*[A-Za-z0-9+/_=-]{8,}\\s*$`),
+  },
+  {
+    // En código: el valor va entrecomillado. Sin exigir la comilla, un
+    // `SERENO_CLAVE_CIFRADO: randomBytes(32)` se marcaría como secreto, y una
+    // alarma que salta con lo correcto enseña a ignorarla.
+    nombre: 'secreto escrito en el código',
+    patron: new RegExp(`${NOMBRES}\\s*[=:]\\s*['"\`][A-Za-z0-9+/_=-]{8,}['"\`]`),
   },
 ];
 

@@ -4,9 +4,26 @@ import { describe, expect, it } from 'vitest';
 
 import { leerConfig } from './config';
 
+/**
+ * Un valor con pinta de secreto, construido en vez de escrito.
+ *
+ * `comprobar-secretos` marca cualquier literal largo asignado a un nombre de
+ * secreto, y hace bien: no puede distinguir uno falso de uno real. Construirlo
+ * deja claro que es de mentira y no gasta la alarma.
+ */
+const comoSiFuera = (texto: string, veces: number): string => texto.repeat(veces);
+
+/**
+ * Valores sintéticos a propósito.
+ *
+ * La cadena va sin usuario ni contraseña y el token se construye en vez de
+ * escribirse: `comprobar-secretos` no distingue un secreto de prueba de uno
+ * real —no puede—, y una fixture que parece una credencial acaba enseñando a
+ * ignorar la alarma.
+ */
 const completo = {
-  DATABASE_URL: 'postgres://usuario:clave@host:5432/sereno',
-  SERENO_TOKEN: 'un-token-suficientemente-largo-para-servir',
+  DATABASE_URL: 'postgres://localhost:5432/sereno',
+  SERENO_TOKEN: comoSiFuera('t', 30),
   SERENO_CLAVE_CIFRADO: randomBytes(32).toString('base64'),
   IMAP_HOST: 'imap.gmail.com',
   IMAP_USUARIO: 'david@example.com',
@@ -34,7 +51,9 @@ describe('configuración', () => {
   });
 
   it('no acepta una clave de cifrado que no mide 32 bytes', () => {
-    expect(() => leerConfig({ ...completo, SERENO_CLAVE_CIFRADO: 'Y29ydGE=' })).toThrow(/32 bytes/);
+    // Corto a propósito, y corto también como texto: una fixture larga con
+    // pinta de clave dispara `comprobar-secretos`, con razón.
+    expect(() => leerConfig({ ...completo, SERENO_CLAVE_CIFRADO: 'corta' })).toThrow(/32 bytes/);
   });
 
   it('no acepta un token corto: con uno de cuatro letras, el servidor es público', () => {
@@ -43,11 +62,12 @@ describe('configuración', () => {
 
   it('el mensaje de error no repite el valor de ningún secreto', () => {
     try {
-      leerConfig({ ...completo, SERENO_TOKEN: 'abcd', IMAP_CLAVE: 'clave-secreta-real' });
+      const clave = comoSiFuera('no-aparece-', 2);
+      leerConfig({ ...completo, SERENO_TOKEN: 'abcd', IMAP_CLAVE: clave });
       throw new Error('debía fallar');
     } catch (error) {
       const mensaje = error instanceof Error ? error.message : '';
-      expect(mensaje).not.toContain('clave-secreta-real');
+      expect(mensaje).not.toContain(comoSiFuera('no-aparece-', 2));
       expect(mensaje).not.toContain('abcd');
     }
   });
