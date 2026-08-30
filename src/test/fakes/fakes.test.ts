@@ -5,6 +5,7 @@ import { money } from '@/domain/money/money';
 
 import { createInMemoryAccountRepository } from './in-memory-account-repository';
 import { createInMemoryBatchRepository } from './in-memory-batch-repository';
+import { createInMemoryMailSource } from './in-memory-mail-source';
 import { createInMemoryCategoryRepository } from './in-memory-category-repository';
 import { createInMemoryClassificationRepository } from './in-memory-classification-repository';
 import { createInMemoryEvidenceRepository } from './in-memory-evidence-repository';
@@ -276,5 +277,35 @@ describe('createInMemoryBatchRepository', () => {
     expect((await repo.findById('b2'))?.deshechoEn).not.toBeNull();
     expect((await repo.findLatest(ownerId('david')))?.id).toBe('b1');
     expect(await repo.findLatest(ownerId('otro'))).toBeNull();
+  });
+});
+
+describe('createInMemoryMailSource', () => {
+  const correo = (id: string) => ({
+    id,
+    remitente: 'somos@nequi.com.co',
+    asunto: 'Pago',
+    recibidoEn: '2026-08-30T10:00:00.000-05:00',
+    texto: 'x',
+    html: null,
+  });
+
+  it('respeta el límite, avanza el cursor y la segunda vez sigue donde iba', async () => {
+    const fuente = createInMemoryMailSource([correo('a'), correo('b'), correo('c')]);
+
+    const primera = await fuente.buscar(null, 2);
+    expect(primera.mensajes.map((m) => m.id)).toEqual(['a', 'b']);
+    expect(primera.cursor).toEqual({ tipo: 'imap', valor: '2' });
+
+    const segunda = await fuente.buscar(primera.cursor, 2);
+    expect(segunda.mensajes.map((m) => m.id)).toEqual(['c']);
+    expect(fuente.peticiones()).toBe(2);
+  });
+
+  it('sin nada nuevo devuelve vacío y no retrocede el cursor', async () => {
+    const fuente = createInMemoryMailSource([correo('a')]);
+    const r = await fuente.buscar({ tipo: 'imap', valor: '1' }, 10);
+    expect(r.mensajes).toEqual([]);
+    expect(r.cursor.valor).toBe('1');
   });
 });
