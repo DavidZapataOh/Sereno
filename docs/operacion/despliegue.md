@@ -33,9 +33,19 @@ Ninguna va al repositorio; `npm run comprobar-secretos` lo vigila.
 
 ## 4. Desplegar
 
-**New → GitHub Repo**, y elegir este repositorio. Con `servidor/railway.json`
-presente, Railway construye con el Dockerfile y con la raíz del repositorio como
-contexto, que es lo que hace falta para que el dominio compartido entre.
+**New → GitHub Repo**, y elegir este repositorio. `railway.json` va en la **raíz
+del repositorio**, que es el único sitio donde Railway lo busca; desde ahí manda
+construir con `servidor/Dockerfile` y con la raíz como contexto, que es lo que
+hace falta para que el dominio compartido entre.
+
+El contexto es la raíz entera, así que `.dockerignore` —también en la raíz— es
+lo que deja fuera `capturas/` y `servidor/.env`. Sin él, los correos reales y la
+contraseña de aplicación se suben al constructor. Hay una prueba que lo vigila:
+`scripts/despliegue.test.ts`.
+
+**El primer despliegue va a fallar en rojo** si aún no se han puesto las
+variables. Es lo correcto: el servidor se niega a arrancar sin sus secretos en
+vez de arrancar a medias. Poner las variables y volver a desplegar.
 
 En **Settings → Networking**, generar el dominio público.
 
