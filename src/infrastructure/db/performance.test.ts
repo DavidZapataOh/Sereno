@@ -21,6 +21,12 @@ const POR_PAGINA = 50;
  * Una consulta que va bien con diez transacciones puede ser inservible con cinco
  * años de historial, y para entonces el diseño ya está en producción.
  *
+ * Son guardas GRUESAS: detectan que algo se volvió diez veces más lento, no
+ * que un índice falte —eso lo verifica `index-usage.test.ts` por plan de
+ * ejecución—. Por eso los topes son holgados: esta suite corre en paralelo
+ * con otras ochenta y, con topes ajustados, falló una vez de cada seis
+ * integraciones (331 ms contra 300) sin que nada hubiera cambiado.
+ *
  * Se siembra una sola vez para las cuatro medidas: sembrar por prueba mediría
  * sobre todo la siembra.
  */
@@ -90,10 +96,10 @@ describe('rendimiento con historial realista', () => {
     expect(pagina.items).toHaveLength(1);
   });
 
-  it('la primera página se sirve en menos de 200 ms', async () => {
+  it('la primera página se sirve en menos de 600 ms', async () => {
     const duracion = await medir(() => repo.list(owner, undefined, { limit: POR_PAGINA }));
 
-    expect(duracion).toBeLessThan(200);
+    expect(duracion).toBeLessThan(600);
   });
 
   it('la última página cuesta lo mismo que la primera', async () => {
@@ -118,20 +124,20 @@ describe('rendimiento con historial realista', () => {
     );
 
     expect(paginas).toBe(VOLUMEN / POR_PAGINA);
-    expect(duracionUltima).toBeLessThan(200);
+    expect(duracionUltima).toBeLessThan(600);
     // Comparación relativa además de la absoluta: es lo que distingue «rápido
     // por tener poca máquina» de «rápido porque no depende de la página».
     expect(duracionUltima).toBeLessThan(Math.max(duracionPrimera * 4, 50));
   });
 
-  it('el saldo de una cuenta con diez mil apuntes se calcula en menos de 500 ms', async () => {
+  it('el saldo de una cuenta con diez mil apuntes se calcula en menos de 1500 ms', async () => {
     const duracion = await medir(() => cuentas.balanceOf(accountId('banco')));
 
-    expect(duracion).toBeLessThan(500);
+    expect(duracion).toBeLessThan(1500);
     expect((await cuentas.balanceOf(accountId('banco'))).amount).toBeLessThan(0n);
   });
 
-  it('filtrar por rango de fechas se sirve en menos de 300 ms', async () => {
+  it('filtrar por rango de fechas se sirve en menos de 900 ms', async () => {
     const duracion = await medir(() =>
       repo.list(owner, {
         desde: '2023-01-01T00:00:00.000Z',
@@ -139,7 +145,7 @@ describe('rendimiento con historial realista', () => {
       }),
     );
 
-    expect(duracion).toBeLessThan(300);
+    expect(duracion).toBeLessThan(900);
   });
 
   it('la deduplicación de un movimiento ya visto es inmediata', async () => {
@@ -151,6 +157,6 @@ describe('rendimiento con historial realista', () => {
       }
     });
 
-    expect(duracion).toBeLessThan(300);
+    expect(duracion).toBeLessThan(1500);
   });
 });
