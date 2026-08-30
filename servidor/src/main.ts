@@ -1,28 +1,36 @@
 import { serve } from '@hono/node-server';
+import { migrate } from 'drizzle-orm/postgres-js/migrator';
 
 import { crearApp } from './api/app';
-import { claveDesde } from './correo/sobre';
+import { leerConfig } from './config';
 import { crearBase } from './db/cliente';
 import { crearRepositorios } from './db/repositorios';
 import { crearObservabilidad } from './observabilidad';
 
 /**
- * Arranque. La configuración tipada y la migración al arrancar llegan en el
- * plan 05; aquí basta con levantar y decir que está vivo.
+ * Arranque.
+ *
+ * La configuración se lee y se valida **una vez, aquí**: si falta un secreto,
+ * el proceso se muere diciendo exactamente qué falta, en vez de fallar tres
+ * horas después con un `undefined`. Y se migra antes de escuchar: un esquema a
+ * medias sirve datos a medias.
  */
 const observabilidad = crearObservabilidad();
-const url = process.env['DATABASE_URL'];
-const token = process.env['SERENO_TOKEN'];
-const claveCifrado = process.env['SERENO_CLAVE_CIFRADO'];
-if (url === undefined || token === undefined || claveCifrado === undefined) {
-  observabilidad.captureError(
-    new Error('Faltan DATABASE_URL, SERENO_TOKEN o SERENO_CLAVE_CIFRADO'),
-  );
-  process.exit(1);
+
+async function arrancar(): Promise<void> {
+  const config = leerConfig(process.env);
+  const base = crearBase(config.baseDeDatos);
+  await migrate(base, {
+    migrationsFolder: new URL('../drizzle', import.meta.url).pathname,
+  });
+
+  const repos = crearRepositorios(base, { clave: config.claveCifrado });
+  const app = crearApp({ repos, token: config.token, observabilidad });
+  serve({ fetch: app.fetch, port: config.puerto });
+  observabilidad.log('info', 'servidor arriba', { puerto: config.puerto });
 }
 
-const repos = crearRepositorios(crearBase(url), { clave: claveDesde(claveCifrado) });
-const app = crearApp({ repos, token, observabilidad });
-const puerto = Number(process.env['PORT'] ?? 8080);
-serve({ fetch: app.fetch, port: puerto });
-observabilidad.log('info', 'servidor arriba', { puerto });
+arrancar().catch((error: unknown) => {
+  observabilidad.captureError(error, { operacion: 'arranque' });
+  process.exit(1);
+});
