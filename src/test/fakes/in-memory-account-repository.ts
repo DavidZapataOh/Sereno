@@ -9,6 +9,11 @@ export type PostingConFecha = Posting & { fecha: string };
 
 export interface InMemoryAccountRepository extends AccountRepository {
   all: () => Account[];
+  /**
+   * Con `hasta`, solo los apuntes de transacciones con esa fecha o anterior.
+   * El puerto real lo gana en el plan 04; el doble lo tiene desde ya.
+   */
+  balanceOf: (id: AccountId, options?: { hasta?: string }) => Promise<Money>;
   /** Los apuntes que el doble usa para derivar saldos. Lo alimenta el doble de transacciones. */
   postings: PostingConFecha[];
 }
