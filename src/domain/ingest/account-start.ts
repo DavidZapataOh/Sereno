@@ -1,4 +1,4 @@
-import { calendarDay } from '@/domain/time/colombia';
+import { calendarDay, parsePortalDate } from '@/domain/time/colombia';
 
 import type { IngestRun } from './ingest-run';
 
@@ -20,7 +20,22 @@ export function startDayOf(firstRun: IngestRun | null, now: string): string {
   return calendarDay(firstRun?.iniciadoEn ?? now);
 }
 
-/** ¿Este movimiento es de antes del inicio y por tanto no cuenta? */
+const FORMATO_PORTAL = /^\d{4}\/\d{1,2}\/\d{1,2}$/;
+
+/**
+ * ¿Este movimiento es de antes del inicio y por tanto no cuenta?
+ *
+ * La fecha llega como la trae la fuente: `AAAA/MM/DD` del portal, o ISO. La
+ * del portal se convierte con el mismo parser que usa el ledger; pasarla a
+ * `Date` a pelo la interpretaría en la zona horaria de la máquina, y en UTC
+ * el 28 se vuelve 27. Lo cazó CI. Una fecha ilegible no es «anterior»: se
+ * deja pasar para que la conversión al ledger la reporte como omitida.
+ */
 export function isBeforeStart(fecha: string, inicio: string): boolean {
-  return calendarDay(fecha) < inicio;
+  try {
+    const iso = FORMATO_PORTAL.test(fecha) ? parsePortalDate(fecha) : fecha;
+    return calendarDay(iso) < inicio;
+  } catch {
+    return false;
+  }
 }

@@ -44,4 +44,32 @@ describe('isBeforeStart', () => {
     // Medianoche del 28 en Colombia es 05:00 UTC del 28: sigue siendo el 28.
     expect(isBeforeStart('2026-08-28T05:00:00.000Z', '2026-08-28')).toBe(false);
   });
+
+  it('entiende la fecha cruda del portal (AAAA/MM/DD) como día de Colombia', () => {
+    expect(isBeforeStart('2026/08/27', '2026-08-28')).toBe(true);
+    expect(isBeforeStart('2026/08/28', '2026-08-28')).toBe(false);
+  });
+
+  it('la suite corre en UTC, como CI (jest.global-setup.js)', () => {
+    expect(new Date('2026-08-28T00:00:00').getTimezoneOffset()).toBe(0);
+  });
+
+  it('no depende de la zona horaria de la máquina: en UTC el 28 sigue siendo el 28', () => {
+    // CI corre en UTC; la sesión de David, en -05. La regla tiene que dar lo
+    // mismo en las dos.
+    const original = process.env.TZ;
+    process.env.TZ = 'UTC';
+    try {
+      expect(isBeforeStart('2026/08/28', '2026-08-28')).toBe(false);
+      expect(isBeforeStart('2026/08/27', '2026-08-28')).toBe(true);
+    } finally {
+      if (original === undefined) delete process.env.TZ;
+      else process.env.TZ = original;
+    }
+  });
+
+  it('una fecha ilegible no es anterior: la conversión al ledger la reporta', () => {
+    expect(isBeforeStart('2026/02/30', '2026-08-28')).toBe(false);
+    expect(isBeforeStart('ayer', '2026-08-28')).toBe(false);
+  });
 });
