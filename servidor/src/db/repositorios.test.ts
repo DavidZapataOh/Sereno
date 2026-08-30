@@ -1,3 +1,5 @@
+import { randomBytes } from 'node:crypto';
+
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { crearBaseDePrueba } from './prueba';
@@ -30,7 +32,7 @@ describe('repositorios del servidor', () => {
 
   beforeEach(async () => {
     base = await crearBaseDePrueba();
-    repos = crearRepositorios(base.db);
+    repos = crearRepositorios(base.db, { clave: randomBytes(32) });
   });
   afterEach(async () => {
     await base.cerrar();
@@ -100,6 +102,17 @@ describe('repositorios del servidor', () => {
     expect(revision).toHaveLength(1);
     expect(revision[0]?.motivo).toMatch(/parser/);
     expect(revision[0]?.texto).toContain('EXITO SUR');
+  });
+
+  it('el cuerpo del correo no se puede leer directamente en la base', async () => {
+    await repos.mensajes.guardar(mensaje('m1'));
+    const [fila] = await base.db.select().from(tablaMensajes);
+    expect(fila?.texto).not.toContain('EXITO');
+    expect(fila?.texto.startsWith('v1.')).toBe(true);
+
+    // Y lo que sale por el repositorio sí se lee.
+    await repos.mensajes.marcar('m1', 'desconocido', 'x');
+    expect((await repos.mensajes.listarParaRevision(1))[0]?.texto).toContain('EXITO SUR');
   });
 
   it('lo parseado y lo ignorado no están en la cola de revisión', async () => {

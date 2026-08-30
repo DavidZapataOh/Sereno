@@ -1,3 +1,5 @@
+import { randomBytes } from 'node:crypto';
+
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import { crearBaseDePrueba } from '../db/prueba';
@@ -15,7 +17,7 @@ describe('API del servidor', () => {
 
   beforeEach(async () => {
     const base = await crearBaseDePrueba();
-    repos = crearRepositorios(base.db);
+    repos = crearRepositorios(base.db, { clave: randomBytes(32) });
     errores = [];
     app = crearApp({
       repos,

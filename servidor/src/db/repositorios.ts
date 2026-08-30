@@ -4,6 +4,8 @@ import type { PgDatabase, PgQueryResultHKT } from 'drizzle-orm/pg-core';
 import type { NormalizedTransaction } from '@/domain/capture/normalized-transaction';
 import { ingestedTransactionId } from '@/domain/ingest/to-transaction';
 
+import { cifrar, descifrar } from '../correo/sobre';
+
 import * as schema from './schema';
 import { corridas, cursores, mensajes, movimientos } from './schema';
 
@@ -50,14 +52,29 @@ export interface Repositorios {
   };
 }
 
-export function crearRepositorios(db: BaseDeDatos): Repositorios {
+export interface OpcionesRepositorios {
+  /** 32 bytes. Con ella se cifra el cuerpo de los correos en reposo. */
+  clave: Buffer;
+}
+
+export function crearRepositorios(db: BaseDeDatos, opciones: OpcionesRepositorios): Repositorios {
   return {
     mensajes: {
       guardar: async (m) => {
         // Ver el mismo correo dos veces no es un error: es lo normal cuando
         // una corrida se corta a medias. Se ignora, no se reescribe: el
         // estado del primer procesamiento manda.
-        await db.insert(mensajes).values(m).onConflictDoNothing({ target: mensajes.id });
+        //
+        // El cuerpo va cifrado; las cabeceras no, porque hacen falta para
+        // consultar y no dicen cuánto se gastó.
+        await db
+          .insert(mensajes)
+          .values({
+            ...m,
+            texto: cifrar(m.texto, opciones.clave),
+            html: m.html === null || m.html === undefined ? null : cifrar(m.html, opciones.clave),
+          })
+          .onConflictDoNothing({ target: mensajes.id });
       },
 
       existe: async (id) => {
@@ -76,13 +93,19 @@ export function crearRepositorios(db: BaseDeDatos): Repositorios {
           .where(eq(mensajes.id, id));
       },
 
-      listarParaRevision: (limite) =>
-        db
+      listarParaRevision: async (limite) => {
+        const filas = await db
           .select()
           .from(mensajes)
           .where(inArray(mensajes.estado, ['desconocido', 'error']))
           .orderBy(desc(mensajes.recibidoEn))
-          .limit(limite),
+          .limit(limite);
+        return filas.map((f) => ({
+          ...f,
+          texto: descifrar(f.texto, opciones.clave),
+          html: f.html === null ? null : descifrar(f.html, opciones.clave),
+        }));
+      },
     },
 
     movimientos: {
