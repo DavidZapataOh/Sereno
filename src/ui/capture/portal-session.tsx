@@ -28,6 +28,8 @@ interface Props {
   onImportar?: (captures: Capture[]) => void;
   /** Mientras la importación corre, el botón se deshabilita. */
   importando?: boolean;
+  /** Si la última importación falló, se dice aquí, sin detalle técnico. */
+  errorImportacion?: string;
   /**
    * JavaScript que se inyecta antes de cargar el portal.
    *
@@ -46,6 +48,7 @@ export function PortalSession({
   onVerCapturas,
   onImportar,
   importando = false,
+  errorImportacion,
 }: Props) {
   const theme = useTheme();
   const handleMessage = useCaptureStore((state) => state.handleMessage);
@@ -147,6 +150,7 @@ export function PortalSession({
         <View
           style={{
             padding: theme.spacing.md,
+            gap: theme.spacing.xs,
             backgroundColor: theme.palette.surface,
             borderTopWidth: 1,
             borderTopColor: theme.palette.border,
@@ -161,6 +165,11 @@ export function PortalSession({
             disabled={total === 0}
             loading={importando}
           />
+          {errorImportacion !== undefined && (
+            <AppText level="micro" color="peligro" testID="error-importacion">
+              {errorImportacion}
+            </AppText>
+          )}
         </View>
       )}
     </View>

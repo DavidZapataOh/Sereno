@@ -104,4 +104,16 @@ describe('PortalSession', () => {
     expect(onImportar).toHaveBeenCalledTimes(1);
     expect(onImportar.mock.calls[0]?.[0]).toHaveLength(1);
   });
+
+  it('si la importación falló, lo dice bajo el botón', async () => {
+    const { getByTestId } = await renderWithProviders(
+      <PortalSession
+        portal={portal}
+        injectedScript={SCRIPT}
+        onImportar={() => undefined}
+        errorImportacion="No se pudo importar."
+      />,
+    );
+    expect(getByTestId('error-importacion')).toHaveTextContent('No se pudo importar.');
+  });
 });
