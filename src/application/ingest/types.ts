@@ -1,4 +1,5 @@
 import type { IngestRepository } from '@/domain/ingest/ingest-repository';
+import type { TransferRepository } from '@/domain/ingest/transfer-repository';
 import type { AccountRepository } from '@/domain/ledger/account-repository';
 import type { IdGenerator } from '@/domain/ledger/ids';
 import type { TransactionRepository } from '@/domain/ledger/transaction-repository';
@@ -7,6 +8,7 @@ export interface IngestDeps {
   accounts: AccountRepository;
   transactions: TransactionRepository;
   ingest: IngestRepository;
+  transfers: TransferRepository;
   ids: IdGenerator;
   /** Ahora, en ISO. Inyectado para que las pruebas fijen el tiempo. */
   clock: () => string;

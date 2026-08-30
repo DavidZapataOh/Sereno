@@ -6,6 +6,7 @@ import { sourceAccountId, systemAccountId } from '@/domain/ledger/system-account
 import { createInMemoryAccountRepository } from '@/test/fakes/in-memory-account-repository';
 import { createInMemoryIngestRepository } from '@/test/fakes/in-memory-ingest-repository';
 import { createInMemoryTransactionRepository } from '@/test/fakes/in-memory-transaction-repository';
+import { createInMemoryTransferRepository } from '@/test/fakes/in-memory-transfer-repository';
 import { createSequentialIds } from '@/test/fakes/sequential-ids';
 import { mustExist } from '@/test/must-exist';
 
@@ -57,6 +58,7 @@ function deps() {
     accounts,
     transactions,
     ingest,
+    transfers: createInMemoryTransferRepository(),
     ids: createSequentialIds('run'),
     clock: () => '2026-08-28T10:00:00.000-05:00',
   };
