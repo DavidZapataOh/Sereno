@@ -10,6 +10,7 @@ import { createInMemoryTransactionRepository } from '@/test/fakes/in-memory-tran
 import { createSequentialIds } from '@/test/fakes/sequential-ids';
 
 import { adjustToReconcile } from './adjust-to-reconcile';
+import { countCash } from './count-cash';
 import { ensureSystemAccounts } from './ensure-system-accounts';
 import { registerAdjustment, type LedgerDeps } from './register-adjustment';
 import { registerCashExpense } from './register-cash-expense';
@@ -235,5 +236,37 @@ describe('adjustToReconcile', () => {
   it('falla con un id desconocido', async () => {
     const d = await deps();
     await expect(adjustToReconcile(d, { owner, reconciliationId: 'nada' })).rejects.toThrow(/nada/);
+  });
+});
+
+describe('countCash', () => {
+  it('ajusta el efectivo a lo contado y deja escrito qué había y qué hay', async () => {
+    const d = await deps();
+    const tx = await countCash(d, { owner, amount: money(120000, 'COP') });
+
+    expect(await saldo(d, 'sistema:efectivo')).toBe(120000n);
+    expect(tx?.descripcion).toBe('Conteo de efectivo: había $ 0, hay $ 120.000');
+    expect(await saldo(d, 'sistema:ajustes')).toBe(-120000n);
+  });
+
+  it('contar menos de lo que Sereno cree lo baja; contar lo mismo no asienta nada', async () => {
+    const d = await deps();
+    await countCash(d, { owner, amount: money(120000, 'COP') });
+
+    const menos = await countCash(d, { owner, amount: money(95000, 'COP') });
+    expect(menos?.descripcion).toBe('Conteo de efectivo: había $ 120.000, hay $ 95.000');
+    expect(await saldo(d, 'sistema:efectivo')).toBe(95000n);
+
+    expect(await countCash(d, { owner, amount: money(95000, 'COP') })).toBeNull();
+    expect(d.transactions.all()).toHaveLength(2);
+  });
+
+  it('la billetera puede quedar en cero, pero no en negativo', async () => {
+    const d = await deps();
+    await countCash(d, { owner, amount: money(30000, 'COP') });
+    await countCash(d, { owner, amount: money(0, 'COP') });
+    expect(await saldo(d, 'sistema:efectivo')).toBe(0n);
+
+    await expect(countCash(d, { owner, amount: money(-1, 'COP') })).rejects.toThrow(/negativo/);
   });
 });
