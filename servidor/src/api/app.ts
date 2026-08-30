@@ -6,6 +6,7 @@ import type { Repositorios } from '../db/repositorios';
 import type { Observabilidad } from '../observabilidad';
 
 import { montarMovimientos } from './movimientos';
+import { montarRevision } from './revision';
 
 export interface Dependencias {
   repos: Repositorios;
@@ -35,10 +36,17 @@ export function crearApp(deps: Dependencias) {
   });
 
   app.get('/salud', async (c) => {
-    const ultima = await deps.repos.corridas.ultima();
+    const [ultima, pendientes, enRevision] = await Promise.all([
+      deps.repos.corridas.ultima(),
+      deps.repos.movimientos.sinEntregar(),
+      deps.repos.mensajes.listarParaRevision(200),
+    ]);
     return c.json({
       estado: 'vivo',
       version: process.env['SERENO_VERSION'] ?? 'dev',
+      // Lo que el teléfono aún no se ha traído, y lo que nadie supo leer.
+      movimientosPendientes: pendientes.length,
+      enRevision: enRevision.length,
       ultimaCorrida:
         ultima === null
           ? null
@@ -51,6 +59,7 @@ export function crearApp(deps: Dependencias) {
   });
 
   montarMovimientos(app, deps.repos);
+  montarRevision(app, deps.repos, deps.observabilidad);
 
   app.notFound((c) => c.json({ error: 'No existe' }, 404));
 

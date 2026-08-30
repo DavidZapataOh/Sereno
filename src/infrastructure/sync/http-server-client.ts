@@ -1,4 +1,8 @@
-import { serverPageSchema, type ServerClient } from '@/domain/sync/server-client';
+import {
+  serverHealthSchema,
+  serverPageSchema,
+  type ServerClient,
+} from '@/domain/sync/server-client';
 
 export interface ConfigServidor {
   url: string;
@@ -33,6 +37,12 @@ export function createHttpServerClient(config: ConfigServidor): ServerClient {
       });
       if (!respuesta.ok) throw new Error(`El servidor respondió ${String(respuesta.status)}`);
     },
+
+    salud: async () => {
+      const respuesta = await fetch(`${base}/salud`, { headers: cabeceras });
+      if (!respuesta.ok) throw new Error(`El servidor respondió ${String(respuesta.status)}`);
+      return serverHealthSchema.parse(await respuesta.json());
+    },
   };
 }
 
@@ -47,5 +57,6 @@ export function createSinServidor(): ServerClient {
   return {
     traer: () => Promise.reject(new Error('Sin servidor configurado')),
     confirmar: () => Promise.reject(new Error('Sin servidor configurado')),
+    salud: () => Promise.reject(new Error('Sin servidor configurado')),
   };
 }
