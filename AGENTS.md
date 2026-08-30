@@ -115,10 +115,23 @@ Dos detalles que cuestan tiempo si no se saben:
 
 Sprints ejecutados: **00** fundaciones · **01** captura bancaria (Bancolombia sí, Nequi
 no: va por correo) · **02** sistema de diseño y navegación · **03** ledger de doble
-partida sobre SQLite. El tablero vivo está en `../docs/superpowers/plans/README.md`.
+partida sobre SQLite · **04** ingesta, deduplicación, transferencias, conciliación y las
+pantallas de Hoy, Movimientos y Cuentas. El tablero vivo está en
+`../docs/superpowers/plans/README.md`.
 
-Todavía no hay ingesta: los movimientos capturados no llegan al ledger hasta el sprint 04.
-Las cuatro pestañas muestran estados vacíos honestos que dicen qué habrá ahí y cuándo.
+«Hoy» ya muestra dinero de verdad: lo capturado de Bancolombia entra al ledger con
+`Importar` desde la sesión del portal. Todo lo ingerido queda «sin clasificar» hasta el
+sprint 05. Las pestañas Deudas y Metas siguen vacías hasta sus sprints.
+
+Reglas del sprint 04 que conviene conocer antes de tocar la ingesta:
+
+- **La idempotencia se deriva:** el id de una transacción ingerida es `fuente:referencia`.
+  No la implementes; no la rompas cambiando el id.
+- **Nada se borra:** un duplicado es una observación más; una transferencia fundida deja
+  instantáneas en `transfers`. Deshacer es reconstruir desde ahí.
+- **Los casos de uso se prueban con los dobles de `src/test/fakes/`**, no contra SQLite.
+- **Ventanas:** ±1 día para la misma compra vista por dos canales; ±5 para dinero que viaja
+  entre bancos. No las unifiques.
 
 ## Diseño
 

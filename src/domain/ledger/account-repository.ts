@@ -3,6 +3,11 @@ import type { Money } from '@/domain/money/money';
 import type { Account } from './account';
 import type { AccountId, OwnerId } from './ids';
 
+export interface BalanceOptions {
+  /** Solo apuntes de transacciones con `fecha <= hasta`. Sin esto, el saldo actual. */
+  hasta?: string;
+}
+
 export interface ListByOwnerOptions {
   incluirArchivadas?: boolean;
 }
@@ -24,6 +29,6 @@ export interface AccountRepository {
    * Un saldo persistido es un dato que puede contradecir a los apuntes que lo
    * produjeron, y cuando eso ocurre no hay forma de saber cuál de los dos miente.
    */
-  balanceOf: (id: AccountId) => Promise<Money>;
+  balanceOf: (id: AccountId, options?: BalanceOptions) => Promise<Money>;
   archive: (id: AccountId, fecha: string) => Promise<void>;
 }

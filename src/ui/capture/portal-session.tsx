@@ -2,8 +2,10 @@ import { useState } from 'react';
 import { Pressable, View, type PressableStateCallbackType } from 'react-native';
 import { WebView, type WebViewMessageEvent, type WebViewNavigation } from 'react-native-webview';
 
+import type { Capture } from '@/domain/capture/reassembler';
 import { belongsToPortal, type Portal } from '@/domain/portals/registry';
 import { AppText } from '@/ui/components/app-text';
+import { Button } from '@/ui/components/button';
 import { useTheme } from '@/ui/theme/use-theme';
 
 import { useCaptureStore } from './store';
@@ -22,6 +24,10 @@ interface Props {
   portal: Portal;
   /** Abre la bandeja de capturas sin perder la sesión. */
   onVerCapturas?: () => void;
+  /** Lleva lo capturado al ledger. Recibe las capturas para que la ruta las procese. */
+  onImportar?: (captures: Capture[]) => void;
+  /** Mientras la importación corre, el botón se deshabilita. */
+  importando?: boolean;
   /**
    * JavaScript que se inyecta antes de cargar el portal.
    *
@@ -34,10 +40,17 @@ interface Props {
   injectedScript: string;
 }
 
-export function PortalSession({ portal, injectedScript, onVerCapturas }: Props) {
+export function PortalSession({
+  portal,
+  injectedScript,
+  onVerCapturas,
+  onImportar,
+  importando = false,
+}: Props) {
   const theme = useTheme();
   const handleMessage = useCaptureStore((state) => state.handleMessage);
-  const total = useCaptureStore((state) => state.captures.length);
+  const captures = useCaptureStore((state) => state.captures);
+  const total = captures.length;
 
   const [urlActual, setUrlActual] = useState(portal.url);
   const [bloqueada, setBloqueada] = useState<string | null>(null);
@@ -129,6 +142,27 @@ export function PortalSession({ portal, injectedScript, onVerCapturas }: Props) 
           </AppText>
         )}
       </Pressable>
+
+      {onImportar !== undefined && (
+        <View
+          style={{
+            padding: theme.spacing.md,
+            backgroundColor: theme.palette.surface,
+            borderTopWidth: 1,
+            borderTopColor: theme.palette.border,
+          }}
+        >
+          <Button
+            label={`Importar ${String(total)} ${total === 1 ? 'captura' : 'capturas'}`}
+            accessibilityLabel="Importar las capturas al ledger"
+            onPress={() => {
+              onImportar(captures);
+            }}
+            disabled={total === 0}
+            loading={importando}
+          />
+        </View>
+      )}
     </View>
   );
 }

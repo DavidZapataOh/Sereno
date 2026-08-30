@@ -42,16 +42,24 @@ describe('esquema y migraciones', () => {
       .run();
   };
 
-  it('aplica las migraciones y crea las tres tablas', () => {
+  it('aplica las migraciones y crea las siete tablas', () => {
     const tablas = cliente.db
       .all<{ name: string }>(sql`SELECT name FROM sqlite_master WHERE type = 'table' ORDER BY name`)
       .map((fila) => fila.name)
       .filter((nombre) => !nombre.startsWith('__drizzle'));
 
-    expect(tablas).toEqual(['accounts', 'postings', 'transactions']);
+    expect(tablas).toEqual([
+      'accounts',
+      'ingest_runs',
+      'postings',
+      'reconciliations',
+      'transaction_observations',
+      'transactions',
+      'transfers',
+    ]);
   });
 
-  it('crea los cinco índices declarados', () => {
+  it('crea los doce índices declarados', () => {
     const indices = cliente.db
       .all<{ name: string }>(
         sql`SELECT name FROM sqlite_master WHERE type = 'index' AND name LIKE 'idx_%' ORDER BY name`,
@@ -60,10 +68,17 @@ describe('esquema y migraciones', () => {
 
     expect(indices).toEqual([
       'idx_accounts_owner',
+      'idx_ingest_runs_owner_fuente',
+      'idx_observations_huella',
+      'idx_observations_origen',
+      'idx_observations_transaction',
       'idx_postings_account',
       'idx_postings_transaction',
+      'idx_reconciliations_account_fecha',
       'idx_transactions_origen',
       'idx_transactions_owner_fecha',
+      'idx_transfers_owner_estado',
+      'idx_transfers_transaction',
     ]);
   });
 

@@ -32,7 +32,7 @@ export const SCREEN_MAP: readonly Screen[] = [
     ruta: '/(tabs)',
     padre: null,
     pregunta: '¿Cuánto tengo en total y qué se paga pronto?',
-    fase: 3,
+    fase: 4,
   },
   {
     id: 'movimientos',
@@ -40,7 +40,7 @@ export const SCREEN_MAP: readonly Screen[] = [
     ruta: '/(tabs)/movimientos',
     padre: null,
     pregunta: '¿En qué se me está yendo el dinero?',
-    fase: 3,
+    fase: 4,
   },
   {
     id: 'deudas',
@@ -66,7 +66,7 @@ export const SCREEN_MAP: readonly Screen[] = [
     ruta: '/cuentas',
     padre: 'hoy',
     pregunta: '¿Cómo se reparte lo que tengo entre mis cuentas?',
-    fase: 3,
+    fase: 4,
   },
   {
     id: 'detalle-movimiento',
@@ -74,7 +74,7 @@ export const SCREEN_MAP: readonly Screen[] = [
     ruta: '/movimientos/[id]',
     padre: 'movimientos',
     pregunta: '¿Qué fue exactamente este cargo?',
-    fase: 3,
+    fase: 4,
   },
   {
     id: 'categorias',
@@ -183,7 +183,7 @@ export const SCREEN_MAP: readonly Screen[] = [
     ruta: '/cuentas/[id]',
     padre: 'cuentas',
     pregunta: '¿Qué ha pasado en esta cuenta?',
-    fase: 3,
+    fase: 4,
   },
 ];
 

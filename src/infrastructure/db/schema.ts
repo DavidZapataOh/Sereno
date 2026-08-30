@@ -1,4 +1,4 @@
-import { index, sqliteTable, text } from 'drizzle-orm/sqlite-core';
+import { index, integer, sqliteTable, text } from 'drizzle-orm/sqlite-core';
 
 /**
  * Cuentas del ledger.
@@ -71,4 +71,107 @@ export const postings = sqliteTable(
     index('idx_postings_account').on(tabla.accountId),
     index('idx_postings_transaction').on(tabla.transactionId),
   ],
+);
+
+export const ingestRuns = sqliteTable(
+  'ingest_runs',
+  {
+    id: text('id').primaryKey(),
+    ownerId: text('owner_id').notNull(),
+    fuente: text('fuente').notNull(),
+    iniciadoEn: text('iniciado_en').notNull(),
+    terminadoEn: text('terminado_en'),
+    capturas: integer('capturas').notNull().default(0),
+    extraidas: integer('extraidas').notNull().default(0),
+    nuevas: integer('nuevas').notNull().default(0),
+    duplicadas: integer('duplicadas').notNull().default(0),
+    fusionadas: integer('fusionadas').notNull().default(0),
+    transferencias: integer('transferencias').notNull().default(0),
+    error: text('error'),
+  },
+  (tabla) => [
+    // «Última sincronización de esta fuente»: la consulta más frecuente.
+    index('idx_ingest_runs_owner_fuente').on(tabla.ownerId, tabla.fuente, tabla.iniciadoEn),
+  ],
+);
+
+/**
+ * Observaciones: quién vio cada transacción.
+ *
+ * `crudo` guarda la transacción normalizada tal como llegó, en JSON. Es lo que
+ * permite deshacer una fusión: la observación puede volver a ser una
+ * transacción propia sin pedirle nada al banco.
+ */
+export const transactionObservations = sqliteTable(
+  'transaction_observations',
+  {
+    id: text('id').primaryKey(),
+    transactionId: text('transaction_id')
+      .notNull()
+      .references(() => transactions.id, { onDelete: 'cascade' }),
+    ownerId: text('owner_id').notNull(),
+    fuente: text('fuente').notNull(),
+    referencia: text('referencia'),
+    huella: text('huella').notNull(),
+    capturadoEn: text('capturado_en').notNull(),
+    runId: text('run_id'),
+    crudo: text('crudo').notNull(),
+  },
+  (tabla) => [
+    index('idx_observations_origen').on(tabla.ownerId, tabla.fuente, tabla.referencia),
+    index('idx_observations_huella').on(tabla.ownerId, tabla.huella),
+    index('idx_observations_transaction').on(tabla.transactionId),
+  ],
+);
+
+/**
+ * Transferencias detectadas.
+ *
+ * `salida`, `entrada` y `observaciones_entrada` son JSON: instantáneas de lo
+ * que había antes de fundir. Es lo que permite deshacer sin pedirle nada al
+ * banco. No se normalizan en columnas porque nunca se consultan por dentro:
+ * solo se leen enteras para restaurar.
+ */
+export const transfers = sqliteTable(
+  'transfers',
+  {
+    id: text('id').primaryKey(),
+    ownerId: text('owner_id').notNull(),
+    transactionId: text('transaction_id')
+      .notNull()
+      .references(() => transactions.id, { onDelete: 'cascade' }),
+    salida: text('salida').notNull(),
+    entrada: text('entrada').notNull(),
+    observacionesEntrada: text('observaciones_entrada').notNull(),
+    estado: text('estado', { enum: ['detectada', 'confirmada', 'deshecha'] }).notNull(),
+    detectadaEn: text('detectada_en').notNull(),
+    resueltaEn: text('resuelta_en'),
+  },
+  (tabla) => [
+    index('idx_transfers_owner_estado').on(tabla.ownerId, tabla.estado),
+    index('idx_transfers_transaction').on(tabla.transactionId),
+  ],
+);
+
+export const reconciliations = sqliteTable(
+  'reconciliations',
+  {
+    id: text('id').primaryKey(),
+    ownerId: text('owner_id').notNull(),
+    accountId: text('account_id')
+      .notNull()
+      .references(() => accounts.id),
+    fecha: text('fecha').notNull(),
+    saldoReal: text('saldo_real').notNull(),
+    saldoCalculado: text('saldo_calculado').notNull(),
+    diferencia: text('diferencia').notNull(),
+    currency: text('currency').notNull(),
+    veredicto: text('veredicto', {
+      enum: ['cuadra', 'gasto-no-capturado', 'ingreso-no-capturado'],
+    }).notNull(),
+    fuente: text('fuente').notNull(),
+    detalle: text('detalle').notNull(),
+    creadoEn: text('creado_en').notNull(),
+  },
+  (tabla) => [index('idx_reconciliations_account_fecha').on(tabla.accountId, tabla.fecha)],
 );

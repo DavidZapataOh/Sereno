@@ -59,6 +59,24 @@ Antes de la primera pantalla, la app espera dos cosas: que las fuentes estén ca
 que la base de datos esté abierta con las migraciones aplicadas. Mientras tanto se ve la
 pantalla de inicio; si la base falla, se dice, en vez de dejar el logo para siempre.
 
+## Sincronización
+
+Importar es un toque desde la sesión del banco: en `Ajustes → Bancolombia`, tras iniciar
+sesión y abrir movimientos y saldo, el pie muestra «Importar N capturas». Al tocarlo se
+ingiere, se concilia y se detectan transferencias, en ese orden, y la app aterriza en
+**Movimientos** con un resumen: cuántos entraron, cuántos ya estaban, cuántas
+transferencias se detectaron y si el saldo cuadra. El resumen se descarta al cerrarlo.
+
+Aterriza en Movimientos y no muestra el resultado en el portal porque el portal es una
+pantalla de configuración a tres toques; el resultado se quiere ver donde se usa.
+
+## El único formulario
+
+La app pide un solo dato a mano: cuánto se gastó del efectivo. Vive dentro del detalle de
+la cuenta Efectivo (`Hoy → Cuentas → Efectivo`), como un modal sin ruta propia. Así respeta
+la regla de tres toques y deja claro que es una corrección, no un flujo: el efectivo entró
+solo con cada retiro capturado; esto solo dice adónde fue.
+
 ## Mapa completo
 
 El mapa vive en `src/domain/navigation/screen-map.ts` como dato, no como diagrama. Cada

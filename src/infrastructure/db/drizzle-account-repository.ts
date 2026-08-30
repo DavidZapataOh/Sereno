@@ -1,4 +1,4 @@
-import { and, eq, isNull } from 'drizzle-orm';
+import { and, eq, isNull, lte } from 'drizzle-orm';
 
 import type { Account } from '@/domain/ledger/account';
 import type { AccountRepository } from '@/domain/ledger/account-repository';
@@ -7,7 +7,7 @@ import { sum, type Money } from '@/domain/money/money';
 
 import type { Database } from './database';
 import { fromAccount, toAccount, toMoney } from './mappers';
-import { accounts, postings } from './schema';
+import { accounts, postings, transactions } from './schema';
 
 class AccountNotFoundError extends Error {
   constructor(id: AccountId) {
@@ -65,7 +65,7 @@ export function createDrizzleAccountRepository(db: Database): AccountRepository 
         return db.select().from(accounts).where(filtro).all().map(toAccount);
       }),
 
-    balanceOf: (id): Promise<Money> =>
+    balanceOf: (id, options): Promise<Money> =>
       asPromise(() => {
         // Se busca la cuenta antes de sumar por dos motivos: hace falta su
         // moneda para el saldo cero, y una cuenta inexistente debe fallar en vez
@@ -73,10 +73,17 @@ export function createDrizzleAccountRepository(db: Database): AccountRepository 
         const cuenta = buscar(id);
         if (cuenta === null) throw new AccountNotFoundError(id);
 
+        // Con `hasta`, se une con la transacción para filtrar por su fecha. El
+        // plan de ejecución sigue entrando por `idx_postings_account`.
         const apuntes = db
           .select({ amount: postings.amount, currency: postings.currency })
           .from(postings)
-          .where(eq(postings.accountId, id))
+          .innerJoin(transactions, eq(postings.transactionId, transactions.id))
+          .where(
+            options?.hasta === undefined
+              ? eq(postings.accountId, id)
+              : and(eq(postings.accountId, id), lte(transactions.fecha, options.hasta)),
+          )
           .all();
 
         // `sum` usa `add`, que rechaza mezclar monedas: si un apunte llegó con

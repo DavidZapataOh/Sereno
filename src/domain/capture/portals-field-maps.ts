@@ -1,3 +1,4 @@
+import { createBalanceExtractor, type BalanceFieldMap } from './balance-extractor';
 import { createExtractor, type FieldMap } from './extractor';
 
 /**
@@ -27,3 +28,20 @@ export const BANCOLOMBIA_MOVIMIENTOS: FieldMap = {
 };
 
 export const extractBancolombia = createExtractor('bancolombia', BANCOLOMBIA_MOVIMIENTOS);
+
+/**
+ * Saldos de Bancolombia, endpoint consolidado (hallazgos del sprint 01):
+ *   GET /super-svp/api/v1/security-filters/ch-ms-deposits/hybrid/accounts/customization/consolidated
+ *
+ * Se usa `balances.available`, que es lo que el usuario puede gastar. `current`
+ * incluye lo que está en tránsito y `effective` lo retenido; para conciliar
+ * contra movimientos ya asentados, el disponible es la cifra comparable.
+ */
+export const BANCOLOMBIA_SALDOS: BalanceFieldMap = {
+  listPath: 'data.accounts',
+  numero: 'number',
+  nombre: 'name',
+  saldo: 'balances.available',
+};
+
+export const extractBancolombiaBalances = createBalanceExtractor('bancolombia', BANCOLOMBIA_SALDOS);
