@@ -123,3 +123,32 @@ export const transactionObservations = sqliteTable(
     index('idx_observations_transaction').on(tabla.transactionId),
   ],
 );
+
+/**
+ * Transferencias detectadas.
+ *
+ * `salida`, `entrada` y `observaciones_entrada` son JSON: instantáneas de lo
+ * que había antes de fundir. Es lo que permite deshacer sin pedirle nada al
+ * banco. No se normalizan en columnas porque nunca se consultan por dentro:
+ * solo se leen enteras para restaurar.
+ */
+export const transfers = sqliteTable(
+  'transfers',
+  {
+    id: text('id').primaryKey(),
+    ownerId: text('owner_id').notNull(),
+    transactionId: text('transaction_id')
+      .notNull()
+      .references(() => transactions.id, { onDelete: 'cascade' }),
+    salida: text('salida').notNull(),
+    entrada: text('entrada').notNull(),
+    observacionesEntrada: text('observaciones_entrada').notNull(),
+    estado: text('estado', { enum: ['detectada', 'confirmada', 'deshecha'] }).notNull(),
+    detectadaEn: text('detectada_en').notNull(),
+    resueltaEn: text('resuelta_en'),
+  },
+  (tabla) => [
+    index('idx_transfers_owner_estado').on(tabla.ownerId, tabla.estado),
+    index('idx_transfers_transaction').on(tabla.transactionId),
+  ],
+);

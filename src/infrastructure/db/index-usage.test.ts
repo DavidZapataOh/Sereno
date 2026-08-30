@@ -8,6 +8,7 @@ import { money } from '@/domain/money/money';
 import { createDrizzleAccountRepository } from './drizzle-account-repository';
 import { createDrizzleIngestRepository } from './drizzle-ingest-repository';
 import { createDrizzleTransactionRepository } from './drizzle-transaction-repository';
+import { createDrizzleTransferRepository } from './drizzle-transfer-repository';
 import { createTestDb } from './test-client';
 
 /**
@@ -33,6 +34,7 @@ describe('uso de índices', () => {
       transacciones: ReturnType<typeof createDrizzleTransactionRepository>;
       cuentas: ReturnType<typeof createDrizzleAccountRepository>;
       ingesta: ReturnType<typeof createDrizzleIngestRepository>;
+      transferencias: ReturnType<typeof createDrizzleTransferRepository>;
     }) => Promise<void>,
   ): Promise<{ sentencias: string[]; explicar: (consulta: string) => string }> => {
     const capturadas: string[] = [];
@@ -45,6 +47,7 @@ describe('uso de índices', () => {
     const cuentas = createDrizzleAccountRepository(cliente.db);
     const transacciones = createDrizzleTransactionRepository(cliente.db);
     const ingesta = createDrizzleIngestRepository(cliente.db);
+    const transferencias = createDrizzleTransferRepository(cliente.db);
 
     await cuentas.save(
       createAccount({
@@ -79,7 +82,7 @@ describe('uso de índices', () => {
     );
 
     capturadas.length = 0;
-    await ejercicio({ transacciones, cuentas, ingesta });
+    await ejercicio({ transacciones, cuentas, ingesta, transferencias });
 
     const explicar = (consulta: string): string =>
       cliente.db
@@ -178,5 +181,16 @@ describe('uso de índices', () => {
 
     expect(plan).toContain('idx_ingest_runs_owner_fuente');
     expect(plan).not.toContain('TEMP B-TREE');
+  });
+
+  it('las transferencias pendientes se listan por índice', async () => {
+    const { sentencias, explicar } = await capturarSql(async ({ transferencias }) => {
+      await transferencias.listByOwner(ownerId('david'), 'detectada');
+    });
+
+    const plan = explicar(selectSobre(sentencias, 'transfers'));
+
+    expect(plan).toContain('idx_transfers_owner_estado');
+    expect(plan).not.toContain('SCAN transfers');
   });
 });
