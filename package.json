@@ -80,7 +80,7 @@
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
     "typecheck": "tsc --noEmit",
-    "verify": "npm run typecheck && npm run lint && npm run format:check && npm run test && npm run verify:servidor",
+    "verify": "npm run typecheck && npm run lint && npm run format:check && npm run comprobar-secretos && npm run test && npm run verify:servidor",
     "verify:servidor": "npm --prefix servidor run verify",
     "verificar-volcado": "node scripts/verificar-volcado.mjs",
     "db:generate": "drizzle-kit generate",
@@ -90,7 +90,8 @@
     "integrar": "bash scripts/integrar.sh",
     "comprobar-node": "node scripts/comprobar-node.mjs",
     "pretest": "node scripts/comprobar-node.mjs",
-    "preverify": "node scripts/comprobar-node.mjs"
+    "preverify": "node scripts/comprobar-node.mjs",
+    "comprobar-secretos": "node scripts/comprobar-secretos.mjs"
   },
   "private": true,
   "lint-staged": {
