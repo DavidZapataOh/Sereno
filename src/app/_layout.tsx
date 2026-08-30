@@ -1,13 +1,20 @@
-import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
+import { Stack, ThemeProvider as NavigationThemeProvider } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
-import { useEffect } from 'react';
-import { useColorScheme } from 'react-native';
+import { useEffect, type ReactNode } from 'react';
+import { View } from 'react-native';
 
+import { DatabaseProvider } from '@/infrastructure/db/database-provider';
+import { useDatabaseBoot } from '@/infrastructure/db/use-database-boot';
 import { observability } from '@/infrastructure/observability';
+import { ErrorState, LoadingState } from '@/ui/components/states';
 import { ErrorBoundary } from '@/ui/error-boundary';
+import { toNavigationTheme } from '@/ui/theme/theme';
+import { ThemeProvider } from '@/ui/theme/theme-provider';
+import { useAppFonts } from '@/ui/theme/typography';
+import { useTheme } from '@/ui/theme/use-theme';
 
-// Retiene la pantalla de arranque hasta que la app esté montada, para que no
-// aparezca un destello en blanco entre el logo y la primera pantalla.
+// Retiene la pantalla de arranque hasta que las fuentes estén listas, para que
+// no aparezca un destello con la fuente del sistema antes de la de la app.
 void SplashScreen.preventAutoHideAsync();
 
 /** La composición raíz es donde se cablea la infraestructura con la interfaz. */
@@ -15,21 +22,76 @@ function reportarError(error: Error, componentStack: string | null): void {
   observability.captureError(error, { componentStack });
 }
 
+/**
+ * Lleva nuestro tema al navegador.
+ *
+ * Va dentro de nuestro `ThemeProvider` porque necesita leerlo, y envuelve al
+ * `Stack` porque cabeceras y pestañas las pinta React Navigation.
+ */
+function NavigationTheme({ children }: { children: ReactNode }) {
+  const theme = useTheme();
+  return (
+    <NavigationThemeProvider value={toNavigationTheme(theme)}>{children}</NavigationThemeProvider>
+  );
+}
+
+/**
+ * Abre la base y aplica las migraciones antes de mostrar cualquier pantalla.
+ *
+ * Una pantalla que consulta una tabla que todavía no existe falla con «no such
+ * table», que no dice nada de la causa. Si el arranque falla, se dice: quedarse
+ * en el logo para siempre —el hallazgo 8 del sprint 01— es lo único peor.
+ */
+function AppBoot() {
+  const theme = useTheme();
+  const boot = useDatabaseBoot();
+
+  useEffect(() => {
+    if (boot.estado === 'error') {
+      observability.captureError(boot.error, { operacion: 'arranque-base-de-datos' });
+    }
+  }, [boot]);
+
+  if (boot.estado !== 'listo') {
+    return (
+      <View style={{ flex: 1, backgroundColor: theme.palette.background }}>
+        {boot.estado === 'cargando' ? (
+          <LoadingState />
+        ) : (
+          <ErrorState description="No se pudo preparar el almacenamiento. Cierra y vuelve a abrir la aplicación." />
+        )}
+      </View>
+    );
+  }
+
+  return (
+    <DatabaseProvider db={boot.db}>
+      <Stack screenOptions={{ headerShadowVisible: false }}>
+        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+      </Stack>
+    </DatabaseProvider>
+  );
+}
+
 export default function RootLayout() {
-  const colorScheme = useColorScheme();
+  const fuentesListas = useAppFonts();
 
   // OBLIGATORIO junto a `preventAutoHideAsync`: sin esta llamada la pantalla de
   // arranque se queda para siempre y la app parece colgada, sin ningún error en
-  // consola. Cuando haya recursos que precargar —las fuentes del sprint 02—,
-  // esto pasa a esperar a que estén listos.
+  // consola. `useAppFonts` devuelve `true` también si la carga falla, así que
+  // esto siempre acaba ejecutándose.
   useEffect(() => {
-    void SplashScreen.hideAsync();
-  }, []);
+    if (fuentesListas) void SplashScreen.hideAsync();
+  }, [fuentesListas]);
+
+  if (!fuentesListas) return null;
 
   return (
     <ErrorBoundary onError={reportarError}>
-      <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-        <Stack />
+      <ThemeProvider>
+        <NavigationTheme>
+          <AppBoot />
+        </NavigationTheme>
       </ThemeProvider>
     </ErrorBoundary>
   );

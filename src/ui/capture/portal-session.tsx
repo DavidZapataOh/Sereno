@@ -1,7 +1,11 @@
 import { useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, View, type PressableStateCallbackType } from 'react-native';
 import { WebView, type WebViewMessageEvent, type WebViewNavigation } from 'react-native-webview';
+
 import { belongsToPortal, type Portal } from '@/domain/portals/registry';
+import { AppText } from '@/ui/components/app-text';
+import { useTheme } from '@/ui/theme/use-theme';
+
 import { useCaptureStore } from './store';
 
 /**
@@ -31,6 +35,7 @@ interface Props {
 }
 
 export function PortalSession({ portal, injectedScript, onVerCapturas }: Props) {
+  const theme = useTheme();
   const handleMessage = useCaptureStore((state) => state.handleMessage);
   const total = useCaptureStore((state) => state.captures.length);
 
@@ -60,13 +65,21 @@ export function PortalSession({ portal, injectedScript, onVerCapturas }: Props) 
   };
 
   return (
-    <View style={styles.container}>
-      <View style={styles.banner}>
-        <Text style={styles.instrucciones}>{portal.instrucciones}</Text>
+    <View style={{ flex: 1, backgroundColor: theme.palette.background }}>
+      <View
+        style={{
+          backgroundColor: theme.palette.surfaceAlt,
+          padding: theme.spacing.md,
+          gap: theme.spacing.xs,
+        }}
+      >
+        <AppText level="apoyo" color="textSecondary">
+          {portal.instrucciones}
+        </AppText>
         {portal.minutosDeSesion !== null && (
-          <Text style={styles.aviso} testID="aviso-sesion">
+          <AppText level="micro" color="deuda" testID="aviso-sesion">
             La sesión expira a los {portal.minutosDeSesion} minutos de inactividad.
-          </Text>
+          </AppText>
         )}
       </View>
 
@@ -86,41 +99,36 @@ export function PortalSession({ portal, injectedScript, onVerCapturas }: Props) 
         thirdPartyCookiesEnabled
         javaScriptEnabled
         domStorageEnabled
-        style={styles.webview}
+        style={{ flex: 1 }}
         testID="webview-portal"
       />
 
       <Pressable
-        style={styles.footer}
         onPress={onVerCapturas}
         accessibilityRole="button"
         accessibilityLabel="Ver capturas"
         testID="pie-capturas"
+        style={({ pressed }: PressableStateCallbackType) => ({
+          minHeight: theme.touchTargetMin,
+          backgroundColor: pressed ? theme.palette.surfacePressed : theme.palette.surface,
+          borderTopWidth: 1,
+          borderTopColor: theme.palette.border,
+          padding: theme.spacing.md,
+          gap: theme.spacing.xs,
+        })}
       >
-        <Text style={styles.contador} testID="contador-capturas">
+        <AppText level="apoyo" align="center" testID="contador-capturas">
           {total} {total === 1 ? 'captura' : 'capturas'} · toca para verlas
-        </Text>
-        <Text style={styles.url} numberOfLines={1} testID="url-actual">
+        </AppText>
+        <AppText level="micro" color="textMuted" numberOfLines={1} testID="url-actual">
           {urlActual}
-        </Text>
+        </AppText>
         {bloqueada !== null && (
-          <Text style={styles.bloqueada} numberOfLines={2} testID="url-bloqueada">
+          <AppText level="micro" color="peligro" numberOfLines={2} testID="url-bloqueada">
             Bloqueada: {bloqueada}
-          </Text>
+          </AppText>
         )}
       </Pressable>
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1 },
-  webview: { flex: 1 },
-  banner: { backgroundColor: '#FEF3C7', padding: 12, gap: 4 },
-  instrucciones: { fontSize: 13, color: '#78350F' },
-  aviso: { fontSize: 11, color: '#92400E', fontWeight: '600' },
-  footer: { backgroundColor: '#1F2937', padding: 12, gap: 4 },
-  contador: { color: '#F9FAFB', fontWeight: '600', textAlign: 'center' },
-  url: { color: '#9CA3AF', fontSize: 10 },
-  bloqueada: { color: '#FCA5A5', fontSize: 10 },
-});

@@ -113,10 +113,34 @@ Dos detalles que cuestan tiempo si no se saben:
 
 ## Estado
 
-**Fase 1 de 6:** spike de captura vía WebView contra Bancolombia y Nequi. Es un
-experimento para decidir si la ingesta bancaria se construye sobre esta base o pivota a
-correo y notificaciones push. No es producto: no hay backend, base de datos ni
-categorización todavía.
+Sprints ejecutados: **00** fundaciones · **01** captura bancaria (Bancolombia sí, Nequi
+no: va por correo) · **02** sistema de diseño y navegación · **03** ledger de doble
+partida sobre SQLite. El tablero vivo está en `../docs/superpowers/plans/README.md`.
+
+Todavía no hay ingesta: los movimientos capturados no llegan al ledger hasta el sprint 04.
+Las cuatro pestañas muestran estados vacíos honestos que dicen qué habrá ahí y cuándo.
+
+## Diseño
+
+Las decisiones visuales se arbitran con `docs/diseno/principios.md`. Antes de proponer un
+cambio de interfaz, léelo: cada principio descarta explícitamente algo que suena
+razonable. El resto de `docs/diseno/` explica para quién es la app, cuál es el listón por
+pantalla y cómo se usan color y tipografía.
+
+Reglas que las pruebas hacen cumplir:
+
+- **Ningún color escrito a mano.** `no-literals.test.ts` recorre `src/` y falla ante un
+  hex, un `rgb()` o un nombre de color fuera de `ui/theme/palette.ts`. Todo sale de
+  `useTheme()`.
+- **Las pantallas no usan `Text`:** usan `AppText` (texto) y `Money` (dinero). `Money` es
+  el único sitio donde se pinta un monto: formato, signo, moneda, cifras tabulares y
+  etiqueta accesible viven ahí.
+- **Todo interactivo mide 48 dp** y declara rol y etiqueta. `Button`, `ListRow`, `NavRow`
+  e `IconButton` ya lo hacen.
+- **Ninguna pantalla a más de tres toques.** El mapa vive en
+  `domain/navigation/screen-map.ts`; añadir una pantalla es añadirla ahí primero.
+- **La paleta pasa AA en todos los pares** y ambos temas declaran las mismas claves.
+  Cambiar un color sin correr `palette.test.ts` no es posible.
 
 ## Registros y errores
 

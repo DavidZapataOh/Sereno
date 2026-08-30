@@ -12,7 +12,6 @@ module.exports = {
     'src/**/*.{ts,tsx}',
     '!src/**/*.test.{ts,tsx}',
     '!src/app/**',
-    '!src/ui/hooks/use-color-scheme.ts',
     // Cableado sin lógica: elige el adaptador activo.
     '!src/infrastructure/observability/index.ts',
     // `render.tsx` es andamiaje de pruebas: envuelve la librería, no tiene

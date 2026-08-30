@@ -1,21 +1,15 @@
 import type { Account } from '@/domain/ledger/account';
 import { accountId, transactionId, type OwnerId } from '@/domain/ledger/ids';
-import { checkAllInvariants, type LedgerViolation } from '@/domain/ledger/invariants';
+import {
+  checkAllInvariants,
+  type LedgerReport,
+  type LedgerViolation,
+} from '@/domain/ledger/invariants';
 import type { Posting, Transaction } from '@/domain/ledger/transaction';
 
 import type { Database } from './database';
 import { toAccount, toMoney } from './mappers';
 import { accounts, postings, transactions } from './schema';
-
-export interface LedgerReport {
-  sano: boolean;
-  violaciones: LedgerViolation[];
-  revisado: {
-    cuentas: number;
-    transacciones: number;
-    apuntes: number;
-  };
-}
 
 /**
  * Verifica las invariantes sobre la base real.

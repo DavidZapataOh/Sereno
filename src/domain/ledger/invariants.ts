@@ -12,6 +12,17 @@ export interface LedgerViolation {
   detalle: string;
 }
 
+/** Resultado de revisar un ledger completo, venga de donde venga. */
+export interface LedgerReport {
+  sano: boolean;
+  violaciones: LedgerViolation[];
+  revisado: {
+    cuentas: number;
+    transacciones: number;
+    apuntes: number;
+  };
+}
+
 export interface LedgerSnapshot {
   transactions: readonly Transaction[];
   accounts: readonly Account[];
