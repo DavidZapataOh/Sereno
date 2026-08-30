@@ -8,6 +8,7 @@ import type { TransferRepository } from '@/domain/ingest/transfer-repository';
 import type { AccountRepository } from '@/domain/ledger/account-repository';
 import type { TransactionRepository } from '@/domain/ledger/transaction-repository';
 import type { ReconciliationRepository } from '@/domain/reconciliation/reconciliation-repository';
+import type { SyncStateRepository } from '@/domain/sync/server-client';
 
 import type { Database } from './database';
 import { createDrizzleAccountRepository } from './drizzle-account-repository';
@@ -17,6 +18,7 @@ import { createDrizzleClassificationRepository } from './drizzle-classification-
 import { createDrizzleEvidenceRepository } from './drizzle-evidence-repository';
 import { createDrizzleIngestRepository } from './drizzle-ingest-repository';
 import { createDrizzleReconciliationRepository } from './drizzle-reconciliation-repository';
+import { createDrizzleSyncStateRepository } from './drizzle-sync-state-repository';
 import { createDrizzleRuleRepository } from './drizzle-rule-repository';
 import { createDrizzleTransactionRepository } from './drizzle-transaction-repository';
 import { createDrizzleTransferRepository } from './drizzle-transfer-repository';
@@ -32,6 +34,7 @@ export interface Repositories {
   rules: RuleRepository;
   evidence: EvidenceRepository;
   batches: BatchRepository;
+  sync: SyncStateRepository;
 }
 
 /** Todos los repositorios sobre una misma base. Las rutas lo llaman una vez. */
@@ -47,5 +50,6 @@ export function createRepositories(db: Database): Repositories {
     rules: createDrizzleRuleRepository(db),
     evidence: createDrizzleEvidenceRepository(db),
     batches: createDrizzleBatchRepository(db),
+    sync: createDrizzleSyncStateRepository(db),
   };
 }

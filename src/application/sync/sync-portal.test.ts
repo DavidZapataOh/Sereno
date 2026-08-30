@@ -3,11 +3,13 @@ import { categoryAccountId } from '@/domain/categorization/taxonomy';
 import { accountId, ownerId } from '@/domain/ledger/ids';
 import { money } from '@/domain/money/money';
 import { createInMemoryAccountRepository } from '@/test/fakes/in-memory-account-repository';
+import { createFakeServerClient } from '@/test/fakes/fake-server-client';
 import { createInMemoryBatchRepository } from '@/test/fakes/in-memory-batch-repository';
 import { createInMemoryCategoryRepository } from '@/test/fakes/in-memory-category-repository';
 import { createInMemoryClassificationRepository } from '@/test/fakes/in-memory-classification-repository';
 import { createInMemoryEvidenceRepository } from '@/test/fakes/in-memory-evidence-repository';
 import { createInMemoryRuleRepository } from '@/test/fakes/in-memory-rule-repository';
+import { createInMemorySyncStateRepository } from '@/test/fakes/in-memory-sync-state-repository';
 import { createInMemoryIngestRepository } from '@/test/fakes/in-memory-ingest-repository';
 import { createInMemoryReconciliationRepository } from '@/test/fakes/in-memory-reconciliation-repository';
 import { createInMemoryTransactionRepository } from '@/test/fakes/in-memory-transaction-repository';
@@ -36,6 +38,8 @@ function deps() {
     rules: createInMemoryRuleRepository(),
     evidence: createInMemoryEvidenceRepository(),
     batches: createInMemoryBatchRepository(),
+    servidor: createFakeServerClient([]),
+    sync: createInMemorySyncStateRepository(),
     ids: createSequentialIds('id'),
     clock: () => '2026-08-28T12:00:00.000-05:00',
   };
