@@ -6,6 +6,7 @@ import {
   SYSTEM_ACCOUNT_KEYS,
   systemAccount,
 } from '@/domain/ledger/system-accounts';
+import { SOURCES, type SourceId } from '@/domain/sources/registry';
 
 /**
  * Garantiza que existan las cuentas del sistema.
@@ -25,21 +26,35 @@ export async function ensureSystemAccounts(
 }
 
 interface SourceSpec {
-  fuente: string;
-  nombre: string;
+  fuente: SourceId;
+  /** Solo para nombrarla la primera vez; si no viene, el del registro. */
+  nombre?: string;
   numero?: string;
 }
 
-/** La cuenta de activo de una fuente externa, creándola la primera vez. */
+/**
+ * La cuenta de una fuente externa, creándola la primera vez.
+ *
+ * La naturaleza sale del registro: una cuenta de ahorros abre un activo, una
+ * tarjeta de crédito un pasivo. No es un detalle: de eso depende que el
+ * patrimonio reste en vez de sumar.
+ */
 export async function ensureSourceAccount(
   accounts: AccountRepository,
   owner: OwnerId,
   spec: SourceSpec,
 ): Promise<AccountId> {
-  const id = sourceAccountId(spec.fuente, spec.numero);
+  const registro = SOURCES[spec.fuente];
+  const id = sourceAccountId(spec.fuente, spec.numero ?? registro.cuenta.numero);
   if ((await accounts.findById(id)) === null) {
     await accounts.save(
-      createAccount({ id, owner, kind: 'activo', nombre: spec.nombre, currency: 'COP' }),
+      createAccount({
+        id,
+        owner,
+        kind: registro.cuenta.kind,
+        nombre: spec.nombre ?? registro.nombre,
+        currency: 'COP',
+      }),
     );
   }
   return id;

@@ -11,14 +11,14 @@ import type { IngestRun } from '@/domain/ingest/ingest-run';
 import { observationId } from '@/domain/ingest/observation';
 import { ingestedTransactionId, toLedgerTransaction } from '@/domain/ingest/to-transaction';
 import type { OwnerId } from '@/domain/ledger/ids';
-import type { PortalId } from '@/domain/portals/registry';
+import type { SourceId } from '@/domain/sources/registry';
 
 import { ensureSourceAccount, ensureSystemAccounts } from '../ledger/ensure-system-accounts';
 import type { IngestDeps, IngestSummary } from './types';
 
 export interface NormalizedBatch {
   owner: OwnerId;
-  fuente: PortalId;
+  fuente: SourceId;
   nombreFuente: string;
   lote: NormalizedTransaction[];
   /** Cuándo se obtuvo el lote. Va a cada observación. */
