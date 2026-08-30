@@ -9,6 +9,7 @@ import { calendarDay } from '@/domain/time/colombia';
 import { classifyUnclassified } from '../categorization/classify';
 import { ensureDefaultCategories } from '../categorization/ensure-default-categories';
 import type { CategorizationDeps } from '../categorization/types';
+import type { PullDeps } from './pull-from-server';
 import { detectTransfers } from '../ingest/detect-transfers';
 import { ingestCaptures } from '../ingest/ingest-captures';
 import type { IngestDeps, IngestSummary } from '../ingest/types';
@@ -19,7 +20,7 @@ import {
 } from '../reconciliation/reconcile-from-captures';
 
 /** Todos los puertos del sprint. Las rutas lo construyen una vez. */
-export type AppDeps = IngestDeps & ReconciliationDeps & CategorizationDeps;
+export type AppDeps = IngestDeps & ReconciliationDeps & CategorizationDeps & PullDeps;
 
 export interface SyncSummary extends IngestSummary {
   transferencias: number;

@@ -42,7 +42,7 @@ describe('esquema y migraciones', () => {
       .run();
   };
 
-  it('aplica las migraciones y crea las doce tablas', () => {
+  it('aplica las migraciones y crea las trece tablas', () => {
     const tablas = cliente.db
       .all<{ name: string }>(sql`SELECT name FROM sqlite_master WHERE type = 'table' ORDER BY name`)
       .map((fila) => fila.name)
@@ -53,6 +53,7 @@ describe('esquema y migraciones', () => {
       'categories',
       'classification_batches',
       'classifier_evidence',
+      'estado_sync',
       'ingest_runs',
       'postings',
       'reconciliations',

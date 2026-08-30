@@ -5,6 +5,7 @@ import type { AppDeps } from '@/application/sync/sync-portal';
 import { useDatabase } from '../db/database-provider';
 import { createRepositories } from '../db/repositories';
 import { createCryptoIdGenerator } from '../ids/crypto-id-generator';
+import { createHttpServerClient, createSinServidor } from '../sync/http-server-client';
 
 /**
  * Los puertos del sprint, cableados sobre la base abierta al arrancar.
@@ -14,12 +15,24 @@ import { createCryptoIdGenerator } from '../ids/crypto-id-generator';
  */
 export function useAppDeps(): AppDeps {
   const db = useDatabase();
-  return useMemo(
-    () => ({
+  return useMemo(() => {
+    // Sin servidor configurado, la app funciona exactamente como antes del
+    // sprint 06: lo de SQLite se ve y la traída simplemente no ocurre.
+    // Con notación de punto a propósito: el bundler de Expo sustituye estas
+    // variables en tiempo de compilación buscándolas literalmente. Con
+    // corchetes no las encuentra y llegan `undefined` al teléfono.
+    const url = process.env.EXPO_PUBLIC_SERENO_URL;
+    const token = process.env.EXPO_PUBLIC_SERENO_TOKEN;
+    const servidor =
+      url === undefined || url.length === 0 || token === undefined || token.length === 0
+        ? createSinServidor()
+        : createHttpServerClient({ url, token });
+
+    return {
       ...createRepositories(db),
+      servidor,
       ids: createCryptoIdGenerator(),
       clock: () => new Date().toISOString(),
-    }),
-    [db],
-  );
+    };
+  }, [db]);
 }

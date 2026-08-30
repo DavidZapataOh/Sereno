@@ -169,6 +169,17 @@ export const classificationBatches = sqliteTable(
   (tabla) => [index('idx_batches_owner_creado').on(tabla.ownerId, tabla.creadoEn)],
 );
 
+/**
+ * Dónde va la traída del servidor y cuándo fue la última (sprint 06).
+ *
+ * Una fila por clave. El cursor es la secuencia del último movimiento que ya
+ * entró al ledger: se escribe **después** de ingerir, nunca antes.
+ */
+export const estadoSync = sqliteTable('estado_sync', {
+  clave: text('clave').primaryKey(),
+  valor: text('valor').notNull(),
+});
+
 export const ingestRuns = sqliteTable(
   'ingest_runs',
   {

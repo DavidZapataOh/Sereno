@@ -1,10 +1,16 @@
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { router, Stack } from 'expo-router';
 import { ScrollView, View } from 'react-native';
 
+import { pullFromServer } from '@/application/sync/pull-from-server';
 import { PORTALS } from '@/domain/portals/registry';
+import { useAppDeps } from '@/infrastructure/composition/use-app-deps';
+import { observability } from '@/infrastructure/observability';
+import { CURRENT_OWNER } from '@/infrastructure/session/current-owner';
 import { AppText } from '@/ui/components/app-text';
 import { Card } from '@/ui/components/card';
 import { NavRow } from '@/ui/components/nav-row';
+import { ServerSyncCard } from '@/ui/sync/server-sync-card';
 import { useTheme } from '@/ui/theme/use-theme';
 
 /**
@@ -16,6 +22,24 @@ import { useTheme } from '@/ui/theme/use-theme';
  */
 export default function AjustesScreen() {
   const theme = useTheme();
+  const deps = useAppDeps();
+  const queryClient = useQueryClient();
+
+  // Lo que el servidor del sprint 06 ha traído. Sin servidor configurado,
+  // `ultimaTraida` es null y la tarjeta lo dice.
+  const estadoSync = useQuery({
+    queryKey: ['sync-state', CURRENT_OWNER],
+    queryFn: () => deps.sync.ultimaTraida(),
+  });
+  const traer = useMutation({
+    mutationFn: () => pullFromServer(deps, { owner: CURRENT_OWNER }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries();
+    },
+    onError: (error) => {
+      observability.captureError(error, { operacion: 'traer-del-servidor' });
+    },
+  });
 
   return (
     <>
@@ -38,6 +62,21 @@ export default function AjustesScreen() {
               />
             ))}
           </Card>
+        </View>
+
+        <View style={{ gap: theme.spacing.sm }}>
+          <AppText level="subtitulo">Servidor</AppText>
+          <ServerSyncCard
+            estado={{
+              ultima: estadoSync.data ?? null,
+              now: deps.clock(),
+              pendiente: traer.isPending,
+              error: traer.isError,
+            }}
+            onTraer={() => {
+              traer.mutate();
+            }}
+          />
         </View>
 
         <View style={{ gap: theme.spacing.sm }}>
