@@ -5,6 +5,8 @@ import { Hono } from 'hono';
 import type { Repositorios } from '../db/repositorios';
 import type { Observabilidad } from '../observabilidad';
 
+import { montarMovimientos } from './movimientos';
+
 export interface Dependencias {
   repos: Repositorios;
   token: string;
@@ -47,6 +49,8 @@ export function crearApp(deps: Dependencias) {
             },
     });
   });
+
+  montarMovimientos(app, deps.repos);
 
   app.notFound((c) => c.json({ error: 'No existe' }, 404));
 
