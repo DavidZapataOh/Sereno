@@ -3,6 +3,7 @@ import { categoryAccountId } from '@/domain/categorization/taxonomy';
 import { accountId, ownerId } from '@/domain/ledger/ids';
 import { money } from '@/domain/money/money';
 import { createInMemoryAccountRepository } from '@/test/fakes/in-memory-account-repository';
+import { createInMemoryBatchRepository } from '@/test/fakes/in-memory-batch-repository';
 import { createInMemoryCategoryRepository } from '@/test/fakes/in-memory-category-repository';
 import { createInMemoryClassificationRepository } from '@/test/fakes/in-memory-classification-repository';
 import { createInMemoryEvidenceRepository } from '@/test/fakes/in-memory-evidence-repository';
@@ -34,6 +35,7 @@ function deps() {
     classifications: createInMemoryClassificationRepository(),
     rules: createInMemoryRuleRepository(),
     evidence: createInMemoryEvidenceRepository(),
+    batches: createInMemoryBatchRepository(),
     ids: createSequentialIds('id'),
     clock: () => '2026-08-28T12:00:00.000-05:00',
   };

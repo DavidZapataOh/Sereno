@@ -4,6 +4,7 @@ import { createTransaction } from '@/domain/ledger/transaction';
 import { money } from '@/domain/money/money';
 
 import { createInMemoryAccountRepository } from './in-memory-account-repository';
+import { createInMemoryBatchRepository } from './in-memory-batch-repository';
 import { createInMemoryCategoryRepository } from './in-memory-category-repository';
 import { createInMemoryClassificationRepository } from './in-memory-classification-repository';
 import { createInMemoryEvidenceRepository } from './in-memory-evidence-repository';
@@ -255,5 +256,25 @@ describe('createInMemoryEvidenceRepository', () => {
     expect(await repo.listByFeatures(owner, ['comercio:exito'])).toEqual([]);
     expect(await repo.countByCategory(owner)).toEqual(new Map([[mercado, 1]]));
     expect(await repo.vocabularySize(owner)).toBe(1);
+  });
+});
+
+describe('createInMemoryBatchRepository', () => {
+  it('guarda, encuentra y el último es el más reciente no deshecho', async () => {
+    const repo = createInMemoryBatchRepository();
+    const lote = (id: string, creadoEn: string, deshechoEn: string | null = null) => ({
+      id,
+      owner: ownerId('david'),
+      comercio: 'x',
+      cambios: [],
+      reglaId: null,
+      creadoEn,
+      deshechoEn,
+    });
+    await repo.save(lote('b1', '2026-08-30T10:00:00.000Z'));
+    await repo.save(lote('b2', '2026-08-30T11:00:00.000Z', '2026-08-30T12:00:00.000Z'));
+    expect((await repo.findById('b2'))?.deshechoEn).not.toBeNull();
+    expect((await repo.findLatest(ownerId('david')))?.id).toBe('b1');
+    expect(await repo.findLatest(ownerId('otro'))).toBeNull();
   });
 });
