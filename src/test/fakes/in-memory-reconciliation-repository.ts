@@ -7,10 +7,20 @@ export interface InMemoryReconciliationRepository extends ReconciliationReposito
 
 export function createInMemoryReconciliationRepository(): InMemoryReconciliationRepository {
   const registros = new Map<string, Reconciliation>();
+  // Misma fecha (la captura y el ajuste que la cierra): gana la registrada de
+  // último, igual que en SQLite.
   const porCuenta = (cuenta: string) =>
     [...registros.values()]
-      .filter((r) => r.accountId === cuenta)
-      .sort((a, b) => b.fecha.localeCompare(a.fecha));
+      .map((r, orden) => ({ r, orden }))
+      .filter(({ r }) => r.accountId === cuenta)
+      .sort((a, b) => {
+        const porFecha = b.r.fecha.localeCompare(a.r.fecha);
+        if (porFecha !== 0) return porFecha;
+        const porCreacion = b.r.creadoEn.localeCompare(a.r.creadoEn);
+        if (porCreacion !== 0) return porCreacion;
+        return b.orden - a.orden;
+      })
+      .map(({ r }) => r);
   return {
     all: () => [...registros.values()],
     save: (r) => {

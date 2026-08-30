@@ -197,6 +197,33 @@ describe('adjustToReconcile', () => {
     expect(tx.fecha).toBe('2026-08-28T10:00:00.000-05:00');
   });
 
+  it('tras asumir, la última conciliación de la cuenta cuadra: la tarjeta no se repite', async () => {
+    const d = await deps();
+    // El ledger tiene lo que la conciliación dice que calculó: 1.000.000.
+    await registerAdjustment(d, {
+      owner,
+      accountId: ahorros,
+      amount: money(1000000, 'COP'),
+      motivo: 'Saldo inicial',
+      fecha: '2026-08-20T10:00:00.000-05:00',
+    });
+    await d.reconciliations.save(conciliacion('gasto-no-capturado'));
+
+    await adjustToReconcile(d, { owner, reconciliationId: 'rec-gasto-no-capturado' });
+
+    const ultima = await d.reconciliations.findLatest(ahorros);
+    expect(ultima).toMatchObject({
+      veredicto: 'cuadra',
+      fuente: 'ajuste',
+      detalle: 'Ahorros ****8901',
+    });
+    expect(ultima?.saldoCalculado.amount).toBe(955000n);
+    // Y con la que cuadra ya no hay nada que ajustar: no se puede duplicar.
+    await expect(
+      adjustToReconcile(d, { owner, reconciliationId: ultima?.id ?? '' }),
+    ).rejects.toThrow(/cuadra/);
+  });
+
   it('una conciliación que cuadra no genera ajuste', async () => {
     const d = await deps();
     await d.reconciliations.save(conciliacion('cuadra'));

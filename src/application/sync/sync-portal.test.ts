@@ -1,5 +1,6 @@
 import type { Capture } from '@/domain/capture/reassembler';
 import { accountId, ownerId } from '@/domain/ledger/ids';
+import { money } from '@/domain/money/money';
 import { createInMemoryAccountRepository } from '@/test/fakes/in-memory-account-repository';
 import { createInMemoryIngestRepository } from '@/test/fakes/in-memory-ingest-repository';
 import { createInMemoryReconciliationRepository } from '@/test/fakes/in-memory-reconciliation-repository';
@@ -155,6 +156,35 @@ describe('syncPortal', () => {
     expect(segunda.conciliacion?.veredicto).toBe('gasto-no-capturado');
     expect(segunda.conciliacion?.diferencia.amount).toBe(-5000n);
     expect(d.transactions.all().filter((t) => t.origen.fuente === 'manual')).toHaveLength(1);
+  });
+
+  it('una instalación que ya concilió sin cuadrar (antes de existir el saldo inicial) lo recibe al reimportar', async () => {
+    const d = deps();
+    await d.reconciliations.save({
+      id: 'rec-vieja',
+      owner,
+      accountId: accountId('bancolombia:ahorros'),
+      fecha: '2026-08-27T18:00:00.000-05:00',
+      saldoReal: money(700000, 'COP'),
+      saldoCalculado: money(-35000, 'COP'),
+      diferencia: money(735000, 'COP'),
+      veredicto: 'ingreso-no-capturado',
+      fuente: 'bancolombia',
+      detalle: 'Ahorros ****8901',
+      creadoEn: '2026-08-27T18:00:00.000-05:00',
+    });
+
+    const resumen = await syncPortal(d, {
+      owner,
+      portalId: 'bancolombia',
+      captures: [movimientos, saldos],
+    });
+
+    expect(resumen.saldoInicial).not.toBeNull();
+    expect((await d.accounts.balanceOf(accountId('bancolombia:ahorros'))).amount).toBe(700000n);
+    expect((await d.reconciliations.findLatest(accountId('bancolombia:ahorros')))?.veredicto).toBe(
+      'cuadra',
+    );
   });
 
   it('si la primera sincronización ya cuadra, no asienta un saldo inicial de cero', async () => {

@@ -41,8 +41,12 @@ export async function syncPortal(
   input: { owner: OwnerId; portalId: PortalId; captures: Capture[] },
 ): Promise<SyncSummary> {
   const cuenta = sourceAccountId(input.portalId);
-  const [previa] = await deps.reconciliations.listByAccount(cuenta);
-  const esLaPrimera = previa === undefined;
+  // «Primera» = la cuenta nunca ha cuadrado con el banco. Así también la
+  // reciben las instalaciones que ya conciliaron sin cuadrar antes de que
+  // existiera el saldo inicial; y tras asumir una diferencia (que deja una
+  // conciliación que cuadra) toda diferencia posterior es real.
+  const previas = await deps.reconciliations.listByAccount(cuenta);
+  const esLaPrimera = !previas.some((c) => c.veredicto === 'cuadra');
 
   const ingesta = await ingestCaptures(deps, input);
   let [conciliacion] = await reconcileFromCaptures(deps, input);
