@@ -1,4 +1,4 @@
-import { index, integer, sqliteTable, text } from 'drizzle-orm/sqlite-core';
+import { index, integer, primaryKey, sqliteTable, text } from 'drizzle-orm/sqlite-core';
 
 /**
  * Cuentas del ledger.
@@ -132,6 +132,25 @@ export const rules = sqliteTable(
     activa: integer('activa', { mode: 'boolean' }).notNull().default(true),
   },
   (tabla) => [index('idx_rules_owner').on(tabla.ownerId)],
+);
+
+/**
+ * Conteos del clasificador (sprint 05, plan 04): cuántas veces se vio cada
+ * rasgo en cada categoría. Es todo el «modelo»; vive aquí y no sale del
+ * teléfono.
+ */
+export const classifierEvidence = sqliteTable(
+  'classifier_evidence',
+  {
+    ownerId: text('owner_id').notNull(),
+    feature: text('feature').notNull(),
+    categoria: text('categoria').notNull(),
+    cuenta: integer('cuenta').notNull().default(0),
+  },
+  (tabla) => [
+    primaryKey({ columns: [tabla.ownerId, tabla.feature, tabla.categoria] }),
+    index('idx_evidence_owner_feature').on(tabla.ownerId, tabla.feature),
+  ],
 );
 
 export const ingestRuns = sqliteTable(
