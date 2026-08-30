@@ -60,8 +60,16 @@ if [ -n "$(git status --porcelain)" ]; then
   exit 1
 fi
 
-paso "Verificando en local antes de subir nada"
-npm run verify
+# La salida completa de la verificación se guarda siempre: si una prueba
+# falla y se lee solo el final, el detalle —qué prueba, qué contraejemplo,
+# qué semilla— se pierde, y una intermitente sin detalle no se puede cazar.
+LOG="${TMPDIR:-/tmp}/sereno-integrar-$(date +%Y%m%d-%H%M%S).log"
+paso "Verificando en local antes de subir nada (registro: $LOG)"
+if ! npm run verify 2>&1 | tee "$LOG"; then
+  rojo "La verificación falló. Detalle completo en $LOG:"
+  grep -E "✕|●.*›|Counterexample|seed|Expected|Received" "$LOG" | head -20 || true
+  exit 1
+fi
 
 paso "Subiendo $rama"
 git push -u origin "$rama"
