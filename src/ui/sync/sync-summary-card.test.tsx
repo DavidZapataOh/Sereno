@@ -20,6 +20,8 @@ describe('SyncSummaryCard', () => {
     motivosOmision: [],
     anteriores: 0,
     desde: null,
+    clasificadas: 0,
+    porRevisar: 0,
     transferencias: 1,
     conciliacion: null,
     saldoInicial: null,
@@ -105,5 +107,15 @@ describe('SyncSummaryCard', () => {
       />,
     );
     expect(getByText(/23 movimientos anteriores al 29 ago no cuentan/)).toBeOnTheScreen();
+  });
+
+  it('dice cuántos se clasificaron solos y cuántos quedan por revisar', async () => {
+    const { getByText } = await renderWithProviders(
+      <SyncSummaryCard
+        summary={{ ...resumen, clasificadas: 12, porRevisar: 3 }}
+        onDismiss={() => undefined}
+      />,
+    );
+    expect(getByText(/12 clasificados solos · 3 por revisar/)).toBeOnTheScreen();
   });
 });

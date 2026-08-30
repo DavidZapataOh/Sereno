@@ -6,6 +6,8 @@ import type { PortalId } from '@/domain/portals/registry';
 import type { Reconciliation } from '@/domain/reconciliation/reconciliation';
 import { calendarDay } from '@/domain/time/colombia';
 
+import { classifyUnclassified } from '../categorization/classify';
+import { ensureDefaultCategories } from '../categorization/ensure-default-categories';
 import type { CategorizationDeps } from '../categorization/types';
 import { detectTransfers } from '../ingest/detect-transfers';
 import { ingestCaptures } from '../ingest/ingest-captures';
@@ -24,6 +26,10 @@ export interface SyncSummary extends IngestSummary {
   conciliacion: Reconciliation | null;
   /** Solo en la primera sincronización: lo que había antes de los movimientos capturados. */
   saldoInicial: Money | null;
+  /** Clasificados solos en esta importación (regla, aprendido o catálogo). */
+  clasificadas: number;
+  /** Sin categoría tras intentarlo: piden una decisión del usuario. */
+  porRevisar: number;
 }
 
 /**
@@ -67,10 +73,18 @@ export async function syncPortal(
   }
 
   const { detectadas } = await detectTransfers(deps, { owner: input.owner });
+
+  // Con las transferencias ya fundidas (no se clasifican), lo nuevo se
+  // clasifica solo: regla > aprendido > catálogo. Lo que no, queda por revisar.
+  await ensureDefaultCategories(deps, input.owner);
+  const { clasificadas, porRevisar } = await classifyUnclassified(deps, { owner: input.owner });
+
   return {
     ...ingesta,
     transferencias: detectadas,
     conciliacion: conciliacion ?? null,
     saldoInicial,
+    clasificadas,
+    porRevisar,
   };
 }
