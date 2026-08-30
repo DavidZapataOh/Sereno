@@ -3,6 +3,7 @@ import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { FlatList, Modal, View, type ViewStyle } from 'react-native';
 
+import { countCash } from '@/application/ledger/count-cash';
 import { registerCashExpense } from '@/application/ledger/register-cash-expense';
 import { listMovements } from '@/application/movements/movements';
 import { accountId } from '@/domain/ledger/ids';
@@ -15,6 +16,7 @@ import { Button } from '@/ui/components/button';
 import { Card } from '@/ui/components/card';
 import { Money } from '@/ui/components/money';
 import { EmptyState, ErrorState, LoadingState } from '@/ui/components/states';
+import { CashCountForm } from '@/ui/movements/cash-count-form';
 import { CashExpenseForm } from '@/ui/movements/cash-expense-form';
 import { MovementRow } from '@/ui/movements/movement-row';
 import { DriftCard } from '@/ui/overview/drift-card';
@@ -29,6 +31,7 @@ export default function CuentaRoute() {
   const cuentaId = accountId(id);
   const esEfectivo = cuentaId === systemAccountId('efectivo');
   const [registrando, setRegistrando] = useState(false);
+  const [contando, setContando] = useState(false);
 
   const cuenta = useQuery({
     queryKey: ['account', CURRENT_OWNER, id],
@@ -56,6 +59,14 @@ export default function CuentaRoute() {
       }),
     onSuccess: () => {
       setRegistrando(false);
+      void queryClient.invalidateQueries();
+    },
+  });
+  const contar = useMutation({
+    mutationFn: (amount: bigint) =>
+      countCash(deps, { owner: CURRENT_OWNER, amount: money(amount, 'COP') }),
+    onSuccess: () => {
+      setContando(false);
       void queryClient.invalidateQueries();
     },
   });
@@ -115,14 +126,22 @@ export default function CuentaRoute() {
             {esEfectivo && (
               <Card>
                 <AppText level="apoyo" color="textSecondary">
-                  El efectivo entra solo con cada retiro. Lo único que Sereno no puede ver es en qué
-                  se fue.
+                  El efectivo entra solo con cada retiro. Lo que Sereno no puede ver: en qué se fue,
+                  y cuánto tenías antes de empezar. Para eso están estos dos botones.
                 </AppText>
-                <View style={{ marginTop: theme.spacing.md }}>
+                <View style={{ marginTop: theme.spacing.md, gap: theme.spacing.sm }}>
                   <Button
                     label="Registrar un gasto"
                     onPress={() => {
                       setRegistrando(true);
+                    }}
+                    variant="secundario"
+                  />
+                  <Button
+                    label="Contar el efectivo"
+                    accessibilityLabel="Contar el efectivo: decir cuánto hay ahora"
+                    onPress={() => {
+                      setContando(true);
                     }}
                     variant="secundario"
                   />
@@ -152,6 +171,23 @@ export default function CuentaRoute() {
             }
             onCancel={() => {
               setRegistrando(false);
+            }}
+          />
+        </View>
+      </Modal>
+      <Modal
+        visible={contando}
+        animationType="slide"
+        onRequestClose={() => {
+          setContando(false);
+        }}
+      >
+        <View style={fondo}>
+          <CashCountForm
+            actual={saldo.data.amount}
+            onSubmit={(amount) => contar.mutateAsync(amount).then(() => undefined)}
+            onCancel={() => {
+              setContando(false);
             }}
           />
         </View>
