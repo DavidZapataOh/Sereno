@@ -18,6 +18,8 @@ export interface IngestRun {
   duplicadas: number;
   /** Vistas por otra fuente: se sumaron como observación a una transacción existente. */
   fusionadas: number;
+  /** No se pudieron convertir (monto cero, fecha inexistente…). Se cuentan, no tumban el lote. */
+  omitidas: number;
   transferencias: number;
   error: string | null;
 }

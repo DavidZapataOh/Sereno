@@ -54,10 +54,12 @@ export async function ingestNormalized(
     nuevas: 0,
     duplicadas: 0,
     fusionadas: 0,
+    omitidas: 0,
     transferencias: 0,
     error: null,
   };
   await deps.ingest.saveRun(run);
+  const motivosOmision: string[] = [];
 
   try {
     await ensureSystemAccounts(deps.accounts, batch.owner);
@@ -116,9 +118,25 @@ export async function ingestNormalized(
       }
 
       const id = ingestedTransactionId(normalizada.fuente, referencia);
-      await deps.transactions.save(
-        toLedgerTransaction(normalizada, { owner: batch.owner, assetAccountId: cuentaActivo, id }),
-      );
+      // Una fila que no se puede convertir —monto cero, fecha inexistente— se
+      // cuenta y se sigue. Que una fila informativa del banco tumbe el lote
+      // entero es peor que omitirla; lo encontró la sesión de campo.
+      let transaccion;
+      try {
+        transaccion = toLedgerTransaction(normalizada, {
+          owner: batch.owner,
+          assetAccountId: cuentaActivo,
+          id,
+        });
+      } catch (error) {
+        run.omitidas += 1;
+        if (motivosOmision.length < 5) {
+          const motivo = error instanceof Error ? error.message : String(error);
+          motivosOmision.push(`${referencia}: ${motivo}`);
+        }
+        continue;
+      }
+      await deps.transactions.save(transaccion);
       await deps.ingest.saveObservation({
         ...observacionBase,
         id: observationId(id, normalizada.fuente),
@@ -141,5 +159,7 @@ export async function ingestNormalized(
     nuevas: run.nuevas,
     duplicadas: run.duplicadas,
     fusionadas: run.fusionadas,
+    omitidas: run.omitidas,
+    motivosOmision,
   };
 }
