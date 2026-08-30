@@ -10,13 +10,13 @@ interface Props {
 export function MovementRow({ movement: m, onPress }: Props) {
   const subtitle = m.esTransferencia
     ? `${m.cuenta.nombre} → ${m.contraparte?.nombre ?? ''}`
-    : [formatShortDate(m.fecha), m.cuenta.nombre, m.sinClasificar ? 'Sin clasificar' : null]
-        .filter((x): x is string => x !== null)
-        .join(' · ');
+    : [formatShortDate(m.fecha), m.cuenta.nombre, m.categoria?.nombre ?? 'Por clasificar'].join(
+        ' · ',
+      );
 
   return (
     <ListRow
-      title={m.descripcion}
+      title={m.esTransferencia ? m.descripcion : m.comercio.nombre}
       subtitle={subtitle}
       amount={m.monto.amount}
       currency={m.monto.currency}

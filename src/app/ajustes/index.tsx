@@ -51,6 +51,13 @@ export default function AjustesScreen() {
               }}
             />
             <NavRow
+              title="Reglas"
+              subtitle="Cómo se clasifican tus movimientos"
+              onPress={() => {
+                router.push('/ajustes/reglas');
+              }}
+            />
+            <NavRow
               title="Diagnóstico"
               subtitle="Salud de la contabilidad y muestra tipográfica"
               onPress={() => {

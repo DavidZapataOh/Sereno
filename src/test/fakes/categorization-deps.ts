@@ -1,6 +1,7 @@
 import type { CategorizationDeps } from '@/application/categorization/types';
 
 import { createInMemoryAccountRepository } from './in-memory-account-repository';
+import { createInMemoryBatchRepository } from './in-memory-batch-repository';
 import { createInMemoryCategoryRepository } from './in-memory-category-repository';
 import { createInMemoryClassificationRepository } from './in-memory-classification-repository';
 import { createInMemoryEvidenceRepository } from './in-memory-evidence-repository';
@@ -16,6 +17,7 @@ export function categorizationDeps() {
   const classifications = createInMemoryClassificationRepository();
   const rules = createInMemoryRuleRepository();
   const evidence = createInMemoryEvidenceRepository();
+  const batches = createInMemoryBatchRepository();
   const d: CategorizationDeps = {
     accounts,
     transactions,
@@ -23,8 +25,9 @@ export function categorizationDeps() {
     classifications,
     rules,
     evidence,
+    batches,
     ids: createSequentialIds('id'),
     clock: () => '2026-08-30T10:00:00.000-05:00',
   };
-  return { ...d, accounts, transactions, categories, classifications, rules, evidence };
+  return { ...d, accounts, transactions, categories, classifications, rules, evidence, batches };
 }

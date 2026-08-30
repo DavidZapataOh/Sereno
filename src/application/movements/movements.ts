@@ -1,3 +1,15 @@
+import {
+  toCategory,
+  type Category,
+  type CategoryDetails,
+  type CategoryRepository,
+} from '@/domain/categorization/category';
+import type {
+  Classification,
+  ClassificationRepository,
+} from '@/domain/categorization/classification';
+import { merchantOf, type Merchant } from '@/domain/categorization/merchant';
+import { isCategoryAccount } from '@/domain/categorization/taxonomy';
 import type { IngestRepository } from '@/domain/ingest/ingest-repository';
 import type { Observation } from '@/domain/ingest/observation';
 import type { TransferRecord } from '@/domain/ingest/transfer-record';
@@ -16,6 +28,8 @@ export interface MovementsDeps {
   transactions: TransactionRepository;
   ingest: IngestRepository;
   transfers: TransferRepository;
+  categories: CategoryRepository;
+  classifications: ClassificationRepository;
 }
 
 export interface MovementView {
@@ -31,6 +45,12 @@ export interface MovementView {
   esTransferencia: boolean;
   sinClasificar: boolean;
   fuente: string;
+  /** Nombre legible y clave de agrupación, derivados de la descripción (sprint 05). */
+  comercio: Merchant;
+  /** La categoría vigente, si la contrapartida es una cuenta de categoría. */
+  categoria: Category | null;
+  /** Quién la decidió y con qué seguridad; `null` si está sin clasificar. */
+  clasificacion: Classification | null;
 }
 
 export interface MovementDetail {
@@ -48,7 +68,12 @@ export interface MovementDetail {
  * y manda el negativo (la salida). La dirección es neutra si los dos apuntes
  * son de cuentas reales: el dinero no entró ni salió del patrimonio.
  */
-export function toMovementView(t: Transaction, cuentas: Map<AccountId, Account>): MovementView {
+export function toMovementView(
+  t: Transaction,
+  cuentas: Map<AccountId, Account>,
+  detalles: Map<AccountId, CategoryDetails> = new Map(),
+  clasificacion: Classification | null = null,
+): MovementView {
   const conCuenta = t.postings.map((p) => ({
     posting: p,
     account: cuentas.get(p.accountId) ?? null,
@@ -64,6 +89,15 @@ export function toMovementView(t: Transaction, cuentas: Map<AccountId, Account>)
     throw new Error(`La transacción "${t.id}" no tiene ninguna cuenta conocida`);
   }
   const otro = conCuenta.find((x) => x.posting !== principal.posting) ?? null;
+  const apunteCategoria = t.postings.find((p) => isCategoryAccount(p.accountId));
+  const cuentaCategoria =
+    apunteCategoria === undefined ? undefined : cuentas.get(apunteCategoria.accountId);
+  const detalle =
+    apunteCategoria === undefined ? undefined : detalles.get(apunteCategoria.accountId);
+  const categoria =
+    cuentaCategoria !== undefined && detalle !== undefined
+      ? toCategory(cuentaCategoria, detalle)
+      : null;
 
   return {
     id: t.id,
@@ -76,7 +110,18 @@ export function toMovementView(t: Transaction, cuentas: Map<AccountId, Account>)
     esTransferencia,
     sinClasificar: t.postings.some((p) => isUnclassified(p.accountId)),
     fuente: t.origen.fuente,
+    comercio: merchantOf(t.descripcion),
+    categoria,
+    clasificacion,
   };
+}
+
+async function detallesDe(
+  deps: MovementsDeps,
+  owner: OwnerId,
+): Promise<Map<AccountId, CategoryDetails>> {
+  const detalles = await deps.categories.listDetails(owner);
+  return new Map(detalles.map((d) => [d.accountId, d]));
 }
 
 async function cuentasDe(
@@ -101,11 +146,16 @@ export async function listMovements(
     input.accountId === undefined ? undefined : { accountId: input.accountId },
     { limit: input.limit ?? 50, cursor: input.cursor },
   );
-  const cuentas = await cuentasDe(deps, pagina.items);
-  return {
-    items: pagina.items.map((t) => toMovementView(t, cuentas)),
-    nextCursor: pagina.nextCursor,
-  };
+  const [cuentas, detalles] = await Promise.all([
+    cuentasDe(deps, pagina.items),
+    detallesDe(deps, input.owner),
+  ]);
+  const items: MovementView[] = [];
+  for (const t of pagina.items) {
+    const clasificacion = await deps.classifications.findByTransaction(t.id);
+    items.push(toMovementView(t, cuentas, detalles, clasificacion));
+  }
+  return { items, nextCursor: pagina.nextCursor };
 }
 
 export async function getMovement(
@@ -114,13 +164,15 @@ export async function getMovement(
 ): Promise<MovementDetail | null> {
   const transaccion = await deps.transactions.findById(input.id);
   if (transaccion === null || transaccion.owner !== input.owner) return null;
-  const [cuentas, observaciones, transferencia] = await Promise.all([
+  const [cuentas, detalles, clasificacion, observaciones, transferencia] = await Promise.all([
     cuentasDe(deps, [transaccion]),
+    detallesDe(deps, input.owner),
+    deps.classifications.findByTransaction(transaccion.id),
     deps.ingest.listObservations(transaccion.id),
     deps.transfers.findByTransaction(transaccion.id),
   ]);
   return {
-    vista: toMovementView(transaccion, cuentas),
+    vista: toMovementView(transaccion, cuentas, detalles, clasificacion),
     transaccion,
     cuentas,
     observaciones,

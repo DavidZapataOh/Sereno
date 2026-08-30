@@ -1,10 +1,13 @@
-import { useInfiniteQuery } from '@tanstack/react-query';
+import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { router } from 'expo-router';
 import { FlatList, View, type ViewStyle } from 'react-native';
 
+import { listPending } from '@/application/categorization/review';
 import { listMovements } from '@/application/movements/movements';
 import { useAppDeps } from '@/infrastructure/composition/use-app-deps';
 import { CURRENT_OWNER } from '@/infrastructure/session/current-owner';
+import { Card } from '@/ui/components/card';
+import { NavRow } from '@/ui/components/nav-row';
 import { EmptyState, ErrorState, LoadingState } from '@/ui/components/states';
 import { MovementRow } from '@/ui/movements/movement-row';
 import { useLastSyncStore } from '@/ui/sync/last-sync-store';
@@ -22,6 +25,11 @@ export default function MovimientosScreen() {
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (ultima) => ultima.nextCursor ?? undefined,
   });
+  const pendientes = useQuery({
+    queryKey: ['pending', CURRENT_OWNER],
+    queryFn: () => listPending(deps, { owner: CURRENT_OWNER }),
+  });
+  const porRevisar = pendientes.data?.reduce((n, g) => n + g.transacciones.length, 0) ?? 0;
   const fondo: ViewStyle = { flex: 1, backgroundColor: theme.palette.background };
 
   if (consulta.isPending) {
@@ -62,9 +70,24 @@ export default function MovimientosScreen() {
         if (consulta.hasNextPage && !consulta.isFetchingNextPage) void consulta.fetchNextPage();
       }}
       ListHeaderComponent={
-        ultimaSync.summary === null ? null : (
-          <View style={{ padding: theme.spacing.lg }}>
-            <SyncSummaryCard summary={ultimaSync.summary} onDismiss={ultimaSync.clear} />
+        items.length === 0 ? null : (
+          <View style={{ padding: theme.spacing.lg, gap: theme.spacing.md }}>
+            {ultimaSync.summary !== null && (
+              <SyncSummaryCard summary={ultimaSync.summary} onDismiss={ultimaSync.clear} />
+            )}
+            <Card style={{ padding: 0 }}>
+              <NavRow
+                title="Categorías"
+                subtitle={
+                  porRevisar > 0
+                    ? `${String(porRevisar)} por revisar`
+                    : 'Gasto del mes por categoría'
+                }
+                onPress={() => {
+                  router.push('/categorias');
+                }}
+              />
+            </Card>
           </View>
         )
       }

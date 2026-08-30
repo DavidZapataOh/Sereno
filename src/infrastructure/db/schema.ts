@@ -153,6 +153,22 @@ export const classifierEvidence = sqliteTable(
   ],
 );
 
+/** Lotes de revisión (sprint 05, plan 05): qué se clasificó y desde qué, para deshacer. */
+export const classificationBatches = sqliteTable(
+  'classification_batches',
+  {
+    id: text('id').primaryKey(),
+    ownerId: text('owner_id').notNull(),
+    comercio: text('comercio').notNull(),
+    /** JSON: instantáneas de antes y después por transacción. */
+    cambios: text('cambios').notNull(),
+    reglaId: text('regla_id'),
+    creadoEn: text('creado_en').notNull(),
+    deshechoEn: text('deshecho_en'),
+  },
+  (tabla) => [index('idx_batches_owner_creado').on(tabla.ownerId, tabla.creadoEn)],
+);
+
 export const ingestRuns = sqliteTable(
   'ingest_runs',
   {

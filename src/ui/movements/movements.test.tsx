@@ -3,6 +3,7 @@ import { fireEvent, waitFor } from '@testing-library/react-native';
 import type { MovementDetail, MovementView } from '@/application/movements/movements';
 import type { Observation } from '@/domain/ingest/observation';
 import type { TransferRecord } from '@/domain/ingest/transfer-record';
+import { merchantOf } from '@/domain/categorization/merchant';
 import { createAccount } from '@/domain/ledger/account';
 import { accountId, ownerId, transactionId } from '@/domain/ledger/ids';
 import { createTransaction } from '@/domain/ledger/transaction';
@@ -47,6 +48,40 @@ const compra: MovementView = {
   esTransferencia: false,
   sinClasificar: true,
   fuente: 'bancolombia',
+  comercio: merchantOf('COMPRA EXITO'),
+  categoria: null,
+  clasificacion: null,
+};
+const mercado = createAccount({
+  id: accountId('categoria:mercado'),
+  owner,
+  kind: 'gasto',
+  nombre: 'Mercado',
+  currency: 'COP',
+});
+const clasificada: MovementView = {
+  ...compra,
+  contraparte: mercado,
+  sinClasificar: false,
+  categoria: {
+    id: mercado.id,
+    owner,
+    kind: 'gasto',
+    nombre: 'Mercado',
+    grupo: 'comida',
+    icono: 'cart',
+    orden: 1,
+    archivedAt: null,
+  },
+  clasificacion: {
+    transactionId: compra.id,
+    owner,
+    categoria: mercado.id,
+    origen: 'aprendida',
+    reglaId: null,
+    confianza: 72,
+    clasificadoEn: '2026-08-28T10:00:00.000-05:00',
+  },
 };
 const transferencia: MovementView = {
   ...compra,
@@ -60,13 +95,20 @@ const transferencia: MovementView = {
 };
 
 describe('MovementRow', () => {
-  it('muestra descripción, fecha corta, cuenta y monto con signo', async () => {
+  it('muestra el comercio legible, fecha corta, cuenta, categoría y monto con signo', async () => {
     const { getByText } = await renderWithProviders(
       <MovementRow movement={compra} onPress={() => undefined} />,
     );
-    expect(getByText('COMPRA EXITO')).toBeOnTheScreen();
-    expect(getByText('28 ago · Bancolombia · Sin clasificar')).toBeOnTheScreen();
+    expect(getByText('Éxito')).toBeOnTheScreen();
+    expect(getByText('28 ago · Bancolombia · Por clasificar')).toBeOnTheScreen();
     expect(getByText('−$ 45.000')).toBeOnTheScreen();
+  });
+
+  it('con categoría la nombra en el subtítulo', async () => {
+    const { getByText } = await renderWithProviders(
+      <MovementRow movement={clasificada} onPress={() => undefined} />,
+    );
+    expect(getByText('28 ago · Bancolombia · Mercado')).toBeOnTheScreen();
   });
 
   it('una transferencia muestra origen → destino y monto neutro', async () => {
@@ -152,6 +194,46 @@ describe('MovementDetail', () => {
     await fireEvent.press(getByRole('button', { name: 'No, son dos cosas distintas' }));
     expect(onConfirm).toHaveBeenCalledTimes(1);
     expect(onUndo).toHaveBeenCalledTimes(1);
+  });
+
+  it('un gasto muestra la categoría con su origen en palabras y deja cambiarla', async () => {
+    const onChange = jest.fn();
+    const compraTx = createTransaction({
+      id: compra.id,
+      owner,
+      fecha: compra.fecha,
+      descripcion: 'COMPRA EXITO',
+      origen: { fuente: 'bancolombia', referencia: 'C1' },
+      postings: [
+        { accountId: banco.id, amount: money(-45000, 'COP') },
+        { accountId: mercado.id, amount: money(45000, 'COP') },
+      ],
+    });
+    const { getByText, getByTestId } = await renderWithProviders(
+      <MovementDetailView
+        detalle={{
+          vista: clasificada,
+          transaccion: compraTx,
+          cuentas: new Map([
+            [banco.id, banco],
+            [mercado.id, mercado],
+          ]),
+          observaciones: [],
+          transferencia: null,
+        }}
+        onChangeCategory={onChange}
+      />,
+    );
+    expect(getByText('Éxito')).toBeOnTheScreen();
+    expect(getByText('COMPRA EXITO')).toBeOnTheScreen();
+    expect(getByText('Clasificado solo (72 % seguro)')).toBeOnTheScreen();
+    await fireEvent.press(getByTestId('fila-categoria'));
+    expect(onChange).toHaveBeenCalledTimes(1);
+  });
+
+  it('una transferencia no tiene fila de categoría', async () => {
+    const { queryByTestId } = await renderWithProviders(<MovementDetailView detalle={detalle} />);
+    expect(queryByTestId('fila-categoria')).toBeNull();
   });
 
   it('una transferencia confirmada no ofrece confirmar', async () => {

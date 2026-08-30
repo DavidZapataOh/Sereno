@@ -1,3 +1,4 @@
+import type { BatchRepository } from '@/domain/categorization/batch';
 import type { CategoryRepository } from '@/domain/categorization/category';
 import type { ClassificationRepository } from '@/domain/categorization/classification';
 import type { EvidenceRepository } from '@/domain/categorization/evidence-repository';
@@ -13,6 +14,7 @@ export interface CategorizationDeps {
   classifications: ClassificationRepository;
   rules: RuleRepository;
   evidence: EvidenceRepository;
+  batches: BatchRepository;
   ids: IdGenerator;
   clock: () => string;
 }

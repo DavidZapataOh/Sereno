@@ -3,6 +3,8 @@ import { sourceAccountId, systemAccountId } from '@/domain/ledger/system-account
 import { createInMemoryAccountRepository } from '@/test/fakes/in-memory-account-repository';
 import { createInMemoryIngestRepository } from '@/test/fakes/in-memory-ingest-repository';
 import { createInMemoryTransactionRepository } from '@/test/fakes/in-memory-transaction-repository';
+import { createInMemoryCategoryRepository } from '@/test/fakes/in-memory-category-repository';
+import { createInMemoryClassificationRepository } from '@/test/fakes/in-memory-classification-repository';
 import { createInMemoryTransferRepository } from '@/test/fakes/in-memory-transfer-repository';
 import { createSequentialIds } from '@/test/fakes/sequential-ids';
 import { mustExist } from '@/test/must-exist';
@@ -10,18 +12,20 @@ import { mustExist } from '@/test/must-exist';
 import { detectTransfers } from '../ingest/detect-transfers';
 import { ingestNormalized } from '../ingest/ingest-normalized';
 import type { IngestDeps } from '../ingest/types';
-import { getMovement, listMovements } from './movements';
+import { getMovement, listMovements, type MovementsDeps } from './movements';
 
 const owner = ownerId('david');
 
 function deps() {
   const accounts = createInMemoryAccountRepository();
   const transactions = createInMemoryTransactionRepository(accounts.postings);
-  const d: IngestDeps = {
+  const d: IngestDeps & MovementsDeps = {
     accounts,
     transactions,
     ingest: createInMemoryIngestRepository(),
     transfers: createInMemoryTransferRepository(),
+    categories: createInMemoryCategoryRepository(),
+    classifications: createInMemoryClassificationRepository(),
     ids: createSequentialIds('id'),
     clock: () => '2026-08-28T12:00:00.000-05:00',
   };

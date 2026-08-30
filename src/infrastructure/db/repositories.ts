@@ -1,3 +1,4 @@
+import type { BatchRepository } from '@/domain/categorization/batch';
 import type { CategoryRepository } from '@/domain/categorization/category';
 import type { ClassificationRepository } from '@/domain/categorization/classification';
 import type { EvidenceRepository } from '@/domain/categorization/evidence-repository';
@@ -10,6 +11,7 @@ import type { ReconciliationRepository } from '@/domain/reconciliation/reconcili
 
 import type { Database } from './database';
 import { createDrizzleAccountRepository } from './drizzle-account-repository';
+import { createDrizzleBatchRepository } from './drizzle-batch-repository';
 import { createDrizzleCategoryRepository } from './drizzle-category-repository';
 import { createDrizzleClassificationRepository } from './drizzle-classification-repository';
 import { createDrizzleEvidenceRepository } from './drizzle-evidence-repository';
@@ -29,6 +31,7 @@ export interface Repositories {
   classifications: ClassificationRepository;
   rules: RuleRepository;
   evidence: EvidenceRepository;
+  batches: BatchRepository;
 }
 
 /** Todos los repositorios sobre una misma base. Las rutas lo llaman una vez. */
@@ -43,5 +46,6 @@ export function createRepositories(db: Database): Repositories {
     classifications: createDrizzleClassificationRepository(db),
     rules: createDrizzleRuleRepository(db),
     evidence: createDrizzleEvidenceRepository(db),
+    batches: createDrizzleBatchRepository(db),
   };
 }
