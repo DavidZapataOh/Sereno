@@ -1,8 +1,10 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Pressable, View, type PressableStateCallbackType } from 'react-native';
 import { WebView, type WebViewMessageEvent, type WebViewNavigation } from 'react-native-webview';
 
 import type { Capture } from '@/domain/capture/reassembler';
+import { summarizeSession } from '@/domain/capture/session-summary';
+import { formatCOP } from '@/domain/money/format';
 import { belongsToPortal, type Portal } from '@/domain/portals/registry';
 import { AppText } from '@/ui/components/app-text';
 import { Button } from '@/ui/components/button';
@@ -54,6 +56,9 @@ export function PortalSession({
   const handleMessage = useCaptureStore((state) => state.handleMessage);
   const captures = useCaptureStore((state) => state.captures);
   const total = captures.length;
+  // Lo que importa no es cuántas respuestas hay sino si están las dos que
+  // Sereno necesita: movimientos y saldo. Sin saldo no hay conciliación.
+  const vista = useMemo(() => summarizeSession(portal.id, captures), [portal.id, captures]);
 
   const [urlActual, setUrlActual] = useState(portal.url);
   const [bloqueada, setBloqueada] = useState<string | null>(null);
@@ -136,6 +141,19 @@ export function PortalSession({
         <AppText level="apoyo" align="center" testID="contador-capturas">
           {total} {total === 1 ? 'captura' : 'capturas'} · toca para verlas
         </AppText>
+        <AppText level="micro" color="textSecondary" align="center" testID="movimientos-vistos">
+          Movimientos vistos: {vista.movimientos}
+        </AppText>
+        {vista.saldo === null ? (
+          <AppText level="micro" color="deuda" align="center" testID="saldo-visto">
+            Saldo del banco: aún no visto. Abre «Cuentas» o «Saldos» en el portal antes de importar.
+          </AppText>
+        ) : (
+          <AppText level="micro" color="textSecondary" align="center" testID="saldo-visto">
+            Saldo del banco: $ {formatCOP(vista.saldo.balance.saldo)} ({vista.saldo.balance.nombre}{' '}
+            ****{vista.saldo.balance.numero.slice(-4)})
+          </AppText>
+        )}
         <AppText level="micro" color="textMuted" numberOfLines={1} testID="url-actual">
           {urlActual}
         </AppText>

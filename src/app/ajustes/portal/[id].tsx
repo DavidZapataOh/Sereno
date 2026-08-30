@@ -15,6 +15,15 @@ import { ErrorState } from '@/ui/components/states';
 import { useLastSyncStore } from '@/ui/sync/last-sync-store';
 import { useTheme } from '@/ui/theme/use-theme';
 
+/** Solo el camino de la URL: sin host, sin query, sin datos. */
+function rutaDe(c: Capture): string {
+  try {
+    return new URL(c.url).pathname;
+  } catch {
+    return '(url ilegible)';
+  }
+}
+
 export default function PortalRoute() {
   const theme = useTheme();
   const deps = useAppDeps();
@@ -36,7 +45,17 @@ export default function PortalRoute() {
       if (portal === undefined) return Promise.reject(new Error('Portal desconocido'));
       return syncPortal(deps, { owner: CURRENT_OWNER, portalId: portal.id, captures });
     },
-    onSuccess: (summary) => {
+    onSuccess: (summary, captures) => {
+      // Diagnóstico de campo: solo rutas (sin query ni cuerpo) y contadores.
+      observability.log('info', 'importación terminada', {
+        capturas: captures.length,
+        rutas: [...new Set(captures.map(rutaDe))],
+        nuevas: summary.nuevas,
+        omitidas: summary.omitidas,
+        saldoVisto: summary.conciliacion !== null,
+        veredicto: summary.conciliacion?.veredicto ?? null,
+        saldoInicialFijado: summary.saldoInicial !== null,
+      });
       useLastSyncStore.getState().set(summary);
       void queryClient.invalidateQueries();
       router.replace('/(tabs)/movimientos');
