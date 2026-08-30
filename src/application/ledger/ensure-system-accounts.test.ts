@@ -63,4 +63,20 @@ describe('ensureSourceAccount', () => {
     expect(cuentas.all()).toHaveLength(1);
     expect(cuentas.all()[0]?.nombre).toBe('Bancolombia');
   });
+
+  it('la cuenta de una tarjeta de crédito se crea como pasivo', async () => {
+    // Si se creara como activo, el patrimonio saldría al revés y nadie se
+    // enteraría: una deuda sumaría en vez de restar.
+    const cuentas = createInMemoryAccountRepository();
+    const id = await ensureSourceAccount(cuentas, owner, { fuente: 'nu' });
+
+    expect(id).toBe('nu:tarjeta');
+    expect(cuentas.all()[0]).toMatchObject({ kind: 'pasivo', nombre: 'Nu' });
+  });
+
+  it('sin nombre, usa el del registro de fuentes', async () => {
+    const cuentas = createInMemoryAccountRepository();
+    await ensureSourceAccount(cuentas, owner, { fuente: 'rappicard' });
+    expect(cuentas.all()[0]).toMatchObject({ id: 'rappicard:tarjeta', nombre: 'RappiCard' });
+  });
 });

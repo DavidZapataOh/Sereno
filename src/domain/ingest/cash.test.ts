@@ -38,4 +38,17 @@ describe('isCashWithdrawal', () => {
       isCashWithdrawal({ ...base, descripcion: 'REVERSO RETIRO CAJERO', tipo: 'credito' }),
     ).toBe(false);
   });
+
+  it('reconoce la forma del correo: «Retiraste en SUC_CRA70_3»', () => {
+    // El correo real no dice «retiro» ni «cajero». Sin esto, el retiro se
+    // contabilizaría como gasto y el efectivo no aparecería: el mismo error
+    // que David cazó en campo en el sprint 04.
+    expect(isCashWithdrawal({ ...base, descripcion: 'Retiraste en SUC_CRA70_3' })).toBe(true);
+  });
+
+  it('un crédito nunca es un retiro, diga lo que diga', () => {
+    expect(isCashWithdrawal({ ...base, descripcion: 'Retiraste en SUC', tipo: 'credito' })).toBe(
+      false,
+    );
+  });
 });

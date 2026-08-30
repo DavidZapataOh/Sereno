@@ -14,7 +14,10 @@ const PERMITIDOS = ['ui/theme/palette.ts', 'ui/theme/palette.test.ts', 'ui/theme
  * se buscan sueltos porque «white» aparece en textos legítimos.
  */
 const PATRONES: readonly RegExp[] = [
-  /#(?:[0-9A-Fa-f]{8}|[0-9A-Fa-f]{6}|[0-9A-Fa-f]{3,4})\b/g,
+  // El `(?<!&)` descarta las entidades HTML numéricas —`&#160;`, `&#8364;`—,
+  // que no son colores: un hex nunca se escribe precedido de «&». Apareció con
+  // las pruebas del parser de correo del sprint 06.
+  /(?<!&)#(?:[0-9A-Fa-f]{8}|[0-9A-Fa-f]{6}|[0-9A-Fa-f]{3,4})\b/g,
   /\b(?:rgba?|hsla?)\(/g,
   /\b(?:color|backgroundColor|borderColor|tintColor|shadowColor)\s*:\s*['"](?:white|black|red|green|blue|gray|grey|transparent)['"]/g,
 ];

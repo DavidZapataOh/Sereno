@@ -13,7 +13,14 @@ export const normalizedTransactionSchema = z.object({
   monto: z.number().int().nonnegative(),
   moneda: z.literal('COP'),
   tipo: z.union([z.literal('debito'), z.literal('credito')]),
-  fuente: z.union([z.literal('nequi'), z.literal('bancolombia')]),
+  // Las cuatro fuentes del registro (`domain/sources/registry.ts`). Se escribe
+  // literal y una prueba de allí falla si las dos listas divergen.
+  fuente: z.union([
+    z.literal('bancolombia'),
+    z.literal('nequi'),
+    z.literal('nu'),
+    z.literal('rappicard'),
+  ]),
   referencia: z.string().nullable(),
 });
 
