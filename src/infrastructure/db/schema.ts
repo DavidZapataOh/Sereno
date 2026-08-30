@@ -152,3 +152,26 @@ export const transfers = sqliteTable(
     index('idx_transfers_transaction').on(tabla.transactionId),
   ],
 );
+
+export const reconciliations = sqliteTable(
+  'reconciliations',
+  {
+    id: text('id').primaryKey(),
+    ownerId: text('owner_id').notNull(),
+    accountId: text('account_id')
+      .notNull()
+      .references(() => accounts.id),
+    fecha: text('fecha').notNull(),
+    saldoReal: text('saldo_real').notNull(),
+    saldoCalculado: text('saldo_calculado').notNull(),
+    diferencia: text('diferencia').notNull(),
+    currency: text('currency').notNull(),
+    veredicto: text('veredicto', {
+      enum: ['cuadra', 'gasto-no-capturado', 'ingreso-no-capturado'],
+    }).notNull(),
+    fuente: text('fuente').notNull(),
+    detalle: text('detalle').notNull(),
+    creadoEn: text('creado_en').notNull(),
+  },
+  (tabla) => [index('idx_reconciliations_account_fecha').on(tabla.accountId, tabla.fecha)],
+);
