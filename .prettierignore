@@ -11,3 +11,9 @@ package-lock.json
 # desformatearse, dejando CI en rojo sin que nadie haya tocado nada.
 drizzle/meta/
 drizzle/migrations.js
+
+# El servidor se formatea con las mismas reglas, pero su build y sus
+# dependencias no.
+servidor/node_modules
+servidor/dist
+servidor/drizzle

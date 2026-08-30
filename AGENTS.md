@@ -67,6 +67,20 @@ import que cruce una capa en dirección prohibida falla el lint.
 
 Las decisiones estructurales se registran en `docs/adr/`.
 
+### El servidor
+
+`servidor/` es un paquete npm aparte dentro de este repositorio (sprint 06). Tiene su
+`package.json`, su `tsconfig.json` y sus pruebas con Vitest; la app lo excluye de Metro,
+Jest, ESLint, Prettier y su `tsconfig`.
+
+- **Ahí se instala con `npm install`**, no con `npx expo install`: la regla del SDK aplica
+  al paquete de la app.
+- **Importa el dominio de la app** por el alias `@/*` → `../src/*`. No se copia ningún
+  tipo; `servidor/src/dominio-compartido.test.ts` lo vigila.
+- **No lleva contabilidad**: guarda correos, movimientos normalizados y cursores. El ledger
+  vive en el teléfono.
+- `npm run verify` de la app corre también el del servidor, y CI tiene su propio trabajo.
+
 ## Flujo de trabajo
 
 El trabajo va en ramas y se integra con **un solo comando**.
