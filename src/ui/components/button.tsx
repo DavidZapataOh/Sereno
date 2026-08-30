@@ -4,6 +4,11 @@ import { useTheme } from '@/ui/theme/use-theme';
 
 interface Props {
   label: string;
+  /**
+   * Lo que anuncia el lector de pantalla, si el texto visible no basta.
+   * «Limpiar» en un botón se entiende viendo la pantalla; oído suelto, no.
+   */
+  accessibilityLabel?: string;
   onPress: () => void;
   variant?: 'primario' | 'secundario' | 'peligro';
   disabled?: boolean;
@@ -13,6 +18,7 @@ interface Props {
 
 export function Button({
   label,
+  accessibilityLabel,
   onPress,
   variant = 'primario',
   disabled = false,
@@ -48,7 +54,7 @@ export function Button({
       testID={testID}
       onPress={inactivo ? undefined : onPress}
       accessibilityRole="button"
-      accessibilityLabel={label}
+      accessibilityLabel={accessibilityLabel ?? label}
       accessibilityState={{ disabled: inactivo, busy: loading }}
       disabled={inactivo}
       style={(estado) => ({

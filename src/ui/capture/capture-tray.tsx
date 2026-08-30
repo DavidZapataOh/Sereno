@@ -1,11 +1,19 @@
 import * as Clipboard from 'expo-clipboard';
 import { File, Paths } from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
-import { Alert, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Alert, FlatList, Text, View } from 'react-native';
+
 import { buildDump } from '@/domain/capture/dump';
+import { AppText } from '@/ui/components/app-text';
+import { Button } from '@/ui/components/button';
+import { Card } from '@/ui/components/card';
+import { EmptyState } from '@/ui/components/states';
+import { useTheme } from '@/ui/theme/use-theme';
+
 import { useCaptureStore } from './store';
 
 export function CaptureTray() {
+  const theme = useTheme();
   const captures = useCaptureStore((state) => state.captures);
   const descartados = useCaptureStore((state) => state.descartados);
   const clear = useCaptureStore((state) => state.clear);
@@ -44,84 +52,77 @@ export function CaptureTray() {
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title} testID="titulo-bandeja">
+    <View style={{ flex: 1, padding: theme.spacing.lg, backgroundColor: theme.palette.background }}>
+      <AppText level="subtitulo" testID="titulo-bandeja">
         {captures.length} capturas
-      </Text>
+      </AppText>
       {descartados > 0 && (
-        <Text style={styles.descartados} testID="contador-descartados">
+        <AppText level="apoyo" color="deuda" testID="contador-descartados">
           {descartados} mensajes descartados por no cumplir el protocolo
-        </Text>
+        </AppText>
       )}
 
       <FlatList
         data={captures}
         keyExtractor={(capture) => capture.id}
-        contentContainerStyle={styles.list}
-        ListEmptyComponent={<Text style={styles.empty}>Todavía no hay capturas.</Text>}
+        contentContainerStyle={{ gap: theme.spacing.md, paddingTop: theme.spacing.md }}
+        ListEmptyComponent={
+          <EmptyState
+            title="Todavía no hay capturas."
+            description="Abre un portal e inicia sesión: lo que el banco responda aparecerá aquí."
+          />
+        }
         renderItem={({ item }) => (
-          <View style={styles.card}>
-            <Text style={styles.url} numberOfLines={2}>
+          <Card style={{ gap: theme.spacing.xs, padding: theme.spacing.md }}>
+            <AppText level="apoyo" numberOfLines={2}>
               {item.method} {item.url}
-            </Text>
-            <Text style={styles.meta}>
+            </AppText>
+            <AppText level="micro" color="textMuted">
               {item.status} · {item.kind} · {item.body.length} bytes
-            </Text>
-            <Text style={styles.body} numberOfLines={6}>
+            </AppText>
+            {/* Un volcado JSON se lee en monoespaciada; es la única excepción a
+                AppText, y es una herramienta de diagnóstico, no una pantalla. */}
+            <Text
+              numberOfLines={6}
+              allowFontScaling
+              style={{
+                fontFamily: 'monospace',
+                fontSize: theme.type.micro.fontSize,
+                lineHeight: theme.type.micro.lineHeight,
+                color: theme.palette.textSecondary,
+              }}
+            >
               {item.body}
             </Text>
-          </View>
+          </Card>
         )}
       />
 
-      <View style={styles.actions}>
-        <Pressable
-          style={styles.button}
-          onPress={exportarArchivo}
-          accessibilityRole="button"
-          accessibilityLabel="Exportar volcado como archivo"
-        >
-          <Text style={styles.buttonText}>Exportar archivo</Text>
-        </Pressable>
-        <Pressable
-          style={styles.button}
-          onPress={exportar}
-          accessibilityRole="button"
-          accessibilityLabel="Copiar volcado de capturas"
-        >
-          <Text style={styles.buttonText}>Copiar</Text>
-        </Pressable>
-        <Pressable
-          style={[styles.button, styles.danger]}
-          onPress={clear}
-          accessibilityRole="button"
-          accessibilityLabel="Limpiar capturas"
-        >
-          <Text style={styles.buttonText}>Limpiar</Text>
-        </Pressable>
+      <View style={{ flexDirection: 'row', gap: theme.spacing.md, paddingTop: theme.spacing.md }}>
+        <View style={{ flex: 1 }}>
+          <Button
+            label="Exportar archivo"
+            accessibilityLabel="Exportar volcado como archivo"
+            onPress={exportarArchivo}
+          />
+        </View>
+        <View style={{ flex: 1 }}>
+          <Button
+            label="Copiar"
+            accessibilityLabel="Copiar volcado de capturas"
+            onPress={exportar}
+            variant="secundario"
+          />
+        </View>
+        <View style={{ flex: 1 }}>
+          <Button
+            label="Limpiar"
+            accessibilityLabel="Limpiar capturas"
+            onPress={clear}
+            variant="peligro"
+          />
+        </View>
       </View>
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, padding: 16 },
-  title: { fontSize: 20, fontWeight: '700' },
-  descartados: { fontSize: 12, color: '#B45309', marginTop: 4 },
-  list: { gap: 12, paddingTop: 12 },
-  empty: { opacity: 0.6 },
-  card: { padding: 12, borderRadius: 10, backgroundColor: '#F3F4F6', gap: 4 },
-  url: { fontWeight: '600', fontSize: 13 },
-  meta: { fontSize: 11, opacity: 0.6 },
-  body: { fontFamily: 'monospace', fontSize: 11 },
-  actions: { flexDirection: 'row', gap: 12, paddingTop: 12 },
-  button: {
-    flex: 1,
-    padding: 14,
-    borderRadius: 10,
-    backgroundColor: '#1F2937',
-    alignItems: 'center',
-  },
-  danger: { backgroundColor: '#991B1B' },
-  buttonText: { color: '#F9FAFB', fontWeight: '600' },
-});

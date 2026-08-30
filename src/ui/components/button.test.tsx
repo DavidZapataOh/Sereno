@@ -89,6 +89,14 @@ describe('Button', () => {
     expect(getByText('Borrar')).toHaveStyle({ color: LIGHT_PALETTE.onPeligro });
   });
 
+  it('puede anunciar algo más completo que lo que muestra', async () => {
+    const { getByLabelText, getByText } = await renderWithProviders(
+      <Button label="Limpiar" accessibilityLabel="Limpiar capturas" onPress={nada} />,
+    );
+    expect(getByText('Limpiar')).toBeOnTheScreen();
+    expect(getByLabelText('Limpiar capturas')).toBeOnTheScreen();
+  });
+
   it('la etiqueta se puede ampliar', async () => {
     const { getByText } = await renderWithProviders(<Button label="Guardar" onPress={nada} />);
     expect((getByText('Guardar').props as { allowFontScaling: boolean }).allowFontScaling).toBe(
