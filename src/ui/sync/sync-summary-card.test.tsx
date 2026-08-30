@@ -1,5 +1,6 @@
 import { fireEvent } from '@testing-library/react-native';
 
+import { money } from '@/domain/money/money';
 import { renderWithProviders } from '@/test/render';
 
 import { SyncSummaryCard } from './sync-summary-card';
@@ -16,6 +17,7 @@ describe('SyncSummaryCard', () => {
     motivosOmision: [],
     transferencias: 1,
     conciliacion: null,
+    saldoInicial: null,
   };
 
   it('resume en lenguaje llano y se puede cerrar', async () => {
@@ -45,5 +47,15 @@ describe('SyncSummaryCard', () => {
       <SyncSummaryCard summary={{ ...resumen, omitidas: 1 }} onDismiss={() => undefined} />,
     );
     expect(getByText('1 fila sin monto, omitida')).toBeOnTheScreen();
+  });
+
+  it('en la primera sincronización dice qué saldo inicial fijó', async () => {
+    const { getByText } = await renderWithProviders(
+      <SyncSummaryCard
+        summary={{ ...resumen, saldoInicial: money(735000, 'COP') }}
+        onDismiss={() => undefined}
+      />,
+    );
+    expect(getByText(/Saldo inicial fijado en \$ 735\.000/)).toBeOnTheScreen();
   });
 });

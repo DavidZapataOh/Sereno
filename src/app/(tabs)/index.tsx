@@ -1,9 +1,11 @@
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { router } from 'expo-router';
 import { ScrollView, View, type ViewStyle } from 'react-native';
 
+import { adjustToReconcile } from '@/application/ledger/adjust-to-reconcile';
 import { getOverview } from '@/application/overview/get-overview';
 import { useAppDeps } from '@/infrastructure/composition/use-app-deps';
+import { observability } from '@/infrastructure/observability';
 import { CURRENT_OWNER } from '@/infrastructure/session/current-owner';
 import { Card } from '@/ui/components/card';
 import { EmptyState, ErrorState, LoadingState } from '@/ui/components/states';
@@ -16,9 +18,21 @@ import { useTheme } from '@/ui/theme/use-theme';
 export default function HoyScreen() {
   const deps = useAppDeps();
   const theme = useTheme();
+  const queryClient = useQueryClient();
   const consulta = useQuery({
     queryKey: ['overview', CURRENT_OWNER],
     queryFn: () => getOverview(deps, CURRENT_OWNER),
+  });
+  // «Asumir la diferencia»: un ajuste con motivo que cierra la conciliación.
+  const asumir = useMutation({
+    mutationFn: (reconciliationId: string) =>
+      adjustToReconcile(deps, { owner: CURRENT_OWNER, reconciliationId }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries();
+    },
+    onError: (error) => {
+      observability.captureError(error, { operacion: 'asumir-diferencia' });
+    },
   });
   const fondo: ViewStyle = { flex: 1, backgroundColor: theme.palette.background };
 
@@ -69,7 +83,14 @@ export default function HoyScreen() {
         ultimaSincronizacion={o.ultimaSincronizacion?.terminadoEn ?? null}
         now={deps.clock()}
       />
-      {o.conciliacion !== null && <DriftCard reconciliation={o.conciliacion} />}
+      {o.conciliacion !== null && (
+        <DriftCard
+          reconciliation={o.conciliacion}
+          onAdjust={() => {
+            if (o.conciliacion !== null) asumir.mutate(o.conciliacion.id);
+          }}
+        />
+      )}
       <Card style={{ padding: 0 }}>
         {o.cuentas.map((c) => (
           <AccountRow
