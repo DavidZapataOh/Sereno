@@ -7,6 +7,7 @@ import { createInMemoryAccountRepository } from './in-memory-account-repository'
 import { createInMemoryCategoryRepository } from './in-memory-category-repository';
 import { createInMemoryClassificationRepository } from './in-memory-classification-repository';
 import { createInMemoryIngestRepository } from './in-memory-ingest-repository';
+import { createInMemoryRuleRepository } from './in-memory-rule-repository';
 import { createInMemoryTransactionRepository } from './in-memory-transaction-repository';
 import { createSequentialIds } from './sequential-ids';
 
@@ -213,5 +214,27 @@ describe('createInMemoryClassificationRepository', () => {
     expect(await repo.listByOwner(ownerId('david'), { origen: 'manual' })).toHaveLength(1);
     expect(await repo.listByOwner(ownerId('david'), { origen: 'regla' })).toEqual([]);
     await expect(repo.delete(transactionId('bancolombia:nada'))).resolves.toBeUndefined();
+  });
+});
+
+describe('createInMemoryRuleRepository', () => {
+  it('guarda, encuentra, lista por propietario y borra', async () => {
+    const repo = createInMemoryRuleRepository();
+    const regla = {
+      id: 'r1',
+      owner: ownerId('david'),
+      campo: 'comercio' as const,
+      operador: 'es' as const,
+      valor: 'exito',
+      categoria: accountId('categoria:mercado'),
+      creadaEn: '2026-08-30T10:00:00.000-05:00',
+      activa: true,
+    };
+    await repo.save(regla);
+    await repo.save({ ...regla, id: 'r2', owner: ownerId('otro') });
+    expect(await repo.findById('r1')).toEqual(regla);
+    expect(await repo.listByOwner(ownerId('david'))).toEqual([regla]);
+    await repo.delete('r1');
+    expect(await repo.findById('r1')).toBeNull();
   });
 });
