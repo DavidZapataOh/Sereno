@@ -116,12 +116,14 @@ Dos detalles que cuestan tiempo si no se saben:
 Sprints ejecutados: **00** fundaciones · **01** captura bancaria (Bancolombia sí, Nequi
 no: va por correo) · **02** sistema de diseño y navegación · **03** ledger de doble
 partida sobre SQLite · **04** ingesta, deduplicación, transferencias, conciliación y las
-pantallas de Hoy, Movimientos y Cuentas. El tablero vivo está en
-`../docs/superpowers/plans/README.md`.
+pantallas de Hoy, Movimientos y Cuentas · **05** categorización: comercios legibles,
+categorías como cuentas, reglas, clasificador que aprende, y las pantallas Categorías,
+Revisar y Reglas. El tablero vivo está en `../docs/superpowers/plans/README.md`.
 
 «Hoy» ya muestra dinero de verdad: lo capturado de Bancolombia entra al ledger con
-`Importar` desde la sesión del portal. Todo lo ingerido queda «sin clasificar» hasta el
-sprint 05. Las pestañas Deudas y Metas siguen vacías hasta sus sprints.
+`Importar` desde la sesión del portal, y al importar se clasifica solo (regla > aprendido >
+catálogo); lo que no, queda «por revisar» en Movimientos → Categorías → Revisar. Las
+pestañas Deudas y Metas siguen vacías hasta sus sprints.
 
 Reglas del sprint 04 que conviene conocer antes de tocar la ingesta:
 
@@ -132,6 +134,14 @@ Reglas del sprint 04 que conviene conocer antes de tocar la ingesta:
 - **Los casos de uso se prueban con los dobles de `src/test/fakes/`**, no contra SQLite.
 - **Ventanas:** ±1 día para la misma compra vista por dos canales; ±5 para dinero que viaja
   entre bancos. No las unifiques.
+- **Una categoría es una cuenta** de gasto o ingreso, `categoria:<slug>` (ADR 0005):
+  clasificar es reasentar la contrapartida; «cuánto gasté en Mercado» es `balanceOf` entre
+  dos fechas. La taxonomía vive en `domain/categorization/taxonomy.ts`.
+- **El clasificador solo aprende de lo manual** (`origen: 'manual'`), nunca de sus propias
+  conjeturas. **Prioridad fija:** regla del usuario > aprendido > catálogo de marcas > sin
+  clasificar. Umbrales explícitos en `naive-bayes.ts`; no bajarlos para «que clasifique más».
+- **La descripción cruda nunca se toca:** el comercio legible se deriva al mostrar
+  (`merchantOf`). Si el catálogo mejora, mejora todo el historial.
 - **Sereno cuenta desde el día en que se conecta la cuenta.** El saldo del banco es el punto
   de partida (se asienta como «Saldo inicial» en la primera conciliación) y los movimientos
   anteriores a ese día no entran al ledger: se cuentan como `anteriores`. El día de inicio
