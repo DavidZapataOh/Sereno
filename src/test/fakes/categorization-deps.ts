@@ -3,6 +3,7 @@ import type { CategorizationDeps } from '@/application/categorization/types';
 import { createInMemoryAccountRepository } from './in-memory-account-repository';
 import { createInMemoryCategoryRepository } from './in-memory-category-repository';
 import { createInMemoryClassificationRepository } from './in-memory-classification-repository';
+import { createInMemoryRuleRepository } from './in-memory-rule-repository';
 import { createInMemoryTransactionRepository } from './in-memory-transaction-repository';
 import { createSequentialIds } from './sequential-ids';
 
@@ -12,13 +13,15 @@ export function categorizationDeps() {
   const transactions = createInMemoryTransactionRepository(accounts.postings);
   const categories = createInMemoryCategoryRepository();
   const classifications = createInMemoryClassificationRepository();
+  const rules = createInMemoryRuleRepository();
   const d: CategorizationDeps = {
     accounts,
     transactions,
     categories,
     classifications,
+    rules,
     ids: createSequentialIds('id'),
     clock: () => '2026-08-30T10:00:00.000-05:00',
   };
-  return { ...d, accounts, transactions, categories, classifications };
+  return { ...d, accounts, transactions, categories, classifications, rules };
 }

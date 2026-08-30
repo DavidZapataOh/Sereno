@@ -116,6 +116,24 @@ export const transactionClassifications = sqliteTable(
   ],
 );
 
+/** Reglas del usuario (sprint 05, plan 03). Sin orden: gana la más específica. */
+export const rules = sqliteTable(
+  'rules',
+  {
+    id: text('id').primaryKey(),
+    ownerId: text('owner_id').notNull(),
+    campo: text('campo', { enum: ['comercio', 'descripcion'] }).notNull(),
+    operador: text('operador', { enum: ['es', 'empieza', 'contiene'] }).notNull(),
+    valor: text('valor').notNull(),
+    categoria: text('categoria')
+      .notNull()
+      .references(() => accounts.id),
+    creadaEn: text('creada_en').notNull(),
+    activa: integer('activa', { mode: 'boolean' }).notNull().default(true),
+  },
+  (tabla) => [index('idx_rules_owner').on(tabla.ownerId)],
+);
+
 export const ingestRuns = sqliteTable(
   'ingest_runs',
   {

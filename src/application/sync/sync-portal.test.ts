@@ -4,6 +4,7 @@ import { money } from '@/domain/money/money';
 import { createInMemoryAccountRepository } from '@/test/fakes/in-memory-account-repository';
 import { createInMemoryCategoryRepository } from '@/test/fakes/in-memory-category-repository';
 import { createInMemoryClassificationRepository } from '@/test/fakes/in-memory-classification-repository';
+import { createInMemoryRuleRepository } from '@/test/fakes/in-memory-rule-repository';
 import { createInMemoryIngestRepository } from '@/test/fakes/in-memory-ingest-repository';
 import { createInMemoryReconciliationRepository } from '@/test/fakes/in-memory-reconciliation-repository';
 import { createInMemoryTransactionRepository } from '@/test/fakes/in-memory-transaction-repository';
@@ -29,6 +30,7 @@ function deps() {
     reconciliations: createInMemoryReconciliationRepository(),
     categories: createInMemoryCategoryRepository(),
     classifications: createInMemoryClassificationRepository(),
+    rules: createInMemoryRuleRepository(),
     ids: createSequentialIds('id'),
     clock: () => '2026-08-28T12:00:00.000-05:00',
   };
