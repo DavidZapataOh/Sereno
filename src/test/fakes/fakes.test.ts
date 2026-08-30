@@ -4,6 +4,8 @@ import { createTransaction } from '@/domain/ledger/transaction';
 import { money } from '@/domain/money/money';
 
 import { createInMemoryAccountRepository } from './in-memory-account-repository';
+import { createInMemoryCategoryRepository } from './in-memory-category-repository';
+import { createInMemoryClassificationRepository } from './in-memory-classification-repository';
 import { createInMemoryIngestRepository } from './in-memory-ingest-repository';
 import { createInMemoryTransactionRepository } from './in-memory-transaction-repository';
 import { createSequentialIds } from './sequential-ids';
@@ -168,5 +170,48 @@ describe('createInMemoryIngestRepository', () => {
     expect(await repo.listObservations(transactionId('t1'))).toHaveLength(1);
     await repo.deleteObservation(o.id);
     expect(await repo.listObservations(transactionId('t1'))).toEqual([]);
+  });
+});
+
+describe('createInMemoryCategoryRepository', () => {
+  it('guarda el detalle, lo encuentra, lo lista por propietario y no confunde propietarios', async () => {
+    const repo = createInMemoryCategoryRepository();
+    const detalle = {
+      accountId: accountId('categoria:mercado'),
+      owner: ownerId('david'),
+      grupo: 'comida' as const,
+      icono: 'cart',
+      orden: 1,
+    };
+    await repo.saveDetails(detalle);
+    await repo.saveDetails({
+      ...detalle,
+      accountId: accountId('categoria:otra'),
+      owner: ownerId('otro'),
+    });
+    expect(await repo.findDetails(accountId('categoria:mercado'))).toEqual(detalle);
+    expect(await repo.listDetails(ownerId('david'))).toEqual([detalle]);
+    expect(await repo.findDetails(accountId('categoria:nada'))).toBeNull();
+  });
+});
+
+describe('createInMemoryClassificationRepository', () => {
+  it('guardar reemplaza por transacción, lista filtra por origen y borrar lo inexistente no lanza', async () => {
+    const repo = createInMemoryClassificationRepository();
+    const base = {
+      transactionId: transactionId('bancolombia:C1'),
+      owner: ownerId('david'),
+      categoria: accountId('categoria:mercado'),
+      origen: 'aprendida' as const,
+      reglaId: null,
+      confianza: 70,
+      clasificadoEn: '2026-08-30T10:00:00.000-05:00',
+    };
+    await repo.save(base);
+    await repo.save({ ...base, origen: 'manual', confianza: 100 });
+    expect(await repo.findByTransaction(base.transactionId)).toMatchObject({ origen: 'manual' });
+    expect(await repo.listByOwner(ownerId('david'), { origen: 'manual' })).toHaveLength(1);
+    expect(await repo.listByOwner(ownerId('david'), { origen: 'regla' })).toEqual([]);
+    await expect(repo.delete(transactionId('bancolombia:nada'))).resolves.toBeUndefined();
   });
 });

@@ -1,3 +1,5 @@
+import type { CategoryRepository } from '@/domain/categorization/category';
+import type { ClassificationRepository } from '@/domain/categorization/classification';
 import type { IngestRepository } from '@/domain/ingest/ingest-repository';
 import type { TransferRepository } from '@/domain/ingest/transfer-repository';
 import type { AccountRepository } from '@/domain/ledger/account-repository';
@@ -6,6 +8,8 @@ import type { ReconciliationRepository } from '@/domain/reconciliation/reconcili
 
 import type { Database } from './database';
 import { createDrizzleAccountRepository } from './drizzle-account-repository';
+import { createDrizzleCategoryRepository } from './drizzle-category-repository';
+import { createDrizzleClassificationRepository } from './drizzle-classification-repository';
 import { createDrizzleIngestRepository } from './drizzle-ingest-repository';
 import { createDrizzleReconciliationRepository } from './drizzle-reconciliation-repository';
 import { createDrizzleTransactionRepository } from './drizzle-transaction-repository';
@@ -17,6 +21,8 @@ export interface Repositories {
   ingest: IngestRepository;
   transfers: TransferRepository;
   reconciliations: ReconciliationRepository;
+  categories: CategoryRepository;
+  classifications: ClassificationRepository;
 }
 
 /** Todos los repositorios sobre una misma base. Las rutas lo llaman una vez. */
@@ -27,5 +33,7 @@ export function createRepositories(db: Database): Repositories {
     ingest: createDrizzleIngestRepository(db),
     transfers: createDrizzleTransferRepository(db),
     reconciliations: createDrizzleReconciliationRepository(db),
+    categories: createDrizzleCategoryRepository(db),
+    classifications: createDrizzleClassificationRepository(db),
   };
 }

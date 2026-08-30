@@ -22,6 +22,25 @@ export const accounts = sqliteTable(
   (tabla) => [index('idx_accounts_owner').on(tabla.ownerId)],
 );
 
+/**
+ * Detalle de las cuentas que son categorías (ADR 0005). Clave: la cuenta.
+ * Nombre, naturaleza y archivado viven en `accounts`; aquí solo lo que una
+ * cuenta genérica no tiene.
+ */
+export const categories = sqliteTable(
+  'categories',
+  {
+    accountId: text('account_id')
+      .primaryKey()
+      .references(() => accounts.id),
+    ownerId: text('owner_id').notNull(),
+    grupo: text('grupo').notNull(),
+    icono: text('icono').notNull(),
+    orden: integer('orden').notNull().default(0),
+  },
+  (tabla) => [index('idx_categories_owner').on(tabla.ownerId)],
+);
+
 export const transactions = sqliteTable(
   'transactions',
   {
@@ -70,6 +89,30 @@ export const postings = sqliteTable(
   (tabla) => [
     index('idx_postings_account').on(tabla.accountId),
     index('idx_postings_transaction').on(tabla.transactionId),
+  ],
+);
+
+/**
+ * Quién clasificó cada transacción y con qué seguridad (ADR 0005). Una fila
+ * por transacción; reclasificar la reemplaza. La categoría vigente está en el
+ * apunte; esto es la procedencia.
+ */
+export const transactionClassifications = sqliteTable(
+  'transaction_classifications',
+  {
+    transactionId: text('transaction_id')
+      .primaryKey()
+      .references(() => transactions.id, { onDelete: 'cascade' }),
+    ownerId: text('owner_id').notNull(),
+    categoria: text('categoria').notNull(),
+    origen: text('origen', { enum: ['manual', 'regla', 'aprendida', 'catalogo'] }).notNull(),
+    reglaId: text('regla_id'),
+    confianza: integer('confianza').notNull(),
+    clasificadoEn: text('clasificado_en').notNull(),
+  },
+  (tabla) => [
+    // «Lo que el usuario confirmó»: es lo que lee el clasificador para aprender.
+    index('idx_classifications_owner_origen').on(tabla.ownerId, tabla.origen),
   ],
 );
 
