@@ -1,5 +1,5 @@
 import type { Capture } from '@/domain/capture/reassembler';
-import { ownerId } from '@/domain/ledger/ids';
+import { accountId, ownerId } from '@/domain/ledger/ids';
 import { createInMemoryAccountRepository } from '@/test/fakes/in-memory-account-repository';
 import { createInMemoryIngestRepository } from '@/test/fakes/in-memory-ingest-repository';
 import { createInMemoryReconciliationRepository } from '@/test/fakes/in-memory-reconciliation-repository';
@@ -108,12 +108,66 @@ describe('syncPortal', () => {
     });
 
     expect(resumen).toMatchObject({ capturas: 2, extraidas: 3, nuevas: 3, transferencias: 1 });
-    // Conciliado DESPUÉS de ingerir: el calculado incluye lo recién entrado.
+    // Conciliado DESPUÉS de ingerir y del saldo inicial: el calculado incluye
+    // lo recién entrado y lo que había antes, y cuadra con el banco.
     const c = mustExist(resumen.conciliacion);
-    expect(c.saldoCalculado.amount).toBe(1000000n - 45000n - 200000n);
     expect(c.saldoReal.amount).toBe(700000n);
-    expect(c.veredicto).toBe('gasto-no-capturado');
-    expect(c.diferencia.amount).toBe(-55000n);
+    expect(c.saldoCalculado.amount).toBe(700000n);
+    expect(c.veredicto).toBe('cuadra');
+    expect(resumen.saldoInicial?.amount).toBe(700000n - (1000000n - 45000n - 200000n));
+  });
+
+  it('en la primera sincronización fija el saldo inicial y la cuenta queda como en el banco', async () => {
+    // Lo encontró David en la sesión de campo: sin esto, Bancolombia quedaba
+    // en negativo, porque el ledger solo conocía los movimientos capturados.
+    const d = deps();
+    const resumen = await syncPortal(d, {
+      owner,
+      portalId: 'bancolombia',
+      captures: [movimientos, saldos],
+    });
+
+    expect(resumen.saldoInicial?.amount).toBe(700000n - (1000000n - 45000n - 200000n));
+    expect((await d.accounts.balanceOf(accountId('bancolombia:ahorros'))).amount).toBe(700000n);
+    expect(resumen.conciliacion?.veredicto).toBe('cuadra');
+    const apertura = d.transactions.all().find((t) => t.origen.fuente === 'manual');
+    expect(apertura?.descripcion).toMatch(/Saldo inicial al 2026-08-28/);
+  });
+
+  it('en la segunda sincronización no vuelve a fijar saldo inicial: una diferencia ya es real', async () => {
+    const d = deps();
+    await syncPortal(d, { owner, portalId: 'bancolombia', captures: [movimientos, saldos] });
+
+    // El banco ahora declara 5.000 menos, sin movimiento nuevo que lo explique.
+    const saldosMenos = {
+      ...saldos,
+      id: 'saldos-2',
+      capturedAt: '2026-08-29T10:00:00.000-05:00',
+      body: saldos.body.replace('700000', '695000'),
+    };
+    const segunda = await syncPortal(d, {
+      owner,
+      portalId: 'bancolombia',
+      captures: [movimientos, saldosMenos],
+    });
+
+    expect(segunda.saldoInicial).toBeNull();
+    expect(segunda.conciliacion?.veredicto).toBe('gasto-no-capturado');
+    expect(segunda.conciliacion?.diferencia.amount).toBe(-5000n);
+    expect(d.transactions.all().filter((t) => t.origen.fuente === 'manual')).toHaveLength(1);
+  });
+
+  it('si la primera sincronización ya cuadra, no asienta un saldo inicial de cero', async () => {
+    const d = deps();
+    const saldosExactos = { ...saldos, body: saldos.body.replace('700000', '755000') };
+    const resumen = await syncPortal(d, {
+      owner,
+      portalId: 'bancolombia',
+      captures: [movimientos, saldosExactos],
+    });
+
+    expect(resumen.saldoInicial).toBeNull();
+    expect(d.transactions.all().some((t) => t.origen.fuente === 'manual')).toBe(false);
   });
 
   it('sin captura de saldos, la conciliación es null y lo demás funciona', async () => {
@@ -136,7 +190,13 @@ describe('syncPortal', () => {
       captures: [movimientos, saldos],
     });
 
-    expect(segunda).toMatchObject({ nuevas: 0, duplicadas: 3, transferencias: 0 });
-    expect(d.transactions.all()).toHaveLength(3);
+    expect(segunda).toMatchObject({
+      nuevas: 0,
+      duplicadas: 3,
+      transferencias: 0,
+      saldoInicial: null,
+    });
+    // 3 movimientos + 1 saldo inicial de la primera vez; la segunda no añade nada.
+    expect(d.transactions.all()).toHaveLength(4);
   });
 });

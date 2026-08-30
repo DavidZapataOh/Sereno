@@ -1,6 +1,7 @@
 import { View } from 'react-native';
 
 import type { SyncSummary } from '@/application/sync/sync-portal';
+import { formatCOP } from '@/domain/money/format';
 import { AppText } from '@/ui/components/app-text';
 import { Card } from '@/ui/components/card';
 import { IconButton } from '@/ui/components/icon-button';
@@ -30,6 +31,9 @@ export function SyncSummaryCard({ summary: s, onDismiss }: Props) {
     s.omitidas > 0
       ? plural(s.omitidas, 'fila sin monto, omitida', 'filas sin monto, omitidas')
       : null,
+    s.saldoInicial === null
+      ? null
+      : `Saldo inicial fijado en $ ${formatCOP(s.saldoInicial.amount)}: lo que había antes de estos movimientos`,
     s.conciliacion === null
       ? null
       : s.conciliacion.veredicto === 'cuadra'
