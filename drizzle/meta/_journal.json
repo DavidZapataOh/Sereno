@@ -71,6 +71,13 @@
       "when": 1788067891092,
       "tag": "0009_nasty_ares",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "6",
+      "when": 1788068649159,
+      "tag": "0010_cultured_thaddeus_ross",
+      "breakpoints": true
     }
   ]
 }
