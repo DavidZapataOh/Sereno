@@ -4,6 +4,7 @@ import { imbalanceOf } from '@/domain/ledger/transaction';
 import { mustExist } from '@/test/must-exist';
 
 import { ingestedTransactionId, SIN_DESCRIPCION, toLedgerTransaction } from './to-transaction';
+import { transferCandidateOf } from './transfers';
 
 const owner = ownerId('david');
 const ahorros = accountId('bancolombia:ahorros');
@@ -99,5 +100,29 @@ describe('toLedgerTransaction', () => {
 
   it('rechaza un monto cero: no hay movimiento que registrar', () => {
     expect(() => toLedgerTransaction({ ...compra, monto: 0 }, ctx)).toThrow(/monto/i);
+  });
+});
+
+describe('toLedgerTransaction — efectivo', () => {
+  const ctx = { owner, assetAccountId: ahorros, id: ingestedTransactionId('bancolombia', 'RET-1') };
+  const retiro = {
+    ...compra,
+    descripcion: 'RETIRO CAJERO AUTOMATICO',
+    monto: 200000,
+    referencia: 'RET-1',
+  };
+
+  it('un retiro en cajero va del activo a Efectivo, no a gastos', () => {
+    const tx = toLedgerTransaction(retiro, ctx);
+    expect(
+      tx.postings.find((p) => p.accountId === systemAccountId('efectivo'))?.amount.amount,
+    ).toBe(200000n);
+    expect(tx.postings.some((p) => p.accountId === systemAccountId('gastos-sin-clasificar'))).toBe(
+      false,
+    );
+  });
+
+  it('un retiro no es candidato a transferencia: ya es una transferencia', () => {
+    expect(transferCandidateOf(toLedgerTransaction(retiro, ctx))).toBeNull();
   });
 });

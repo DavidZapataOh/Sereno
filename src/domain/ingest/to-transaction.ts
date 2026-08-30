@@ -10,6 +10,8 @@ import { createTransaction, type Transaction } from '@/domain/ledger/transaction
 import { money } from '@/domain/money/money';
 import { parsePortalDate } from '@/domain/time/colombia';
 
+import { isCashWithdrawal } from './cash';
+
 /**
  * Id determinista de una transacción ingerida.
  *
@@ -49,8 +51,11 @@ export function toLedgerTransaction(n: NormalizedTransaction, ctx: Context): Tra
   // lote entero por un movimiento; se deja constancia de que no vino nada.
   const descripcion = n.descripcion.trim().length > 0 ? n.descripcion : SIN_DESCRIPCION;
 
-  const contraparte =
-    n.tipo === 'debito'
+  // Un retiro en cajero es una transferencia al activo Efectivo, no un gasto:
+  // el dinero sigue siendo del usuario hasta que lo gaste.
+  const contraparte = isCashWithdrawal(n)
+    ? systemAccountId('efectivo')
+    : n.tipo === 'debito'
       ? systemAccountId('gastos-sin-clasificar')
       : systemAccountId('ingresos-sin-clasificar');
   const signoActivo = n.tipo === 'debito' ? -1n : 1n;
