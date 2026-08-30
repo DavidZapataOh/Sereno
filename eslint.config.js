@@ -6,6 +6,9 @@ const prettier = require('eslint-config-prettier');
 const boundaries = require('eslint-plugin-boundaries');
 
 module.exports = defineConfig([
+  // El servidor tiene su propia configuración: reglas de Node, no de Expo.
+  { ignores: ['servidor/**'] },
+
   expoConfig,
 
   // Reglas con información de tipos, solo sobre TypeScript.

@@ -80,7 +80,8 @@
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
     "typecheck": "tsc --noEmit",
-    "verify": "npm run typecheck && npm run lint && npm run format:check && npm run test",
+    "verify": "npm run typecheck && npm run lint && npm run format:check && npm run test && npm run verify:servidor",
+    "verify:servidor": "npm --prefix servidor run verify",
     "verificar-volcado": "node scripts/verificar-volcado.mjs",
     "db:generate": "drizzle-kit generate",
     "db:check": "drizzle-kit check",
@@ -93,8 +94,9 @@
   },
   "private": true,
   "lint-staged": {
+    "servidor/**/*.ts": "npm --prefix servidor exec -- eslint --fix --max-warnings=0",
     "*.{ts,tsx}": [
-      "eslint --fix --max-warnings=0",
+      "eslint --fix --max-warnings=0 --no-warn-ignored",
       "prettier --write"
     ],
     "*.{js,json,md,yml,yaml}": [

@@ -66,6 +66,23 @@ jobs:
           path: coverage/
           retention-days: 7
 
+  servidor:
+    name: Servidor
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm i -g npm@$(node -p "require('./package.json').packageManager.split('@')[1]")
+      # El servidor importa el dominio de la app, así que hacen falta las dos
+      # instalaciones.
+      - run: npm ci
+      - run: npm ci --prefix servidor
+      - run: npm --prefix servidor run verify
+
   doctor:
     name: Expo doctor
     runs-on: ubuntu-latest
