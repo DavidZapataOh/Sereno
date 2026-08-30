@@ -2,6 +2,7 @@ import { View } from 'react-native';
 
 import type { SyncSummary } from '@/application/sync/sync-portal';
 import { formatCOP } from '@/domain/money/format';
+import { formatShortDate } from '@/domain/time/format';
 import { AppText } from '@/ui/components/app-text';
 import { Card } from '@/ui/components/card';
 import { IconButton } from '@/ui/components/icon-button';
@@ -30,6 +31,9 @@ export function SyncSummaryCard({ summary: s, onDismiss }: Props) {
       : null,
     s.omitidas > 0
       ? plural(s.omitidas, 'fila sin monto, omitida', 'filas sin monto, omitidas')
+      : null,
+    s.anteriores > 0 && s.desde !== null
+      ? `${plural(s.anteriores, 'movimiento anterior', 'movimientos anteriores')} al ${formatShortDate(`${s.desde}T12:00:00.000-05:00`)} no cuentan: Sereno empieza ese día`
       : null,
     s.saldoInicial === null
       ? null

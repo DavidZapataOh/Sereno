@@ -132,6 +132,11 @@ Reglas del sprint 04 que conviene conocer antes de tocar la ingesta:
 - **Los casos de uso se prueban con los dobles de `src/test/fakes/`**, no contra SQLite.
 - **Ventanas:** ±1 día para la misma compra vista por dos canales; ±5 para dinero que viaja
   entre bancos. No las unifiques.
+- **Sereno cuenta desde el día en que se conecta la cuenta.** El saldo del banco es el punto
+  de partida (se asienta como «Saldo inicial» en la primera conciliación) y los movimientos
+  anteriores a ese día no entran al ledger: se cuentan como `anteriores`. El día de inicio
+  es el de la primera corrida de la fuente (`domain/ingest/account-start.ts`). Lo pidió el
+  usuario: la historia de una cuenta de años no sirve aquí y sí hace daño.
 
 ## Diseño
 

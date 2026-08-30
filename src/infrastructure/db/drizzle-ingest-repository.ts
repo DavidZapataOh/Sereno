@@ -1,4 +1,4 @@
-import { and, desc, eq, inArray } from 'drizzle-orm';
+import { and, asc, desc, eq, inArray } from 'drizzle-orm';
 
 import { normalizedTransactionSchema } from '@/domain/capture/normalized-transaction';
 import type { IngestRepository } from '@/domain/ingest/ingest-repository';
@@ -33,6 +33,7 @@ function toRun(fila: RunRow): IngestRun {
     duplicadas: fila.duplicadas,
     fusionadas: fila.fusionadas,
     omitidas: fila.omitidas,
+    anteriores: fila.anteriores,
     transferencias: fila.transferencias,
     error: fila.error,
   };
@@ -74,6 +75,7 @@ export function createDrizzleIngestRepository(db: Database): IngestRepository {
           duplicadas: run.duplicadas,
           fusionadas: run.fusionadas,
           omitidas: run.omitidas,
+          anteriores: run.anteriores,
           transferencias: run.transferencias,
           error: run.error,
         };
@@ -90,6 +92,18 @@ export function createDrizzleIngestRepository(db: Database): IngestRepository {
           .from(ingestRuns)
           .where(and(eq(ingestRuns.ownerId, owner), eq(ingestRuns.fuente, fuente)))
           .orderBy(desc(ingestRuns.iniciadoEn))
+          .limit(1)
+          .all();
+        return fila === undefined ? null : toRun(fila);
+      }),
+
+    findFirstRun: (owner, fuente) =>
+      asPromise(() => {
+        const [fila] = db
+          .select()
+          .from(ingestRuns)
+          .where(and(eq(ingestRuns.ownerId, owner), eq(ingestRuns.fuente, fuente)))
+          .orderBy(asc(ingestRuns.iniciadoEn))
           .limit(1)
           .all();
         return fila === undefined ? null : toRun(fila);

@@ -27,4 +27,8 @@ export interface IngestSummary {
   omitidas: number;
   /** Hasta cinco motivos, para diagnosticar sin volcar el lote entero. */
   motivosOmision: string[];
+  /** Anteriores al día de inicio de la cuenta: no entran al ledger. */
+  anteriores: number;
+  /** Día (AAAA-MM-DD) desde el que Sereno cuenta esta fuente; null si el lote no venía de una fuente con inicio. */
+  desde: string | null;
 }

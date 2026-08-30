@@ -110,6 +110,7 @@ describe('getOverview', () => {
       duplicadas: 0,
       fusionadas: 0,
       omitidas: 0,
+      anteriores: 0,
       transferencias: 0,
       error: null,
     };

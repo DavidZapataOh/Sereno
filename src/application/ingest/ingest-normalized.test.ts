@@ -235,4 +235,15 @@ describe('ingestNormalized — deduplicación entre fuentes', () => {
       { numRuns: 80 },
     );
   });
+
+  it('con `desde`, lo anterior a ese día no entra ni deja observación; sin `desde`, entra todo', async () => {
+    const d = deps();
+    const conInicio = await ingestNormalized(d, { ...porWeb([web]), desde: '2030-01-01' });
+    expect(conInicio).toMatchObject({ nuevas: 0, anteriores: 1, desde: '2030-01-01' });
+    expect(d.transactions.all()).toHaveLength(0);
+    expect(d.ingest.observations()).toHaveLength(0);
+
+    const sinInicio = await ingestNormalized(d, porWeb([web]));
+    expect(sinInicio).toMatchObject({ nuevas: 1, anteriores: 0, desde: null });
+  });
 });

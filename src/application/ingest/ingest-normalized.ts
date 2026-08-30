@@ -5,6 +5,7 @@ import {
   chooseDuplicate,
   type MatchContext,
 } from '@/domain/ingest/duplicates';
+import { isBeforeStart } from '@/domain/ingest/account-start';
 import { fingerprintOf } from '@/domain/ingest/fingerprint';
 import type { IngestRun } from '@/domain/ingest/ingest-run';
 import { observationId } from '@/domain/ingest/observation';
@@ -24,6 +25,11 @@ export interface NormalizedBatch {
   capturadoEn: string;
   /** Cuántas capturas produjeron el lote, si vino de capturas. Para la corrida. */
   capturas?: number;
+  /**
+   * Día de inicio de la cuenta (AAAA-MM-DD). Lo anterior no entra: se cuenta
+   * como `anteriores`. Sin él, entra todo (lotes de prueba, correos).
+   */
+  desde?: string;
 }
 
 /**
@@ -55,6 +61,7 @@ export async function ingestNormalized(
     duplicadas: 0,
     fusionadas: 0,
     omitidas: 0,
+    anteriores: 0,
     transferencias: 0,
     error: null,
   };
@@ -72,6 +79,12 @@ export async function ingestNormalized(
       const referencia = normalizada.referencia;
       // `assignDerivedReferences` garantiza referencia; el guard es para el tipo.
       if (referencia === null) continue;
+
+      // Antes del inicio de la cuenta no hay ledger: ni observación ni nada.
+      if (batch.desde !== undefined && isBeforeStart(normalizada.fecha, batch.desde)) {
+        run.anteriores += 1;
+        continue;
+      }
 
       const vista = await deps.ingest.findObservationByOrigin(
         batch.owner,
@@ -161,5 +174,7 @@ export async function ingestNormalized(
     fusionadas: run.fusionadas,
     omitidas: run.omitidas,
     motivosOmision,
+    anteriores: run.anteriores,
+    desde: batch.desde ?? null,
   };
 }

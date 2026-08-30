@@ -31,6 +31,7 @@ const run = (
   duplicadas: 2,
   fusionadas: 0,
   omitidas: 0,
+  anteriores: 0,
   transferencias: 0,
   error: null,
 });
@@ -101,6 +102,15 @@ describe('IngestRepository sobre Drizzle', () => {
       await repo.saveRun(run('r3', 'nequi', '2026-08-29T10:00:00.000-05:00'));
 
       expect(mustExist(await repo.findLastRun(owner, 'bancolombia')).id).toBe('r2');
+    });
+
+    it('la primera corrida de una fuente es la de inicio más antiguo, no la guardada primero', async () => {
+      await repo.saveRun(run('r2', 'bancolombia', '2026-08-28T10:00:00.000-05:00'));
+      await repo.saveRun(run('r1', 'bancolombia', '2026-08-27T10:00:00.000-05:00'));
+      await repo.saveRun(run('r3', 'nequi', '2026-08-20T10:00:00.000-05:00'));
+
+      expect(mustExist(await repo.findFirstRun(owner, 'bancolombia')).id).toBe('r1');
+      expect(await repo.findFirstRun(owner, 'nu')).toBeNull();
     });
 
     it('devuelve null si la fuente nunca se sincronizó', async () => {

@@ -1,0 +1,1 @@
+ALTER TABLE `ingest_runs` ADD `anteriores` integer DEFAULT 0 NOT NULL;
