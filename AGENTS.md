@@ -161,6 +161,11 @@ Reglas del sprint 04 que conviene conocer antes de tocar la ingesta:
   anteriores a ese día no entran al ledger: se cuentan como `anteriores`. El día de inicio
   es el de la primera corrida de la fuente (`domain/ingest/account-start.ts`). Lo pidió el
   usuario: la historia de una cuenta de años no sirve aquí y sí hace daño.
+- **Conectar el correo tiene su propio corte, y manda el más tarde de los dos**
+  (`domain/sync/mail-start.ts`). Un buzón guarda semanas: la primera traída del servidor
+  metió 78 movimientos de todo agosto y descuadró unos saldos que el usuario ya había
+  cuadrado a mano. El corte se fija en la primera traída, se guarda en `estado_sync` y no
+  se recalcula. **No lo derives de la fecha del correo ni de la corrida de la fuente.**
 
 ## Diseño
 
