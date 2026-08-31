@@ -8,6 +8,7 @@ import { CURRENT_OWNER } from '@/infrastructure/session/current-owner';
 import { Card } from '@/ui/components/card';
 import { EmptyState, ErrorState, LoadingState } from '@/ui/components/states';
 import { AccountRow } from '@/ui/overview/account-row';
+import { DustNote } from '@/ui/overview/dust-note';
 import { useTheme } from '@/ui/theme/use-theme';
 
 /** ¿Cómo se reparte lo que tengo entre mis cuentas? */
@@ -39,7 +40,9 @@ export default function CuentasScreen() {
       </View>
     );
   }
-  if (consulta.data.cuentas.length === 0) {
+  // Y no solo `cuentas`: si todo lo que hay fuera polvo, decir «sin cuentas»
+  // sería mentir sobre plata que sí existe y que sí suma en el patrimonio.
+  if (consulta.data.cuentas.length === 0 && consulta.data.polvo.cuentas.length === 0) {
     return (
       <View style={fondo}>
         <EmptyState title="Sin cuentas todavía" description="Conecta una desde Ajustes." />
@@ -63,6 +66,8 @@ export default function CuentasScreen() {
             />
           ))}
         </Card>
+
+        <DustNote cuantas={consulta.data.polvo.cuentas.length} total={consulta.data.polvo.total} />
       </ScrollView>
     </>
   );

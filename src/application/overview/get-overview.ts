@@ -11,6 +11,8 @@ import type { RateRepository } from '@/domain/rates/rate-repository';
 import type { Rate } from '@/domain/rates/rate';
 import type { ReconciliationRepository } from '@/domain/reconciliation/reconciliation-repository';
 
+import { esPolvo } from '@/domain/crypto/dust';
+
 import { valorarEnCOP } from './value-in-cop';
 
 export interface OverviewDeps {
@@ -39,11 +41,30 @@ export interface Overview {
    * miente por omisión, y se ve perfectamente bien.
    */
   sinValorar: AccountSummary[];
+  /**
+   * Saldos cripto de menos de un dólar, **sí** sumados en el patrimonio pero
+   * fuera de `cuentas`.
+   *
+   * Con catorce cadenas, el polvo que queda de cualquier movimiento llena la
+   * lista de renglones de cero coma algo y esconde lo que importa. Pero no se
+   * descuenta del total: se declara, para que el patrimonio siga siendo
+   * exactamente la suma de lo que se enseña —lo listado más esto—.
+   */
+  polvo: { cuentas: AccountSummary[]; total: Money };
   /** Con qué tasas se valoró, para poder decir de cuándo son. */
   tasasUsadas: Rate[];
   sinClasificar: { gastos: Money; ingresos: Money };
   ultimaSincronizacion: IngestRun | null;
   conciliacion: Reconciliation | null;
+}
+
+/**
+ * Una cuenta de wallet. El polvo solo se esconde aquí: un saldo pequeño en la
+ * cuenta del banco es dinero que el usuario reconoce, y esconderlo sería
+ * mentirle sobre su propia cuenta.
+ */
+function esCripto(account: Account): boolean {
+  return account.id.startsWith('wallet:');
 }
 
 /** Cuentas contables del sistema: existen para cuadrar, no para mostrarse. */
@@ -60,8 +81,11 @@ export async function getOverview(deps: OverviewDeps, owner: OwnerId): Promise<O
   const tasas = await deps.rates.vigentes();
   const cuentas: AccountSummary[] = [];
   const sinValorar: AccountSummary[] = [];
+  const polvo: AccountSummary[] = [];
   const tasasUsadas = new Map<string, Rate>();
   let patrimonio = zero('COP');
+  let totalPolvo = zero('COP');
+  const usdCop = tasas.find((r) => r.desde === 'USD' && r.hacia === 'COP') ?? null;
 
   for (const account of reales) {
     const saldo = await deps.accounts.balanceOf(account.id);
@@ -75,7 +99,14 @@ export async function getOverview(deps: OverviewDeps, owner: OwnerId): Promise<O
       continue;
     }
 
-    cuentas.push({ account, saldo, enPesos: valoracion.enPesos });
+    const resumen = { account, saldo, enPesos: valoracion.enPesos };
+    // El polvo suma igual: lo que cambia es dónde se enseña, no si cuenta.
+    if (esCripto(account) && esPolvo(valoracion.enPesos, usdCop)) {
+      polvo.push(resumen);
+      totalPolvo = add(totalPolvo, valoracion.enPesos);
+    } else {
+      cuentas.push(resumen);
+    }
     // El saldo de un pasivo ya es negativo en el ledger: sumar es restar.
     patrimonio = add(patrimonio, valoracion.enPesos);
     if (valoracion.tasa !== null) {
@@ -108,6 +139,7 @@ export async function getOverview(deps: OverviewDeps, owner: OwnerId): Promise<O
     patrimonio,
     cuentas,
     sinValorar,
+    polvo: { cuentas: polvo, total: totalPolvo },
     tasasUsadas: [...tasasUsadas.values()],
     sinClasificar: {
       gastos: await saldoDe('gastos-sin-clasificar'),
