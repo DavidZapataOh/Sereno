@@ -109,9 +109,16 @@ export function formatSigned(
   direction: MoneyDirection,
   currency: CurrencyCode = 'COP',
 ): string {
-  const base = formatAmount(amount, currency, { withSymbol: true });
-  if (toBigInt(amount) === 0n) return base;
+  const valor = toBigInt(amount);
+  // `formatAmount` devuelve el valor absoluto: el signo se decide aquí.
+  const base = formatAmount(valor, currency, { withSymbol: true });
+  if (valor === 0n) return base;
   if (direction === 'entra') return `+${base}`;
   if (direction === 'sale') return `${MINUS}${base}`;
-  return base;
+  // Neutro no significa «sin signo»: significa que la dirección no lo aporta.
+  // El signo del número sigue siendo parte del dato, y en un saldo o en un
+  // patrimonio **es** el dato. Sin esto, un patrimonio de −1.814.013 se pinta
+  // como «$ 1.814.013» y le dice al usuario que tiene la plata que debe. Lo
+  // encontró David el 2026-08-31, cuadrando la suma a mano.
+  return valor < 0n ? `${MINUS}${base}` : base;
 }

@@ -142,3 +142,39 @@ describe('currencyName', () => {
     expect(currencyName('ETH')).toBe('ether');
   });
 });
+
+/**
+ * «Neutro» no es «sin signo»: es que la dirección no aporta el signo. En un
+ * saldo o en un patrimonio, el signo del número **es** el dato.
+ *
+ * Sin esto, un patrimonio de −1.814.013 se pintaba como «$ 1.814.013» y le
+ * decía al usuario que tenía la plata que debe. Lo encontró David el
+ * 2026-08-31 sumando la lista de cuentas a mano.
+ */
+describe('formatSigned con montos negativos', () => {
+  // El proyecto usa el menos tipográfico (U+2212), no el guion del teclado.
+  const MENOS = '\u2212';
+
+  it('un patrimonio negativo conserva el menos', () => {
+    expect(formatSigned(-1_814_013, 'neutro')).toContain('1.814.013');
+    expect(formatSigned(-1_814_013, 'neutro').startsWith(MENOS)).toBe(true);
+  });
+
+  it('un monto positivo neutro sigue sin signo', () => {
+    expect(formatSigned(1_814_013, 'neutro').startsWith(MENOS)).toBe(false);
+    expect(formatSigned(1_814_013, 'neutro').startsWith('+')).toBe(false);
+  });
+
+  it('cero no lleva signo', () => {
+    expect(formatSigned(0, 'neutro').startsWith(MENOS)).toBe(false);
+  });
+
+  /**
+   * `AccountRow` ya marcaba los pasivos con dirección «sale». Si el signo se
+   * sumara al de la dirección saldría «--1.814.013».
+   */
+  it('con dirección explícita nunca aparece el signo dos veces', () => {
+    expect(formatSigned(-300_000, 'sale').split(MENOS)).toHaveLength(2);
+    expect(formatSigned(-300_000, 'entra').startsWith('+')).toBe(true);
+  });
+});
