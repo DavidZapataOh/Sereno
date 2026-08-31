@@ -8,6 +8,7 @@ import { useAppDeps } from '@/infrastructure/composition/use-app-deps';
 import { observability } from '@/infrastructure/observability';
 import { CURRENT_OWNER } from '@/infrastructure/session/current-owner';
 import { Card } from '@/ui/components/card';
+import { NavRow } from '@/ui/components/nav-row';
 import { EmptyState, ErrorState, LoadingState } from '@/ui/components/states';
 import { AccountRow } from '@/ui/overview/account-row';
 import { DriftCard } from '@/ui/overview/drift-card';
@@ -102,6 +103,15 @@ export default function HoyScreen() {
             }}
           />
         ))}
+      </Card>
+      <Card style={{ padding: 0 }}>
+        <NavRow
+          title="Suscripciones"
+          subtitle="Lo que se te cobra solo cada mes"
+          onPress={() => {
+            router.push('/suscripciones');
+          }}
+        />
       </Card>
     </ScrollView>
   );
