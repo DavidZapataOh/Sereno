@@ -120,6 +120,13 @@
       "when": 1788200001000,
       "tag": "0016_cold_living_lightning",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "6",
+      "when": 1788202090733,
+      "tag": "0017_quiet_sunspot",
+      "breakpoints": true
     }
   ]
 }
