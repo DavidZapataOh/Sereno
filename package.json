@@ -87,6 +87,7 @@
     "db:check": "drizzle-kit check",
     "verificar-ledger": "tsx scripts/verificar-ledger.ts",
     "cobertura-comercios": "tsx scripts/cobertura-comercios.ts",
+    "comprobar-plan": "bash scripts/comprobar-plan.sh",
     "integrar": "bash scripts/integrar.sh",
     "comprobar-node": "node scripts/comprobar-node.mjs",
     "pretest": "node scripts/comprobar-node.mjs",

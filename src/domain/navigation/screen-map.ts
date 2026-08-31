@@ -186,6 +186,14 @@ export const SCREEN_MAP: readonly Screen[] = [
     fase: 7,
   },
   {
+    id: 'wallets',
+    titulo: 'Wallets',
+    ruta: '/ajustes/wallets',
+    padre: 'ajustes',
+    pregunta: '¿Qué direcciones mira Sereno en la cadena, y cuándo las leyó?',
+    fase: 8,
+  },
+  {
     id: 'revisar',
     titulo: 'Revisar',
     ruta: '/categorias/revisar',

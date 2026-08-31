@@ -3,6 +3,8 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { router, Tabs } from 'expo-router';
 import { useEffect, type ComponentProps } from 'react';
 
+import { syncWallets } from '@/application/crypto/sync-wallets';
+import { refreshRates } from '@/application/rates/refresh-rates';
 import { pullFromServer } from '@/application/sync/pull-from-server';
 import { useAppDeps } from '@/infrastructure/composition/use-app-deps';
 import { CURRENT_OWNER } from '@/infrastructure/session/current-owner';
@@ -55,8 +57,39 @@ function useAutoPull(): void {
   }, [nuevos, queryClient]);
 }
 
+/**
+ * Lee las wallets y refresca las tasas al abrir.
+ *
+ * Va aparte de `useAutoPull` porque no depende del servidor: los nodos de las
+ * cadenas y la TRM son públicos, así que esto funciona aunque no haya backend
+ * configurado.
+ *
+ * Primero las tasas y después los saldos: valorar en pesos con una tasa de
+ * hace una semana da una cifra que parece buena y no lo es.
+ */
+function useAutoCrypto(): void {
+  const deps = useAppDeps();
+  const queryClient = useQueryClient();
+  const consulta = useQuery({
+    queryKey: ['auto-crypto', CURRENT_OWNER],
+    queryFn: async () => {
+      await refreshRates(deps);
+      return syncWallets(deps, { owner: CURRENT_OWNER });
+    },
+    staleTime: 5 * 60 * 1000,
+    retry: 1,
+  });
+
+  const ajustes = consulta.data?.ajustes ?? 0;
+  useEffect(() => {
+    // Solo si algún saldo cambió: invalidar sin motivo redibuja la app entera.
+    if (ajustes > 0) void queryClient.invalidateQueries();
+  }, [ajustes, queryClient]);
+}
+
 export default function TabsLayout() {
   useAutoPull();
+  useAutoCrypto();
   const theme = useTheme();
 
   return (

@@ -42,7 +42,7 @@ describe('esquema y migraciones', () => {
       .run();
   };
 
-  it('aplica las migraciones y crea las quince tablas', () => {
+  it('aplica las migraciones y crea las dieciséis tablas', () => {
     const tablas = cliente.db
       .all<{ name: string }>(sql`SELECT name FROM sqlite_master WHERE type = 'table' ORDER BY name`)
       .map((fila) => fila.name)
@@ -64,10 +64,11 @@ describe('esquema y migraciones', () => {
       'transaction_observations',
       'transactions',
       'transfers',
+      'wallets',
     ]);
   });
 
-  it('crea los diecinueve índices declarados', () => {
+  it('crea los veinte índices declarados', () => {
     const indices = cliente.db
       .all<{ name: string }>(
         sql`SELECT name FROM sqlite_master WHERE type = 'index' AND name LIKE 'idx_%' ORDER BY name`,
@@ -94,6 +95,7 @@ describe('esquema y migraciones', () => {
       'idx_transactions_owner_fecha',
       'idx_transfers_owner_estado',
       'idx_transfers_transaction',
+      'idx_wallets_owner',
     ]);
   });
 

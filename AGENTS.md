@@ -101,6 +101,26 @@ sin que nadie lo notara.
 
 `npm run verify` corre el mismo conjunto que CI, por separado.
 
+### Un plan no se cierra porque `verify` pase
+
+`verify` demuestra que el código **que existe** funciona. No dice nada del código que
+falta. En el sprint 08 los cinco planes se marcaron ✅ con `verify` en verde y cuatro
+tareas sin hacer: un sprint entero que el usuario no podía ver, y un `progress.md` que
+afirmaba lo contrario. Lo detectó él, no la suite.
+
+**Para cerrar un plan hay que releer su sección «Verificación del plan» y recorrerla
+entera, criterio por criterio.** Los que empiezan por «En el teléfono» no tienen señal
+automática y son justo los que importan: son los que dicen si el usuario ve algo.
+
+`npm run comprobar-plan` lo vigila —y `npm run integrar` lo corre antes de subir nada—:
+falla si un plan marcado ✅ declara archivos que no existen o deja criterios sin recorrer.
+Un renombrado durante la ejecución también salta, y está bien: se corrige la ruta en el
+plan. Lo que no vale es dejar el ✅ puesto.
+
+Si algo queda a medias, se marca **⚠️ Parcial** diciendo qué falta y por qué. Un registro
+que miente es peor que el código que falta, porque el código ausente se nota y el registro
+no.
+
 **`main` no está protegida en GitHub.** La disciplina la impone el guion, no el servidor.
 Activar la protección de rama es pendiente conocido; con un solo desarrollador añade
 fricción sin añadir garantías, porque nadie más puede empujar.

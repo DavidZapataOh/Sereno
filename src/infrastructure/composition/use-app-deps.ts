@@ -2,9 +2,11 @@ import { useMemo } from 'react';
 
 import type { AppDeps } from '@/application/sync/sync-portal';
 
+import { createBalanceSources } from '../crypto/balance-sources';
 import { useDatabase } from '../db/database-provider';
 import { createRepositories } from '../db/repositories';
 import { createCryptoIdGenerator } from '../ids/crypto-id-generator';
+import { createRateSources } from '../rates/rate-sources';
 import { createHttpServerClient, createSinServidor } from '../sync/http-server-client';
 
 /**
@@ -28,11 +30,17 @@ export function useAppDeps(): AppDeps {
         ? createSinServidor()
         : createHttpServerClient({ url, token });
 
+    const clock = () => new Date().toISOString();
+
     return {
       ...createRepositories(db),
       servidor,
       ids: createCryptoIdGenerator(),
-      clock: () => new Date().toISOString(),
+      clock,
+      // Una por cadena declarada. Sin esto `syncWallets` no tiene a quién
+      // preguntarle y devuelve cero, que es indistinguible de no tener nada.
+      fuentesDeSaldo: createBalanceSources(clock),
+      fuentesDeTasas: createRateSources(clock),
     };
   }, [db]);
 }

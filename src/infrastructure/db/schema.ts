@@ -170,6 +170,30 @@ export const classificationBatches = sqliteTable(
 );
 
 /**
+ * Wallets que se siguen (sprint 08).
+ *
+ * Solo direcciones **públicas**. Sereno no conoce ninguna clave privada y no
+ * hay ningún campo donde escribirla.
+ *
+ * Viven en la base y no en el código porque son datos personales y este
+ * repositorio es público.
+ */
+export const wallets = sqliteTable(
+  'wallets',
+  {
+    id: text('id').primaryKey(),
+    ownerId: text('owner_id').notNull(),
+    chain: text('chain').notNull(),
+    direccion: text('direccion').notNull(),
+    nombre: text('nombre').notNull(),
+    /** Cuándo se leyó por última vez, y si falló. */
+    leidoEn: text('leido_en'),
+    error: text('error'),
+  },
+  (tabla) => [index('idx_wallets_owner').on(tabla.ownerId)],
+);
+
+/**
  * Tasas de cambio guardadas (sprint 08).
  *
  * El valor va como TEXT y entero con su escala —«3202.79» es 320279 con
