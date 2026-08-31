@@ -5,6 +5,7 @@ import { accountId, ownerId } from '@/domain/ledger/ids';
 import { imbalanceOf } from '@/domain/ledger/transaction';
 import { money } from '@/domain/money/money';
 import { createInMemoryAccountRepository } from '@/test/fakes/in-memory-account-repository';
+import { createInMemoryRateRepository } from '@/test/fakes/in-memory-rate-repository';
 import { createInMemoryReconciliationRepository } from '@/test/fakes/in-memory-reconciliation-repository';
 import { createInMemoryTransactionRepository } from '@/test/fakes/in-memory-transaction-repository';
 import { createSequentialIds } from '@/test/fakes/sequential-ids';
@@ -36,6 +37,7 @@ async function deps() {
     accounts,
     transactions,
     reconciliations: createInMemoryReconciliationRepository(),
+    rates: createInMemoryRateRepository(),
   };
 }
 

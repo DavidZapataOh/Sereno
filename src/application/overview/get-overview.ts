@@ -7,17 +7,24 @@ import { systemAccountId } from '@/domain/ledger/system-accounts';
 import { absolute, add, zero, type Money } from '@/domain/money/money';
 import { PORTALS } from '@/domain/portals/registry';
 import type { Reconciliation } from '@/domain/reconciliation/reconciliation';
+import type { RateRepository } from '@/domain/rates/rate-repository';
+import type { Rate } from '@/domain/rates/rate';
 import type { ReconciliationRepository } from '@/domain/reconciliation/reconciliation-repository';
+
+import { valorarEnCOP } from './value-in-cop';
 
 export interface OverviewDeps {
   accounts: AccountRepository;
   ingest: IngestRepository;
   reconciliations: ReconciliationRepository;
+  rates: RateRepository;
 }
 
 export interface AccountSummary {
   account: Account;
   saldo: Money;
+  /** El saldo en pesos, o `null` si no se pudo valorar. */
+  enPesos: Money | null;
 }
 
 export interface Overview {
@@ -25,13 +32,15 @@ export interface Overview {
   patrimonio: Money;
   cuentas: AccountSummary[];
   /**
-   * Saldos que existen y **no** están sumados en el patrimonio, porque están
-   * en otra moneda y todavía no hay con qué valorarlos.
+   * Saldos que existen y **no** están sumados en el patrimonio, porque no hay
+   * con qué valorarlos.
    *
    * Van aparte y no como cero: un total que calla lo que no supo valorar
    * miente por omisión, y se ve perfectamente bien.
    */
   sinValorar: AccountSummary[];
+  /** Con qué tasas se valoró, para poder decir de cuándo son. */
+  tasasUsadas: Rate[];
   sinClasificar: { gastos: Money; ingresos: Money };
   ultimaSincronizacion: IngestRun | null;
   conciliacion: Reconciliation | null;
@@ -48,19 +57,29 @@ export async function getOverview(deps: OverviewDeps, owner: OwnerId): Promise<O
   const todas = await deps.accounts.listByOwner(owner);
   const reales = todas.filter((c) => isRealAccount(c.kind) && !NO_SE_MUESTRAN.has(c.id));
 
+  const tasas = await deps.rates.vigentes();
   const cuentas: AccountSummary[] = [];
   const sinValorar: AccountSummary[] = [];
+  const tasasUsadas = new Map<string, Rate>();
   let patrimonio = zero('COP');
+
   for (const account of reales) {
     const saldo = await deps.accounts.balanceOf(account.id);
-    cuentas.push({ account, saldo });
-    if (account.currency === 'COP') {
-      // El saldo de un pasivo ya es negativo en el ledger: sumar es restar.
-      patrimonio = add(patrimonio, saldo);
-    } else {
-      // Hasta que el plan 03 traiga las tasas, lo que no está en pesos se
-      // lista pero no se suma, y se declara.
-      sinValorar.push({ account, saldo });
+    const valoracion = valorarEnCOP(saldo, tasas);
+
+    if (valoracion.estado === 'sin-valorar') {
+      // No se suma como cero: eso haría que el total mintiera por omisión.
+      const resumen = { account, saldo, enPesos: null };
+      cuentas.push(resumen);
+      sinValorar.push(resumen);
+      continue;
+    }
+
+    cuentas.push({ account, saldo, enPesos: valoracion.enPesos });
+    // El saldo de un pasivo ya es negativo en el ledger: sumar es restar.
+    patrimonio = add(patrimonio, valoracion.enPesos);
+    if (valoracion.tasa !== null) {
+      tasasUsadas.set(`${valoracion.tasa.desde}->${valoracion.tasa.hacia}`, valoracion.tasa);
     }
   }
 
@@ -89,6 +108,7 @@ export async function getOverview(deps: OverviewDeps, owner: OwnerId): Promise<O
     patrimonio,
     cuentas,
     sinValorar,
+    tasasUsadas: [...tasasUsadas.values()],
     sinClasificar: {
       gastos: await saldoDe('gastos-sin-clasificar'),
       ingresos: await saldoDe('ingresos-sin-clasificar'),

@@ -7,6 +7,7 @@ import type { Reconciliation } from '@/domain/reconciliation/reconciliation';
 import { calendarDay } from '@/domain/time/colombia';
 
 import type { CardSummaryDeps } from '../cards/card-summary';
+import type { OverviewDeps } from '../overview/get-overview';
 import { classifyUnclassified } from '../categorization/classify';
 import { ensureDefaultCategories } from '../categorization/ensure-default-categories';
 import type { CategorizationDeps } from '../categorization/types';
@@ -25,7 +26,8 @@ export type AppDeps = IngestDeps &
   ReconciliationDeps &
   CategorizationDeps &
   PullDeps &
-  CardSummaryDeps;
+  CardSummaryDeps &
+  OverviewDeps;
 
 export interface SyncSummary extends IngestSummary {
   transferencias: number;
