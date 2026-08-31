@@ -3,6 +3,7 @@ import { Stack } from 'expo-router';
 import { Alert, ScrollView, View } from 'react-native';
 
 import { configureCard, listCardConfigs } from '@/application/cards/configure-card';
+import { reconcileCardDebt } from '@/application/cards/reconcile-card-debt';
 import type { AccountId } from '@/domain/ledger/ids';
 import { money } from '@/domain/money/money';
 import { useAppDeps } from '@/infrastructure/composition/use-app-deps';
@@ -25,22 +26,33 @@ export default function TarjetasRoute() {
   });
 
   const guardar = useMutation({
-    mutationFn: (entrada: {
+    mutationFn: async (entrada: {
       accountId: AccountId;
       cupo: bigint;
+      deuda: bigint;
       diaDeCorte: number;
       diaDePago: number;
-    }) =>
-      configureCard(deps, {
+    }) => {
+      await configureCard(deps, {
         owner: CURRENT_OWNER,
         accountId: entrada.accountId,
         cupo: money(entrada.cupo, 'COP'),
         diaDeCorte: entrada.diaDeCorte,
         diaDePago: entrada.diaDePago,
-      }),
+      });
+      // Después de configurar: si la deuda declarada no coincide con la del
+      // ledger, se asienta el ajuste. Sin esto la tarjeta arranca en cero y
+      // enseña el cupo entero disponible.
+      await reconcileCardDebt(deps, {
+        owner: CURRENT_OWNER,
+        accountId: entrada.accountId,
+        deuda: money(entrada.deuda, 'COP'),
+      });
+    },
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['card-configs'] });
-      void queryClient.invalidateQueries({ queryKey: ['card-summary'] });
+      // La deuda toca saldos y movimientos: se refresca todo lo que dependa
+      // del ledger, no solo lo de tarjetas.
+      void queryClient.invalidateQueries();
     },
     onError: (error) => {
       observability.captureError(error, { operacion: 'configurar-tarjeta' });
@@ -76,6 +88,7 @@ export default function TarjetasRoute() {
               <CardConfigForm
                 key={config.cuenta.id}
                 config={config}
+                deudaActual={config.deuda.amount}
                 guardando={guardar.isPending}
                 onGuardar={(datos) => {
                   guardar.mutate({ accountId: config.cuenta.id, ...datos });

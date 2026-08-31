@@ -13,6 +13,8 @@ export interface ConfigureCardDeps {
 export interface CardConfig {
   cuenta: Account;
   tarjeta: CreditCard | null;
+  /** Lo que se debe ahora mismo, según el ledger. Positivo cuando se debe. */
+  deuda: Money;
 }
 
 /**
@@ -29,7 +31,16 @@ export async function listCardConfigs(
   const cuentas = await deps.accounts.listByOwner(owner);
   const pasivos = cuentas.filter((c) => c.kind === 'pasivo');
   return Promise.all(
-    pasivos.map(async (cuenta) => ({ cuenta, tarjeta: await deps.cards.find(cuenta.id) })),
+    pasivos.map(async (cuenta) => {
+      // Un pasivo aumenta con crédito: deber 100 es un saldo de -100. Lo que
+      // se enseña es «debes 100».
+      const saldo = await deps.accounts.balanceOf(cuenta.id);
+      return {
+        cuenta,
+        tarjeta: await deps.cards.find(cuenta.id),
+        deuda: { amount: -saldo.amount, currency: saldo.currency },
+      };
+    }),
   );
 }
 
