@@ -43,7 +43,8 @@ describe('CardConfigForm', () => {
       <CardConfigForm config={configurada} onGuardar={() => undefined} />,
     );
 
-    expect(getByTestId(`cupo-${rappi}`).props.value).toBe('3000000');
+    // Formateado, como en el resto de los formularios de dinero de la app.
+    expect(getByTestId(`cupo-${rappi}`).props.value).toBe('3.000.000');
   });
 
   /**
@@ -95,10 +96,27 @@ describe('CardConfigForm', () => {
   });
 
   /**
-   * `BigInt('3.000.000')` lanza. Sin esta guarda, escribir el cupo con puntos
-   * —que es como lo escribe cualquiera— reventaría al tocar Guardar.
+   * El cupo se escribe como cualquier otro monto de la app: separadores de
+   * miles mientras se teclea, y el valor sale entero. Antes este formulario
+   * usaba un `TextField` crudo y era el único campo de dinero sin formato.
    */
-  it('un cupo con puntos o letras no se puede guardar, y lo dice', async () => {
+  it('formatea los miles mientras se escribe, y devuelve el entero', async () => {
+    const onGuardar = jest.fn();
+    const { getByTestId, getByText } = await renderWithProviders(
+      <CardConfigForm config={sinConfigurar} onGuardar={onGuardar} />,
+    );
+
+    await fireEvent.changeText(getByTestId(`cupo-${rappi}`), '3000000');
+    expect(getByTestId(`cupo-${rappi}`).props.value).toBe('3.000.000');
+
+    await fireEvent.press(getByText(TEXTO_CONFIG.guardar));
+
+    await waitFor(() => {
+      expect(onGuardar).toHaveBeenCalledWith(expect.objectContaining({ cupo: 3_000_000n }));
+    });
+  });
+
+  it('escribirlo con puntos también funciona', async () => {
     const onGuardar = jest.fn();
     const { getByTestId, getByText } = await renderWithProviders(
       <CardConfigForm config={sinConfigurar} onGuardar={onGuardar} />,
@@ -107,7 +125,8 @@ describe('CardConfigForm', () => {
     await fireEvent.changeText(getByTestId(`cupo-${rappi}`), '3.000.000');
     await fireEvent.press(getByText(TEXTO_CONFIG.guardar));
 
-    expect(onGuardar).not.toHaveBeenCalled();
-    expect(getByText(TEXTO_CONFIG.soloEnteros)).toBeOnTheScreen();
+    await waitFor(() => {
+      expect(onGuardar).toHaveBeenCalledWith(expect.objectContaining({ cupo: 3_000_000n }));
+    });
   });
 });
