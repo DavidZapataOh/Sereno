@@ -5,7 +5,9 @@ import { FlatList, Modal, View, type ViewStyle } from 'react-native';
 
 import { cardSummary } from '@/application/cards/card-summary';
 import { cycleStatement } from '@/application/cards/cycle-statement';
+import { costOfMoney } from '@/application/cards/cost-of-money';
 import { verifyCycle } from '@/application/cards/verify-cycle';
+import { monthRange } from '@/application/categorization/spending';
 import { countCash } from '@/application/ledger/count-cash';
 import { registerCashExpense } from '@/application/ledger/register-cash-expense';
 import { listMovements } from '@/application/movements/movements';
@@ -20,6 +22,7 @@ import { Card } from '@/ui/components/card';
 import { Money } from '@/ui/components/money';
 import { EmptyState, ErrorState, LoadingState } from '@/ui/components/states';
 import { CardSummaryCard } from '@/ui/cards/card-summary-card';
+import { CostOfMoneyCard } from '@/ui/cards/cost-of-money-card';
 import { CycleCard } from '@/ui/cards/cycle-card';
 import { CashCountForm } from '@/ui/movements/cash-count-form';
 import { CashExpenseForm } from '@/ui/movements/cash-expense-form';
@@ -64,6 +67,12 @@ export default function CuentaRoute() {
       });
       return extracto === null ? null : verifyCycle(extracto, deps.clock());
     },
+  });
+  // Lo que cuesta mover la plata es de todas las cuentas, no de una: el
+  // 4×1000 lo cobra el banco de origen y se ve mejor junto.
+  const costos = useQuery({
+    queryKey: ['cost-of-money', CURRENT_OWNER, id],
+    queryFn: () => costOfMoney(deps, { owner: CURRENT_OWNER, ...monthRange(deps.clock()) }),
   });
   const conciliacion = useQuery({
     queryKey: ['reconciliation', id],
@@ -150,6 +159,7 @@ export default function CuentaRoute() {
             {ciclo.data !== undefined && ciclo.data !== null && (
               <CycleCard check={ciclo.data} hoy={deps.clock()} />
             )}
+            {costos.data !== undefined && <CostOfMoneyCard costo={costos.data} />}
             {conciliacion.data !== undefined && conciliacion.data !== null && (
               <DriftCard reconciliation={conciliacion.data} />
             )}

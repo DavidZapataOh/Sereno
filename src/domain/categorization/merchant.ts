@@ -149,9 +149,15 @@ export function merchantOf(raw: string): Merchant {
     // Tal como la escribió el banco: aquí no hay nada que embellecer, y
     // `titleCase` sobre una frase deja «a la Cuenta».
     const frase = raw.replace(/\s+/g, ' ').trim();
+    // La primera palabra **de la frase ya recortada**: sobre el `raw` crudo,
+    // una descripción que empieza por espacio daría una primera palabra vacía
+    // y la clave se quedaría en blanco. Lo cazó la propiedad de merchantOf con
+    // el caso « Y».
+    const primera = frase.split(' ')[0] ?? '';
+    const clave = basicClean(primera.length > 0 ? primera : frase);
     return {
       nombre: frase,
-      clave: basicClean(raw.split(' ')[0] ?? frase),
+      clave: clave.length > 0 ? clave : limpia,
       conocido: false,
       categoriaSugerida: null,
     };
