@@ -11,6 +11,7 @@ import { createInMemoryEvidenceRepository } from '@/test/fakes/in-memory-evidenc
 import { createInMemoryRuleRepository } from '@/test/fakes/in-memory-rule-repository';
 import { createInMemorySyncStateRepository } from '@/test/fakes/in-memory-sync-state-repository';
 import { createInMemoryIngestRepository } from '@/test/fakes/in-memory-ingest-repository';
+import { createInMemoryRateRepository } from '@/test/fakes/in-memory-rate-repository';
 import { createInMemoryReconciliationRepository } from '@/test/fakes/in-memory-reconciliation-repository';
 import { createInMemoryTransactionRepository } from '@/test/fakes/in-memory-transaction-repository';
 import { createInMemoryTransferRepository } from '@/test/fakes/in-memory-transfer-repository';
@@ -34,6 +35,7 @@ function deps() {
     ingest: createInMemoryIngestRepository(),
     transfers: createInMemoryTransferRepository(),
     reconciliations: createInMemoryReconciliationRepository(),
+    rates: createInMemoryRateRepository(),
     categories: createInMemoryCategoryRepository(),
     classifications: createInMemoryClassificationRepository(),
     rules: createInMemoryRuleRepository(),

@@ -5,10 +5,15 @@ import { createTransaction } from '@/domain/ledger/transaction';
 import { money } from '@/domain/money/money';
 import { createInMemoryAccountRepository } from '@/test/fakes/in-memory-account-repository';
 import { createInMemoryIngestRepository } from '@/test/fakes/in-memory-ingest-repository';
+import { createInMemoryRateRepository } from '@/test/fakes/in-memory-rate-repository';
 import { createInMemoryReconciliationRepository } from '@/test/fakes/in-memory-reconciliation-repository';
 import { createInMemoryTransactionRepository } from '@/test/fakes/in-memory-transaction-repository';
 import { mustExist } from '@/test/must-exist';
 
+import { rate, type Rate } from '@/domain/rates/rate';
+import { createSequentialIds } from '@/test/fakes/sequential-ids';
+
+import { convertCurrency } from '../ledger/convert-currency';
 import { ensureSystemAccounts } from '../ledger/ensure-system-accounts';
 import { getOverview } from './get-overview';
 
@@ -31,6 +36,7 @@ async function deps() {
     transactions,
     ingest: createInMemoryIngestRepository(),
     reconciliations: createInMemoryReconciliationRepository(),
+    rates: createInMemoryRateRepository(),
   };
 }
 
@@ -224,5 +230,128 @@ describe('cuentas en otra moneda', () => {
       .filter((c) => c.account.currency === 'COP')
       .reduce((s, c) => s + c.saldo.amount, 0n);
     expect(overview.patrimonio.amount).toBe(enPesos);
+  });
+});
+
+/**
+ * El patrimonio con todo dentro, valorado en pesos.
+ *
+ * La prueba que importa es la primera: **la cifra es exactamente la suma de lo
+ * que se enseña debajo**. David suma la lista a mano —así encontró que el
+ * patrimonio negativo se mostraba sin el signo, sprint 07— y si no cuadra va a
+ * tener razón.
+ */
+describe('patrimonio con cripto valorado', () => {
+  const wallet = accountId('wallet:solana:USDC');
+
+  const TRM = rate({
+    desde: 'USD',
+    hacia: 'COP',
+    valor: 320_279n,
+    escala: 2,
+    origen: 'TRM oficial',
+    momento: '2026-08-29T00:00:00.000-05:00',
+  });
+  const PRECIO_USDC = rate({
+    desde: 'USDC',
+    hacia: 'USD',
+    valor: 100_018_000n,
+    escala: 8,
+    origen: 'Binance',
+    momento: '2026-08-31T10:00:00.000-05:00',
+  });
+
+  async function conTasas(tasas: Rate[]) {
+    // `convertCurrency` necesita reloj y generador de ids; el `deps` de este
+    // archivo solo trae lo que `getOverview` pide.
+    const d = {
+      ...(await deps()),
+      ids: createSequentialIds('uuid'),
+      clock: () => '2026-08-31T10:00:00.000-05:00',
+    };
+    d.rates = createInMemoryRateRepository(tasas);
+    await d.accounts.save(
+      createAccount({
+        id: wallet,
+        owner,
+        kind: 'activo',
+        nombre: 'USDC en Solana',
+        currency: 'USDC',
+      }),
+    );
+    await d.transactions.save(
+      createTransaction({
+        id: transactionId('saldo-solana'),
+        owner,
+        fecha: '2026-08-31T10:00:00.000-05:00',
+        descripcion: 'Saldo leído de la cadena',
+        origen: { fuente: 'manual', referencia: null },
+        postings: [
+          { accountId: wallet, amount: money(85_761n, 'USDC') },
+          { accountId: systemAccountId('ajustes'), amount: money(-85_761n, 'USDC') },
+        ],
+      }),
+    );
+    return d;
+  }
+
+  it('el patrimonio es la suma exacta de lo que se lista', async () => {
+    const overview = await getOverview(await conTasas([TRM, PRECIO_USDC]), owner);
+
+    const suma = overview.cuentas.reduce((s, c) => s + (c.enPesos?.amount ?? 0n), 0n);
+    expect(overview.patrimonio.amount).toBe(suma);
+  });
+
+  it('el saldo en USDC entra al patrimonio valorado en pesos', async () => {
+    const overview = await getOverview(await conTasas([TRM, PRECIO_USDC]), owner);
+
+    const enSolana = overview.cuentas.find((c) => c.account.id === wallet);
+    // 0,085761 USDC ≈ 274 pesos.
+    expect(enSolana?.enPesos?.amount).toBeGreaterThan(270n);
+    expect(overview.sinValorar).toHaveLength(0);
+  });
+
+  it('dice con qué tasas valoró y de cuándo son', async () => {
+    const overview = await getOverview(await conTasas([TRM, PRECIO_USDC]), owner);
+
+    expect(overview.tasasUsadas).toHaveLength(1);
+    expect(overview.tasasUsadas[0]?.momento).toBe('2026-08-29T00:00:00.000-05:00');
+  });
+
+  /**
+   * Sin tasas no se suma como cero: se declara. Un total que calla lo que no
+   * supo valorar miente por omisión.
+   */
+  it('sin tasas, el saldo queda sin valorar y no entra al total', async () => {
+    const overview = await getOverview(await conTasas([]), owner);
+
+    expect(overview.sinValorar).toHaveLength(1);
+    expect(overview.sinValorar[0]?.saldo.amount).toBe(85_761n);
+    expect(overview.cuentas.find((c) => c.account.id === wallet)?.enPesos).toBeNull();
+  });
+
+  /**
+   * Cambiar de moneda no es ganar ni perder: si el patrimonio se moviera al
+   * convertir, comprar USDC parecería una ganancia.
+   */
+  it('una conversión entre monedas no mueve el patrimonio', async () => {
+    const d = await conTasas([TRM, PRECIO_USDC]);
+    const antes = await getOverview(d, owner);
+
+    // A la tasa de mercado: 400.000 pesos son unos 124,87 USDC. Con una tasa
+    // inventada la conversión **sí** movería el patrimonio, y con razón: sería
+    // un mal negocio, no un fallo del cálculo.
+    await convertCurrency(d, {
+      owner,
+      desde: banco,
+      hacia: wallet,
+      entrega: money(400_000, 'COP'),
+      recibe: money(124_870_000n, 'USDC'),
+    });
+
+    const despues = await getOverview(d, owner);
+    // Solo queda el redondeo de la tasa, de unos pocos pesos.
+    const diferencia = despues.patrimonio.amount - antes.patrimonio.amount;
+    expect(diferencia < 100n && diferencia > -100n).toBe(true);
   });
 });
