@@ -158,3 +158,39 @@ describe('repositorios del servidor', () => {
     expect(await repos.movimientos.sinEntregar()).toEqual([]);
   });
 });
+
+describe('corridas huérfanas', () => {
+  let base: Awaited<ReturnType<typeof crearBaseDePrueba>>;
+  let repos: Repositorios;
+
+  beforeEach(async () => {
+    base = await crearBaseDePrueba();
+    repos = crearRepositorios(base.db, { clave: randomBytes(32) });
+  });
+  afterEach(async () => {
+    await base.cerrar();
+  });
+
+  it('cierra al arrancar la pasada que un reinicio dejó abierta', async () => {
+    await repos.corridas.abrir();
+
+    expect(await repos.corridas.cerrarHuerfanas()).toBe(1);
+
+    const ultima = await repos.corridas.ultima();
+    expect(ultima?.terminadoEn).not.toBeNull();
+    expect(ultima?.error).toContain('reinició');
+  });
+
+  it('no toca una pasada ya cerrada', async () => {
+    const id = await repos.corridas.abrir();
+    await repos.corridas.cerrar(id, {
+      mensajesVistos: 3,
+      movimientosNuevos: 2,
+      desconocidos: 0,
+      error: null,
+    });
+
+    expect(await repos.corridas.cerrarHuerfanas()).toBe(0);
+    expect((await repos.corridas.ultima())?.error).toBeNull();
+  });
+});

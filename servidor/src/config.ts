@@ -23,6 +23,9 @@ const esquema = z.object({
   IMAP_USUARIO: z.string().min(1),
   IMAP_CLAVE: z.string().min(1),
   IMAP_BUZON: z.string().min(1).default('INBOX'),
+  // La primera pasada no se trae el histórico: la contabilidad de la app
+  // arranca el día que se instala, no hace ocho años.
+  IMAP_DIAS_INICIALES: z.coerce.number().int().positive().max(3650).default(30),
 
   SERENO_GOOGLE_ID: z.string().optional(),
   SERENO_GOOGLE_SECRET: z.string().optional(),
@@ -35,7 +38,14 @@ export interface Config {
   claveCifrado: Buffer;
   puerto: number;
   intervaloMinutos: number;
-  imap: { host: string; puerto: number; usuario: string; clave: string; buzon: string };
+  imap: {
+    host: string;
+    puerto: number;
+    usuario: string;
+    clave: string;
+    buzon: string;
+    diasIniciales: number;
+  };
   gmail: { clienteId: string; clienteSecreto: string; tokenRefresco: string } | null;
 }
 
@@ -77,6 +87,7 @@ export function leerConfig(entorno: Record<string, string | undefined>): Config 
       usuario: v.IMAP_USUARIO,
       clave: v.IMAP_CLAVE,
       buzon: v.IMAP_BUZON,
+      diasIniciales: v.IMAP_DIAS_INICIALES,
     },
     gmail: gmailDesde(v),
   };

@@ -49,6 +49,8 @@ export interface Repositorios {
       },
     ) => Promise<void>;
     ultima: () => Promise<CorridaGuardada | null>;
+    /** Cierra las que se quedaron abiertas por un reinicio. Devuelve cuántas. */
+    cerrarHuerfanas: () => Promise<number>;
   };
 }
 
@@ -182,6 +184,19 @@ export function crearRepositorios(db: BaseDeDatos, opciones: OpcionesRepositorio
         const [fila] = await db.insert(corridas).values({}).returning({ id: corridas.id });
         if (fila === undefined) throw new Error('No se pudo abrir la corrida');
         return fila.id;
+      },
+
+      // Un despliegue, un reinicio o un proceso muerto dejan la corrida
+      // abierta para siempre, y `/salud` acaba enseñando una pasada eterna
+      // que en realidad ya no existe. Se cierran al arrancar, con su motivo:
+      // un estado que miente es peor que uno feo.
+      cerrarHuerfanas: async () => {
+        const filas = await db
+          .update(corridas)
+          .set({ terminadoEn: sql`now()`, error: 'el proceso se reinició a mitad de la pasada' })
+          .where(isNull(corridas.terminadoEn))
+          .returning({ id: corridas.id });
+        return filas.length;
       },
 
       cerrar: async (id, resumen) => {

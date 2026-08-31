@@ -54,6 +54,17 @@ Para probar la imagen antes de subir nada:
     docker build -f servidor/Dockerfile -t sereno-servidor .
     docker run --rm -p 8080:8080 --env-file servidor/.env sereno-servidor
 
+## 4b. La primera pasada
+
+La primera lectura no se trae el buzón entero: busca **solo los remitentes de los
+bancos** —el filtro lo hace el servidor de correo, no nosotros— y **solo los
+últimos 30 días** (`IMAP_DIAS_INICIALES`). Las siguientes van por UID, desde
+donde se quedó.
+
+Esto importa: pedir el buzón y descartar después obliga a descargar años de
+correo personal, y en un buzón de verdad esa pasada no termina. Pasó en el
+primer despliegue (sprint 06, hallazgo 15).
+
 ## 5. Comprobar
 
     curl -H "Authorization: Bearer $SERENO_TOKEN" https://<host>/salud

@@ -29,6 +29,10 @@ async function arrancar(): Promise<void> {
   });
 
   const repos = crearRepositorios(base, { clave: config.claveCifrado });
+  const huerfanas = await repos.corridas.cerrarHuerfanas();
+  if (huerfanas > 0) {
+    observabilidad.log('warn', 'corridas cerradas por reinicio', { cuantas: huerfanas });
+  }
   const app = crearApp({ repos, token: config.token, observabilidad });
   serve({ fetch: app.fetch, port: config.puerto });
 
