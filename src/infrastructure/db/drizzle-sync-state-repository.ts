@@ -7,6 +7,7 @@ import { estadoSync } from './schema';
 
 const CURSOR = 'cursor';
 const ULTIMA = 'ultimaTraida';
+const INICIO_CORREO = 'inicioCorreo';
 
 function asPromise<T>(operacion: () => T): Promise<T> {
   try {
@@ -36,6 +37,11 @@ export function createDrizzleSyncStateRepository(db: Database): SyncStateReposit
         escribir(CURSOR, String(valor));
       }),
     ultimaTraida: () => asPromise(() => leer(ULTIMA)),
+    leerInicioCorreo: () => asPromise(() => leer(INICIO_CORREO)),
+    escribirInicioCorreo: (dia) =>
+      asPromise(() => {
+        escribir(INICIO_CORREO, dia);
+      }),
     marcarTraida: (iso) =>
       asPromise(() => {
         escribir(ULTIMA, iso);

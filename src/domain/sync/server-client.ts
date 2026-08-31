@@ -47,4 +47,7 @@ export interface SyncStateRepository {
   escribirCursor: (valor: number) => Promise<void>;
   ultimaTraida: () => Promise<string | null>;
   marcarTraida: (iso: string) => Promise<void>;
+  /** El día en que este teléfono empezó a escuchar el correo. Se fija una vez. */
+  leerInicioCorreo: () => Promise<string | null>;
+  escribirInicioCorreo: (dia: string) => Promise<void>;
 }

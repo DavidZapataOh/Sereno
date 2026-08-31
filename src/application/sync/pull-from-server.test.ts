@@ -147,3 +147,69 @@ describe('pullFromServer', () => {
     expect(await d.sync.ultimaTraida()).toBe(d.clock());
   });
 });
+
+/**
+ * Lo que David cazó en campo el 2026-08-30: al conectar el correo entró un mes
+ * de historia y le descuadró los saldos que ya había cuadrado a mano. El
+ * corte del sprint 04 no bastaba, porque mira cuándo se conectó la *fuente*,
+ * y conectar el correo es un evento aparte y posterior.
+ */
+describe('el corte de conectar el correo', () => {
+  it('no mete el buzón entero en la primera traída', async () => {
+    const d = deps([
+      movimiento(1, 'VIEJO1', { fecha: '2026-08-01T10:00:00.000-05:00' }),
+      movimiento(2, 'VIEJO2', { fecha: '2026-08-29T10:00:00.000-05:00' }),
+    ]);
+
+    const resumen = await pullFromServer(d, { owner });
+
+    expect(resumen).toMatchObject({ recibidos: 2, nuevos: 0, anteriores: 2 });
+    expect(d.transactions.all()).toHaveLength(0);
+  });
+
+  it('lo de hoy en adelante sí entra', async () => {
+    const d = deps([
+      movimiento(1, 'VIEJO', { fecha: '2026-08-01T10:00:00.000-05:00' }),
+      movimiento(2, 'HOY', { fecha: '2026-08-30T09:00:00.000-05:00' }),
+    ]);
+
+    const resumen = await pullFromServer(d, { owner });
+
+    expect(resumen).toMatchObject({ nuevos: 1, anteriores: 1 });
+  });
+
+  it('el corte se fija una vez y el cursor avanza igual: lo viejo no vuelve', async () => {
+    const d = deps([movimiento(1, 'VIEJO', { fecha: '2026-08-01T10:00:00.000-05:00' })]);
+
+    await pullFromServer(d, { owner });
+
+    expect(await d.sync.leerInicioCorreo()).toBe('2026-08-30');
+    expect(await d.sync.leerCursor()).toBe(1);
+  });
+
+  it('manda aunque la fuente lleve conectada semanas por el portal', async () => {
+    const d = deps([movimiento(1, 'VIEJO', { fecha: '2026-08-05T10:00:00.000-05:00' })]);
+    // Una corrida del portal de hace tres semanas: su corte sería el 5 de
+    // agosto, y sin el corte del correo este movimiento entraría.
+    await d.ingest.saveRun({
+      id: 'corrida-vieja',
+      owner,
+      fuente: 'bancolombia',
+      iniciadoEn: '2026-08-05T08:00:00.000-05:00',
+      terminadoEn: '2026-08-05T08:01:00.000-05:00',
+      capturas: 0,
+      extraidas: 0,
+      nuevas: 0,
+      duplicadas: 0,
+      fusionadas: 0,
+      omitidas: 0,
+      anteriores: 0,
+      transferencias: 0,
+      error: null,
+    });
+
+    const resumen = await pullFromServer(d, { owner });
+
+    expect(resumen).toMatchObject({ nuevos: 0, anteriores: 1 });
+  });
+});

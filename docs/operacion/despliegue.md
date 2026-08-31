@@ -58,12 +58,18 @@ Para probar la imagen antes de subir nada:
 
 La primera lectura no se trae el buzón entero: busca **solo los remitentes de los
 bancos** —el filtro lo hace el servidor de correo, no nosotros— y **solo los
-últimos 30 días** (`IMAP_DIAS_INICIALES`). Las siguientes van por UID, desde
+últimos 3 días** (`IMAP_DIAS_INICIALES`). Las siguientes van por UID, desde
 donde se quedó.
 
 Esto importa: pedir el buzón y descartar después obliga a descargar años de
 correo personal, y en un buzón de verdad esa pasada no termina. Pasó en el
 primer despliegue (sprint 06, hallazgo 15).
+
+Y esos tres días son margen para un despliegue con tropiezos, no una ventana de
+historia. **El corte de verdad está en el teléfono**, no aquí: la app fija el
+día de su primera traída y no ingiere nada anterior, venga lo que venga
+(hallazgo 16). Subir esta variable no mete historia al ledger; solo hace más
+larga la primera pasada.
 
 ## 5. Comprobar
 

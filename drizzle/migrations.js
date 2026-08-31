@@ -15,6 +15,7 @@ import m0010 from './0010_cultured_thaddeus_ross.sql';
 import m0011 from './0011_slippery_meltdown.sql';
 import m0012 from './0012_violet_silver_fox.sql';
 import m0013 from './0013_cute_nico_minoru.sql';
+import m0014 from './0014_corte_al_conectar_correo.sql';
 
   export default {
     journal,
@@ -32,7 +33,8 @@ m0009,
 m0010,
 m0011,
 m0012,
-m0013
+m0013,
+m0014
     }
   }
   

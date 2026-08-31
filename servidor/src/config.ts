@@ -24,8 +24,10 @@ const esquema = z.object({
   IMAP_CLAVE: z.string().min(1),
   IMAP_BUZON: z.string().min(1).default('INBOX'),
   // La primera pasada no se trae el histórico: la contabilidad de la app
-  // arranca el día que se instala, no hace ocho años.
-  IMAP_DIAS_INICIALES: z.coerce.number().int().positive().max(3650).default(30),
+  // arranca el día que se instala, no hace ocho años. Tres días son margen
+  // para un primer despliegue con tropiezos, no una ventana de historia: el
+  // teléfono descarta igual todo lo anterior a su propio corte.
+  IMAP_DIAS_INICIALES: z.coerce.number().int().positive().max(3650).default(3),
 
   SERENO_GOOGLE_ID: z.string().optional(),
   SERENO_GOOGLE_SECRET: z.string().optional(),

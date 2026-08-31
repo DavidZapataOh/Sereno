@@ -1,6 +1,7 @@
 import { startDayOf } from '@/domain/ingest/account-start';
 import type { OwnerId } from '@/domain/ledger/ids';
 import { SOURCES, type SourceId } from '@/domain/sources/registry';
+import { corteMasTarde, mailStartDay } from '@/domain/sync/mail-start';
 import type {
   ServerClient,
   ServerMovement,
@@ -60,6 +61,13 @@ export async function pullFromServer(
   };
   const tope = input.paginas ?? MAX_PAGINAS;
 
+  // El corte del correo se fija **antes** de ingerir nada y no se vuelve a
+  // mover. Si esto se hiciera después, una traída cortada a medias dejaría el
+  // corte sin poner y la siguiente vez entraría el buzón entero.
+  const guardado = await deps.sync.leerInicioCorreo();
+  const inicioCorreo = mailStartDay(guardado, deps.clock());
+  if (guardado === null) await deps.sync.escribirInicioCorreo(inicioCorreo);
+
   let hayMas = true;
   while (hayMas && resumen.paginas < tope) {
     const pagina = await deps.servidor.traer(resumen.cursor, TAMANO_PAGINA);
@@ -77,9 +85,11 @@ export async function pullFromServer(
         nombreFuente: SOURCES[fuente].nombre,
         lote,
         capturadoEn: deps.clock(),
-        // El mismo día de inicio del sprint 04: lo anterior a conectar la
-        // fuente no cuenta.
-        desde: startDayOf(primera, deps.clock()),
+        // Dos cortes, y manda el más tarde: el de conectar la fuente
+        // (sprint 04) y el de conectar el correo. Conectar el correo trae de
+        // golpe lo que el buzón guarde, y eso descuadra unos saldos que el
+        // usuario ya había cuadrado a mano.
+        desde: corteMasTarde(inicioCorreo, startDayOf(primera, deps.clock())),
       });
       resumen.nuevos += parcial.nuevas;
       resumen.duplicados += parcial.duplicadas;
