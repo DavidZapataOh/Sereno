@@ -41,6 +41,8 @@ describe('listCardConfigs', () => {
     const configs = await listCardConfigs(d, owner);
 
     expect(configs.map((c) => c.cuenta.nombre).sort()).toEqual(['Nu', 'RappiCard']);
+    // Sin movimientos todavía, la deuda que se conoce es cero.
+    expect(configs.every((c) => c.deuda.amount === 0n)).toBe(true);
   });
 
   /**

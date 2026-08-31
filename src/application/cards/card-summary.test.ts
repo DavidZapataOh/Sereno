@@ -9,6 +9,7 @@ import { createSequentialIds } from '@/test/fakes/sequential-ids';
 
 import { ensureSystemAccounts } from '../ledger/ensure-system-accounts';
 import { payCard } from '../ledger/pay-card';
+import { reconcileCardDebt } from './reconcile-card-debt';
 
 import { cardSummary } from './card-summary';
 
@@ -120,5 +121,45 @@ describe('cardSummary', () => {
     const d = await deps();
 
     expect(await cardSummary(d, { owner: ownerId('otro'), accountId: rappi })).toBeNull();
+  });
+});
+
+/**
+ * El fallo que David encontró en la sesión de campo del sprint 07: la tarjeta
+ * arrancaba en cero porque Sereno solo ve lo que pasa desde que se conecta, y
+ * mostraba el cupo entero disponible. Una tarjeta que dice que tienes plata
+ * que no tienes es peor que una que no dice nada.
+ */
+describe('la deuda que ya existía antes de conectar', () => {
+  it('sin declararla, el disponible sería el cupo entero', async () => {
+    const d = await deps();
+
+    const resumen = await cardSummary(d, { owner, accountId: rappi });
+
+    expect(resumen?.deuda.amount).toBe(0n);
+    expect(resumen?.disponible.amount).toBe(3_000_000n);
+  });
+
+  it('al declararla, el disponible pasa a ser el de verdad', async () => {
+    const d = await deps();
+
+    await reconcileCardDebt(d, { owner, accountId: rappi, deuda: money(2_000_000, 'COP') });
+
+    const resumen = await cardSummary(d, { owner, accountId: rappi });
+    expect(resumen?.deuda.amount).toBe(2_000_000n);
+    expect(resumen?.disponible.amount).toBe(1_000_000n);
+    expect(resumen?.usado).toBeCloseTo(0.667, 3);
+  });
+
+  it('y desde ahí las compras y los pagos la mueven solos', async () => {
+    const d = await deps();
+    await reconcileCardDebt(d, { owner, accountId: rappi, deuda: money(2_000_000, 'COP') });
+
+    await comprar(d, 300_000n);
+    await payCard(d, { owner, desde: ahorros, tarjeta: rappi, monto: money(500_000, 'COP') });
+
+    const resumen = await cardSummary(d, { owner, accountId: rappi });
+    expect(resumen?.deuda.amount).toBe(1_800_000n);
+    expect(resumen?.disponible.amount).toBe(1_200_000n);
   });
 });

@@ -17,9 +17,10 @@ const cuenta = createAccount({
   currency: 'COP',
 });
 
-const sinConfigurar: CardConfig = { cuenta, tarjeta: null };
+const sinConfigurar: CardConfig = { cuenta, tarjeta: null, deuda: money(0, 'COP') };
 const configurada: CardConfig = {
   cuenta,
+  deuda: money(0, 'COP'),
   tarjeta: createCreditCard({
     accountId: rappi,
     owner,
@@ -32,7 +33,7 @@ const configurada: CardConfig = {
 describe('CardConfigForm', () => {
   it('enseña el nombre de la tarjeta', async () => {
     const { getByText } = await renderWithProviders(
-      <CardConfigForm config={sinConfigurar} onGuardar={() => undefined} />,
+      <CardConfigForm config={sinConfigurar} deudaActual={0n} onGuardar={() => undefined} />,
     );
 
     expect(getByText('RappiCard')).toBeOnTheScreen();
@@ -40,7 +41,7 @@ describe('CardConfigForm', () => {
 
   it('trae los datos ya guardados', async () => {
     const { getByTestId } = await renderWithProviders(
-      <CardConfigForm config={configurada} onGuardar={() => undefined} />,
+      <CardConfigForm config={configurada} deudaActual={0n} onGuardar={() => undefined} />,
     );
 
     // Formateado, como en el resto de los formularios de dinero de la app.
@@ -57,7 +58,7 @@ describe('CardConfigForm', () => {
     expect(DIAS.at(-1)).toBe(28);
 
     const { getByLabelText, queryByLabelText } = await renderWithProviders(
-      <CardConfigForm config={sinConfigurar} onGuardar={() => undefined} />,
+      <CardConfigForm config={sinConfigurar} deudaActual={0n} onGuardar={() => undefined} />,
     );
 
     expect(getByLabelText(`${TEXTO_CONFIG.corte}: 28`)).toBeOnTheScreen();
@@ -67,7 +68,7 @@ describe('CardConfigForm', () => {
   it('guarda lo que se eligió', async () => {
     const onGuardar = jest.fn();
     const { getByTestId, getByLabelText, getByText } = await renderWithProviders(
-      <CardConfigForm config={sinConfigurar} onGuardar={onGuardar} />,
+      <CardConfigForm config={sinConfigurar} deudaActual={0n} onGuardar={onGuardar} />,
     );
 
     await fireEvent.changeText(getByTestId(`cupo-${rappi}`), '2500000');
@@ -78,6 +79,7 @@ describe('CardConfigForm', () => {
     await waitFor(() => {
       expect(onGuardar).toHaveBeenCalledWith({
         cupo: 2_500_000n,
+        deuda: 0n,
         diaDeCorte: 20,
         diaDePago: 10,
       });
@@ -87,7 +89,7 @@ describe('CardConfigForm', () => {
   it('sin cupo no deja guardar: no hay nada que guardar', async () => {
     const onGuardar = jest.fn();
     const { getByText } = await renderWithProviders(
-      <CardConfigForm config={sinConfigurar} onGuardar={onGuardar} />,
+      <CardConfigForm config={sinConfigurar} deudaActual={0n} onGuardar={onGuardar} />,
     );
 
     await fireEvent.press(getByText(TEXTO_CONFIG.guardar));
@@ -103,7 +105,7 @@ describe('CardConfigForm', () => {
   it('formatea los miles mientras se escribe, y devuelve el entero', async () => {
     const onGuardar = jest.fn();
     const { getByTestId, getByText } = await renderWithProviders(
-      <CardConfigForm config={sinConfigurar} onGuardar={onGuardar} />,
+      <CardConfigForm config={sinConfigurar} deudaActual={0n} onGuardar={onGuardar} />,
     );
 
     await fireEvent.changeText(getByTestId(`cupo-${rappi}`), '3000000');
@@ -119,7 +121,7 @@ describe('CardConfigForm', () => {
   it('escribirlo con puntos también funciona', async () => {
     const onGuardar = jest.fn();
     const { getByTestId, getByText } = await renderWithProviders(
-      <CardConfigForm config={sinConfigurar} onGuardar={onGuardar} />,
+      <CardConfigForm config={sinConfigurar} deudaActual={0n} onGuardar={onGuardar} />,
     );
 
     await fireEvent.changeText(getByTestId(`cupo-${rappi}`), '3.000.000');
