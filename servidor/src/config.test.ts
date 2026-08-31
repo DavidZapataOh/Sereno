@@ -92,4 +92,48 @@ describe('configuración', () => {
     expect(() => leerConfig({ ...completo, SERENO_INTERVALO_MINUTOS: '0' })).toThrow();
     expect(() => leerConfig({ ...completo, SERENO_INTERVALO_MINUTOS: '99999' })).toThrow();
   });
+
+  /**
+   * Como Gmail: sin claves, el servidor arranca igual y todo lo demás sigue
+   * funcionando.
+   */
+  it('Binance es opcional', () => {
+    expect(leerConfig(completo).binance).toBeNull();
+  });
+
+  it('con las dos claves, las devuelve', () => {
+    const config = leerConfig({
+      ...completo,
+      BINANCE_API_KEY: comoSiFuera('k', 30),
+      BINANCE_API_SECRET: comoSiFuera('s', 30),
+    });
+
+    expect(config.binance).toEqual({
+      clave: comoSiFuera('k', 30),
+      secreto: comoSiFuera('s', 30),
+    });
+  });
+
+  it('con la clave a medias se niega a arrancar', () => {
+    // Usar la mitad de unas credenciales es un fallo en la primera petición.
+    expect(() => leerConfig({ ...completo, BINANCE_API_KEY: comoSiFuera('k', 30) })).toThrow(
+      /a medias/,
+    );
+    expect(() => leerConfig({ ...completo, BINANCE_API_SECRET: comoSiFuera('s', 30) })).toThrow(
+      /a medias/,
+    );
+  });
+
+  /**
+   * Estos mensajes acaban en los registros de Railway.
+   */
+  it('el error de configuración no repite el secreto', () => {
+    const secreto = comoSiFuera('s', 30);
+    try {
+      leerConfig({ ...completo, BINANCE_API_SECRET: secreto });
+      expect.unreachable('debería haber lanzado');
+    } catch (error) {
+      expect(String(error)).not.toContain(secreto);
+    }
+  });
 });
