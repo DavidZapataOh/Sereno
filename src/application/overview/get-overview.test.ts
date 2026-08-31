@@ -295,20 +295,41 @@ describe('patrimonio con cripto valorado', () => {
     return d;
   }
 
-  it('el patrimonio es la suma exacta de lo que se lista', async () => {
+  /**
+   * El invariante, con el polvo dentro. Lo listado más lo declarado como polvo
+   * tiene que dar el total exacto: si el polvo se descontara, el patrimonio
+   * dejaría de ser comprobable sumando a mano, que es como David lo comprueba.
+   */
+  it('el patrimonio es la suma exacta de lo listado más el polvo', async () => {
     const overview = await getOverview(await conTasas([TRM, PRECIO_USDC]), owner);
 
     const suma = overview.cuentas.reduce((s, c) => s + (c.enPesos?.amount ?? 0n), 0n);
-    expect(overview.patrimonio.amount).toBe(suma);
+    expect(overview.patrimonio.amount).toBe(suma + overview.polvo.total.amount);
   });
 
-  it('el saldo en USDC entra al patrimonio valorado en pesos', async () => {
+  /**
+   * 0,085761 USDC son unos 274 pesos: menos de un dólar, así que va al polvo.
+   * **Sigue sumando en el patrimonio**: lo que cambia es dónde se enseña.
+   */
+  it('un saldo cripto de menos de un dólar suma, pero no ensucia la lista', async () => {
     const overview = await getOverview(await conTasas([TRM, PRECIO_USDC]), owner);
 
-    const enSolana = overview.cuentas.find((c) => c.account.id === wallet);
-    // 0,085761 USDC ≈ 274 pesos.
-    expect(enSolana?.enPesos?.amount).toBeGreaterThan(270n);
+    expect(overview.cuentas.find((c) => c.account.id === wallet)).toBeUndefined();
+    const enPolvo = overview.polvo.cuentas.find((c) => c.account.id === wallet);
+    expect(enPolvo?.enPesos?.amount).toBeGreaterThan(270n);
+    expect(overview.patrimonio.amount).toBeGreaterThan(270n);
     expect(overview.sinValorar).toHaveLength(0);
+  });
+
+  /**
+   * Lo que no se pudo valorar **no** se esconde como polvo: sin tasa no hay
+   * con qué compararlo, y esconderlo por si acaso es perder plata de vista.
+   */
+  it('lo que no se pudo valorar no acaba en el polvo', async () => {
+    const overview = await getOverview(await conTasas([]), owner);
+
+    expect(overview.polvo.cuentas).toHaveLength(0);
+    expect(overview.sinValorar).toHaveLength(1);
   });
 
   it('dice con qué tasas valoró y de cuándo son', async () => {
