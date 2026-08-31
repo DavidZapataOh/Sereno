@@ -4,6 +4,8 @@ import { migrate } from 'drizzle-orm/postgres-js/migrator';
 import { crearApp } from './api/app';
 import { leerConfig } from './config';
 import { crearFuenteGmail } from './correo/gmail';
+import { crearClienteBinance } from './binance/cliente';
+import { verificarPermisos } from './binance/permisos';
 import { crearFuenteImap } from './correo/imap';
 import { crearBase } from './db/cliente';
 import { crearRepositorios } from './db/repositorios';
@@ -33,6 +35,18 @@ async function arrancar(): Promise<void> {
   if (huerfanas > 0) {
     observabilidad.log('warn', 'corridas cerradas por reinicio', { cuantas: huerfanas });
   }
+  // Antes de servir nada: si hay claves de Binance, que no puedan mover
+  // dinero. Es el único caso del proyecto donde un problema de configuración
+  // impide arrancar, y es a propósito: aquí el riesgo no es un dato mal leído,
+  // es una cuenta vaciada. Una clave con todos los permisos leería los saldos
+  // igual de bien, y nadie lo notaría hasta que se filtrara.
+  if (config.binance !== null) {
+    const cliente = crearClienteBinance(config.binance);
+    const avisos = verificarPermisos(await cliente.permisos());
+    for (const aviso of avisos) observabilidad.log('warn', aviso, {});
+    observabilidad.log('info', 'clave de Binance verificada: solo lectura', {});
+  }
+
   const app = crearApp({ repos, token: config.token, observabilidad });
   serve({ fetch: app.fetch, port: config.puerto });
 

@@ -29,6 +29,10 @@ const esquema = z.object({
   // teléfono descarta igual todo lo anterior a su propio corte.
   IMAP_DIAS_INICIALES: z.coerce.number().int().positive().max(3650).default(3),
 
+  // Binance, opcional. Ver `gmailDesde`: a medias no vale.
+  BINANCE_API_KEY: z.string().optional(),
+  BINANCE_API_SECRET: z.string().optional(),
+
   SERENO_GOOGLE_ID: z.string().optional(),
   SERENO_GOOGLE_SECRET: z.string().optional(),
   SERENO_GMAIL_REFRESH_TOKEN: z.string().optional(),
@@ -49,6 +53,7 @@ export interface Config {
     diasIniciales: number;
   };
   gmail: { clienteId: string; clienteSecreto: string; tokenRefresco: string } | null;
+  binance: { clave: string; secreto: string } | null;
 }
 
 /**
@@ -68,6 +73,29 @@ function gmailDesde(v: z.infer<typeof esquema>): Config['gmail'] {
  * Lee y valida. Si algo falta, lanza con **todo** lo que falta y sin repetir
  * el valor de ningún secreto: estos mensajes acaban en registros.
  */
+/**
+ * Binance, solo si están las dos credenciales.
+ *
+ * Igual que Gmail: usar la mitad de unas credenciales es un fallo en la
+ * primera petición, y adivinar el resto es peor. Sin ellas el servidor arranca
+ * igual y todo lo demás sigue funcionando.
+ */
+function binanceDesde(v: z.infer<typeof esquema>): Config['binance'] {
+  const clave = v.BINANCE_API_KEY;
+  const secreto = v.BINANCE_API_SECRET;
+  if (clave === undefined || secreto === undefined) {
+    if (clave !== undefined || secreto !== undefined) {
+      // El mensaje NO repite el valor: estos errores acaban en los registros
+      // de Railway.
+      throw new Error(
+        'Binance está a medias: hacen falta BINANCE_API_KEY y BINANCE_API_SECRET, o ninguna',
+      );
+    }
+    return null;
+  }
+  return { clave, secreto };
+}
+
 export function leerConfig(entorno: Record<string, string | undefined>): Config {
   const resultado = esquema.safeParse(entorno);
   if (!resultado.success) {
@@ -92,5 +120,6 @@ export function leerConfig(entorno: Record<string, string | undefined>): Config 
       diasIniciales: v.IMAP_DIAS_INICIALES,
     },
     gmail: gmailDesde(v),
+    binance: binanceDesde(v),
   };
 }
