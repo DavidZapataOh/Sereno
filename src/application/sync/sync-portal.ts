@@ -16,6 +16,8 @@ import { detectTransfers } from '../ingest/detect-transfers';
 import { ingestCaptures } from '../ingest/ingest-captures';
 import type { IngestDeps, IngestSummary } from '../ingest/types';
 import { registerAdjustment } from '../ledger/register-adjustment';
+import type { SyncWalletsDeps } from '../crypto/sync-wallets';
+import type { RefreshRatesDeps } from '../rates/refresh-rates';
 import {
   reconcileFromCaptures,
   type ReconciliationDeps,
@@ -27,7 +29,9 @@ export type AppDeps = IngestDeps &
   CategorizationDeps &
   PullDeps &
   CardSummaryDeps &
-  OverviewDeps;
+  OverviewDeps &
+  SyncWalletsDeps &
+  RefreshRatesDeps;
 
 export interface SyncSummary extends IngestSummary {
   transferencias: number;

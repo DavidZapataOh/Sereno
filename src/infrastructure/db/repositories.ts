@@ -1,4 +1,5 @@
 import type { CardRepository } from '@/domain/cards/card-repository';
+import type { WalletRepository } from '@/domain/crypto/wallet-repository';
 import type { BatchRepository } from '@/domain/categorization/batch';
 import type { CategoryRepository } from '@/domain/categorization/category';
 import type { ClassificationRepository } from '@/domain/categorization/classification';
@@ -26,6 +27,7 @@ import { createDrizzleSyncStateRepository } from './drizzle-sync-state-repositor
 import { createDrizzleRuleRepository } from './drizzle-rule-repository';
 import { createDrizzleTransactionRepository } from './drizzle-transaction-repository';
 import { createDrizzleTransferRepository } from './drizzle-transfer-repository';
+import { createDrizzleWalletRepository } from './drizzle-wallet-repository';
 
 export interface Repositories {
   accounts: AccountRepository;
@@ -41,6 +43,7 @@ export interface Repositories {
   sync: SyncStateRepository;
   cards: CardRepository;
   rates: RateRepository;
+  wallets: WalletRepository;
 }
 
 /** Todos los repositorios sobre una misma base. Las rutas lo llaman una vez. */
@@ -59,5 +62,6 @@ export function createRepositories(db: Database): Repositories {
     sync: createDrizzleSyncStateRepository(db),
     cards: createDrizzleCardRepository(db),
     rates: createDrizzleRateRepository(db),
+    wallets: createDrizzleWalletRepository(db),
   };
 }

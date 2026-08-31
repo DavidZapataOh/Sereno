@@ -119,6 +119,13 @@ export default function AjustesScreen() {
               }}
             />
             <NavRow
+              title="Wallets"
+              subtitle="Direcciones que Sereno mira en la cadena"
+              onPress={() => {
+                router.push('/ajustes/wallets');
+              }}
+            />
+            <NavRow
               title="Diagnóstico"
               subtitle="Salud de la contabilidad y muestra tipográfica"
               onPress={() => {

@@ -71,6 +71,17 @@ if ! npm run verify 2>&1 | tee "$LOG"; then
   exit 1
 fi
 
+# `verify` demuestra que el código que existe funciona. No dice nada del código
+# que falta. En el sprint 08 los cinco planes se cerraron con `verify` en verde
+# y cuatro tareas sin hacer: un sprint entero que el usuario no podía ver, y un
+# progress.md que afirmaba lo contrario. Esto es la señal que faltaba, y va
+# ANTES de subir nada, que es cuando un sprint se da por terminado.
+paso "Comprobando que los planes ✅ no tengan trabajo sin recorrer"
+if ! ./scripts/comprobar-plan.sh; then
+  rojo "Hay planes dados por terminados con trabajo sin recorrer (arriba)."
+  exit 1
+fi
+
 paso "Subiendo $rama"
 git push -u origin "$rama"
 

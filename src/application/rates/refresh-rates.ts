@@ -10,7 +10,7 @@ export interface FuenteDeTasas {
 
 export interface RefreshRatesDeps {
   rates: RateRepository;
-  fuentes: FuenteDeTasas[];
+  fuentesDeTasas: FuenteDeTasas[];
   clock: () => string;
 }
 
@@ -43,7 +43,7 @@ export async function refreshRates(
   const resumen: ResumenTasas = { pedidas: 0, guardadas: 0, fallidos: [] };
   const ahora = Date.parse(deps.clock());
 
-  for (const fuente of deps.fuentes) {
+  for (const fuente of deps.fuentesDeTasas) {
     const nombre = `${fuente.par.desde}->${fuente.par.hacia}`;
     if (input.forzar !== true) {
       const ultima = await deps.rates.ultima(fuente.par.desde, fuente.par.hacia);

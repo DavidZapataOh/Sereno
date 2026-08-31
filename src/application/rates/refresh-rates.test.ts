@@ -34,9 +34,9 @@ const fuenteTrm = (leer: () => Promise<Rate>): FuenteDeTasas => ({
   leer,
 });
 
-const deps = (rates: RateRepository, fuentes: FuenteDeTasas[]): RefreshRatesDeps => ({
+const deps = (rates: RateRepository, fuentesDeTasas: FuenteDeTasas[]): RefreshRatesDeps => ({
   rates,
-  fuentes,
+  fuentesDeTasas,
   clock: () => AHORA,
 });
 
@@ -119,7 +119,7 @@ describe('refreshRates', () => {
     expect(resumen.fallidos).toEqual(['USD->COP']);
   });
 
-  it('sin fuentes no hace nada y no falla', async () => {
+  it('sin fuentesDeTasas no hace nada y no falla', async () => {
     expect(await refreshRates(deps(repoDoble(), []))).toEqual({
       pedidas: 0,
       guardadas: 0,
