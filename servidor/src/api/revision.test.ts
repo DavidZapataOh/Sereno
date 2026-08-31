@@ -66,3 +66,66 @@ describe('cola de revisión', () => {
     expect((await app.request('/revision?limite=99999', con)).status).toBe(200);
   });
 });
+
+/**
+ * Un correo que ningún parser reconoce como movimiento se marca «ignorado» y
+ * **no se ve en ninguna parte**. Eso está bien para la publicidad del banco y
+ * mal para todo lo demás: el estado de cuenta mensual de una tarjeta cae ahí,
+ * y es justo el correo que el sprint 07 necesita encontrar.
+ */
+describe('cola de revisión — lo ignorado', () => {
+  let app: ReturnType<typeof crearApp>;
+  let repos: Repositorios;
+
+  beforeEach(async () => {
+    const base = await crearBaseDePrueba();
+    repos = crearRepositorios(base.db, { clave: randomBytes(32) });
+    for (const [id, estado, asunto] of [
+      ['m-error', 'error', 'Alertas y Notificaciones'],
+      ['m-ignorado', 'ignorado', 'Tu estado de cuenta de agosto'],
+      ['m-parseado', 'parseado', 'Compraste $45.000'],
+    ] as const) {
+      await repos.mensajes.guardar({
+        id,
+        origen: 'imap',
+        remitente: 'noreply@rappicard.co',
+        asunto,
+        recibidoEn: new Date('2026-08-30T20:00:00.000Z'),
+        texto: 'cuerpo de prueba',
+        html: null,
+      });
+      await repos.mensajes.marcar(id, estado, estado === 'error' ? 'sin monto' : undefined);
+    }
+    app = crearApp({
+      repos,
+      token: TOKEN,
+      observabilidad: { log: () => undefined, captureError: () => undefined },
+    });
+  });
+
+  it('por defecto sigue enseñando solo lo que hay que arreglar', async () => {
+    const res = await app.request('/revision', con);
+    const cuerpo = (await res.json()) as { mensajes: { id: string }[] };
+    expect(cuerpo.mensajes.map((m) => m.id)).toEqual(['m-error']);
+  });
+
+  it('con ?estado=ignorado enseña lo que se archivó en silencio', async () => {
+    const res = await app.request('/revision?estado=ignorado', con);
+    const cuerpo = (await res.json()) as { mensajes: { id: string; asunto: string }[] };
+    expect(cuerpo.mensajes.map((m) => m.id)).toEqual(['m-ignorado']);
+    expect(cuerpo.mensajes[0]?.asunto).toContain('estado de cuenta');
+  });
+
+  it('acepta varios estados a la vez', async () => {
+    const res = await app.request('/revision?estado=error,ignorado', con);
+    const cuerpo = (await res.json()) as { mensajes: { id: string }[] };
+    expect(cuerpo.mensajes.map((m) => m.id).sort()).toEqual(['m-error', 'm-ignorado']);
+  });
+
+  it('un estado que no existe no devuelve la tabla entera', async () => {
+    // Sin validación, un filtro vacío se convierte en «todo», y eso saca a
+    // pasear correos parseados —con su contenido— sin que nadie los pidiera.
+    const res = await app.request('/revision?estado=loquesea', con);
+    expect(res.status).toBe(400);
+  });
+});
