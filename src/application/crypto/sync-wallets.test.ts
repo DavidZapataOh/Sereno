@@ -1,5 +1,5 @@
 import type { BalanceSource, SaldoLeido } from '@/domain/crypto/balance-source';
-import { tokensDe, type Chain, type Wallet } from '@/domain/crypto/wallet';
+import { CADENAS_EVM, tokensDe, type Chain, type Wallet } from '@/domain/crypto/wallet';
 import { ownerId } from '@/domain/ledger/ids';
 import { money } from '@/domain/money/money';
 import { createInMemoryAccountRepository } from '@/test/fakes/in-memory-account-repository';
@@ -17,14 +17,14 @@ const AHORA = '2026-08-31T10:00:00.000-05:00';
 const polygon: Wallet = {
   id: 'w-polygon',
   owner,
-  chain: 'polygon',
+  red: 'evm',
   direccion: '0x5a4e9Bb1f224e8254C1d63e90dE34E8572f8dC71',
   nombre: 'Polygon',
 };
 const solana: Wallet = {
   id: 'w-solana',
   owner,
-  chain: 'solana',
+  red: 'solana',
   direccion: '2VWvtXH5du9amnpU9NHP3dnry2ggSj6qcHwzwUn8DB5J',
   nombre: 'Solana',
 };
@@ -75,8 +75,12 @@ async function deps(...enSeguimiento: Wallet[]) {
   return { ...d, accounts, transactions, dobles, wallets: repo };
 }
 
-const saldoDe = async (d: Awaited<ReturnType<typeof deps>>, wallet: Wallet, simbolo: string) =>
-  (await d.accounts.balanceOf(walletAccountId(wallet, simbolo))).amount;
+const saldoDe = async (
+  d: Awaited<ReturnType<typeof deps>>,
+  wallet: Wallet,
+  chain: Chain,
+  simbolo: string,
+) => (await d.accounts.balanceOf(walletAccountId(wallet, chain, simbolo))).amount;
 
 describe('syncWallets', () => {
   /**
@@ -90,7 +94,7 @@ describe('syncWallets', () => {
 
     await syncWallets(d, { owner });
 
-    expect(await saldoDe(d, polygon, 'USDC.e')).toBe(50_000n);
+    expect(await saldoDe(d, polygon, 'polygon', 'USDC.e')).toBe(50_000n);
   });
 
   it('una segunda lectura igual no asienta nada', async () => {
@@ -112,7 +116,7 @@ describe('syncWallets', () => {
     d.dobles.polygon.responder({ 'USDC.e': 120_000n });
     await syncWallets(d, { owner });
 
-    expect(await saldoDe(d, polygon, 'USDC.e')).toBe(120_000n);
+    expect(await saldoDe(d, polygon, 'polygon', 'USDC.e')).toBe(120_000n);
   });
 
   it('un saldo que baja también se asienta', async () => {
@@ -123,7 +127,7 @@ describe('syncWallets', () => {
     d.dobles.polygon.responder({ 'USDC.e': 50_000n });
     await syncWallets(d, { owner });
 
-    expect(await saldoDe(d, polygon, 'USDC.e')).toBe(50_000n);
+    expect(await saldoDe(d, polygon, 'polygon', 'USDC.e')).toBe(50_000n);
   });
 
   /**
@@ -139,7 +143,7 @@ describe('syncWallets', () => {
     d.dobles.polygon.fallar();
     const resumen = await syncWallets(d, { owner });
 
-    expect(await saldoDe(d, polygon, 'USDC.e')).toBe(50_000n);
+    expect(await saldoDe(d, polygon, 'polygon', 'USDC.e')).toBe(50_000n);
     expect(resumen.fallidas).toEqual(['polygon']);
     expect(resumen.leidas).toBe(0);
   });
@@ -174,7 +178,7 @@ describe('syncWallets', () => {
 
     const resumen = await syncWallets(d, { owner });
 
-    expect(await saldoDe(d, solana, 'USDC')).toBe(85_761n);
+    expect(await saldoDe(d, solana, 'solana', 'USDC')).toBe(85_761n);
     expect(resumen.fallidas).toEqual(['polygon']);
     expect(resumen.leidas).toBe(1);
   });
@@ -187,8 +191,8 @@ describe('syncWallets', () => {
 
     await syncWallets(d, { owner });
 
-    expect(await saldoDe(d, polygon, 'USDC.e')).toBe(50_000n);
-    expect(await saldoDe(d, solana, 'USDC')).toBe(85_761n);
+    expect(await saldoDe(d, polygon, 'polygon', 'USDC.e')).toBe(50_000n);
+    expect(await saldoDe(d, solana, 'solana', 'USDC')).toBe(85_761n);
   });
 
   it('la cuenta de cada token se crea con su moneda', async () => {
@@ -197,18 +201,45 @@ describe('syncWallets', () => {
 
     await syncWallets(d, { owner });
 
-    const cuenta = d.accounts.all().find((c) => c.id === walletAccountId(polygon, 'USDC.e'));
+    const cuenta = d.accounts
+      .all()
+      .find((c) => c.id === walletAccountId(polygon, 'polygon', 'USDC.e'));
     expect(cuenta?.currency).toBe('USDC');
     expect(cuenta?.kind).toBe('activo');
   });
 
-  it('un token en cero crea su cuenta igual: «miré y no hay» es información', async () => {
-    const d = await deps(polygon, solana);
+  /**
+   * Cambió con las catorce cadenas. Antes un token en cero creaba su cuenta
+   * —«miré y no hay» es información—, pero catorce cadenas por dos tokens son
+   * casi treinta cuentas vacías en la lista de Cuentas, y una lista llena de
+   * ceros esconde lo que sí importa.
+   *
+   * La información no se pierde: la pantalla de Wallets lee token por token y
+   * dice cuándo se leyó y si falló, que era lo que había que distinguir.
+   */
+  it('un token en cero no crea cuenta: catorce cadenas serían treinta ceros', async () => {
+    const d = await deps(polygon);
     d.dobles.polygon.responder({});
 
     await syncWallets(d, { owner });
 
-    expect(d.accounts.all().filter((c) => c.id.startsWith('wallet:polygon'))).toHaveLength(3);
+    expect(d.accounts.all().filter((c) => c.id.startsWith(polygon.id))).toHaveLength(0);
+  });
+
+  /**
+   * Lo contrario sí importa: una cuenta que tuvo saldo y baja a cero **se
+   * queda**, en cero. Borrarla sería perder el histórico de que ahí hubo algo.
+   */
+  it('una cuenta que tuvo saldo y baja a cero se queda en cero', async () => {
+    const d = await deps(polygon);
+    d.dobles.polygon.responder({ 'USDC.e': 50_000n });
+    await syncWallets(d, { owner });
+
+    d.dobles.polygon.responder({ 'USDC.e': 0n });
+    await syncWallets(d, { owner });
+
+    expect(await saldoDe(d, polygon, 'polygon', 'USDC.e')).toBe(0n);
+    expect(d.accounts.all().filter((c) => c.id.startsWith(polygon.id))).toHaveLength(1);
   });
 
   it('sin fuente para una cadena, esa wallet se salta sin romper', async () => {
@@ -228,5 +259,92 @@ describe('syncWallets', () => {
 
     expect(d.transactions.all()[0]?.descripcion).toContain('Polygon');
     expect(d.transactions.all()[0]?.descripcion).toContain('USDC.e');
+  });
+
+  describe('una dirección EVM se mira en todas las cadenas EVM', () => {
+    /** Una fuente por cada cadena EVM, cada una con su propio saldo. */
+    async function todasLasEvm() {
+      const accounts = createInMemoryAccountRepository();
+      const transactions = createInMemoryTransactionRepository(accounts.postings);
+      await ensureSystemAccounts(accounts, owner);
+      const repo = createInMemoryWalletRepository();
+      await repo.guardar(polygon);
+      const dobles = new Map(CADENAS_EVM.map((c) => [c, fuenteDoble(c)]));
+      const d: SyncWalletsDeps = {
+        accounts,
+        transactions,
+        ids: createSequentialIds('uuid'),
+        clock: () => AHORA,
+        fuentesDeSaldo: [...dobles.values()].map((x) => x.fuente),
+        wallets: repo,
+      };
+      return { ...d, accounts, dobles, wallets: repo };
+    }
+
+    it('lee las catorce cadenas EVM con la misma dirección', async () => {
+      const d = await todasLasEvm();
+
+      const resumen = await syncWallets(d, { owner });
+
+      expect(resumen.leidas).toBe(CADENAS_EVM.length);
+      expect(CADENAS_EVM.length).toBeGreaterThanOrEqual(14);
+    });
+
+    /**
+     * Lo que este cambio existe para evitar. La wallet se añadió pensando en
+     * Polygon —antes había que elegir cadena—, y el saldo está en Arbitrum.
+     * Con el modelo viejo ese saldo no se veía, y nada lo decía: un saldo que
+     * nadie mira no se distingue de un saldo en cero.
+     */
+    it('un saldo en Arbitrum aparece aunque se pensara en Polygon', async () => {
+      const d = await todasLasEvm();
+      d.dobles.get('arbitrum')?.responder({ USDC: 7_000_000n });
+
+      await syncWallets(d, { owner });
+
+      expect(
+        (await d.accounts.balanceOf(walletAccountId(polygon, 'arbitrum', 'USDC'))).amount,
+      ).toBe(7_000_000n);
+    });
+
+    it('el mismo token en dos cadenas son dos cuentas, no una', async () => {
+      // Sumarlas en una sola haría imposible saber dónde está la plata, y cada
+      // lectura desharía el ajuste de la otra cadena.
+      const d = await todasLasEvm();
+      d.dobles.get('arbitrum')?.responder({ USDC: 1_000n });
+      d.dobles.get('optimism')?.responder({ USDC: 2_000n });
+
+      await syncWallets(d, { owner });
+
+      expect(
+        (await d.accounts.balanceOf(walletAccountId(polygon, 'arbitrum', 'USDC'))).amount,
+      ).toBe(1_000n);
+      expect(
+        (await d.accounts.balanceOf(walletAccountId(polygon, 'optimism', 'USDC'))).amount,
+      ).toBe(2_000n);
+    });
+
+    it('una cadena caída no impide leer las otras trece, y se nombra', async () => {
+      const d = await todasLasEvm();
+      d.dobles.get('scroll')?.fallar();
+      d.dobles.get('base')?.responder({ USDC: 500n });
+
+      const resumen = await syncWallets(d, { owner });
+
+      expect(resumen.fallidas).toEqual(['scroll']);
+      expect(resumen.leidas).toBe(CADENAS_EVM.length - 1);
+      expect((await d.accounts.balanceOf(walletAccountId(polygon, 'base', 'USDC'))).amount).toBe(
+        500n,
+      );
+    });
+
+    it('el aviso de la wallet dice en qué cadena falló, no solo que falló', async () => {
+      const d = await todasLasEvm();
+      d.dobles.get('scroll')?.fallar();
+
+      await syncWallets(d, { owner });
+
+      expect((await d.wallets.listar(owner))[0]?.error).toContain('scroll');
+    });
   });
 });

@@ -19,7 +19,6 @@ describe('addWallet', () => {
     const d = deps();
     const w = await addWallet(d, {
       owner,
-      chain: 'polygon',
       direccion: DIRECCION_EVM,
       nombre: 'Polygon',
     });
@@ -29,13 +28,24 @@ describe('addWallet', () => {
   });
 
   /**
-   * Una dirección de otra cadena devuelve cero, y un cero no se distingue de no
-   * tener nada. Por eso se valida por cadena y no «que parezca una».
+   * La red se deduce de la dirección en vez de preguntarse. Elegirla era una
+   * decisión que el usuario no tiene por qué tomar, y en la que se podía
+   * equivocar sin enterarse: una dirección buena en la red equivocada devuelve
+   * cero, y un cero no se distingue de un saldo vacío.
    */
-  it('rechaza una dirección que no es de esa cadena', async () => {
-    await expect(
-      addWallet(deps(), { owner, chain: 'solana', direccion: DIRECCION_EVM, nombre: 'x' }),
-    ).rejects.toThrow(/forma/i);
+  it('deduce la red de la dirección, sin preguntar', async () => {
+    const d = deps();
+    const evm = await addWallet(d, { owner, direccion: DIRECCION_EVM, nombre: 'EVM' });
+    const sol = await addWallet(d, { owner, direccion: DIRECCION_SOLANA, nombre: 'Solana' });
+
+    expect(evm.red).toBe('evm');
+    expect(sol.red).toBe('solana');
+  });
+
+  it('rechaza lo que no tiene forma de dirección de ninguna red', async () => {
+    await expect(addWallet(deps(), { owner, direccion: '0x123', nombre: 'x' })).rejects.toThrow(
+      /forma/i,
+    );
   });
 
   /**
@@ -46,14 +56,14 @@ describe('addWallet', () => {
   it('una clave privada no tiene forma de dirección y se rechaza', async () => {
     const claveFalsa = `0x${'a'.repeat(64)}`;
 
-    await expect(
-      addWallet(deps(), { owner, chain: 'polygon', direccion: claveFalsa, nombre: 'x' }),
-    ).rejects.toThrow(/forma/i);
+    await expect(addWallet(deps(), { owner, direccion: claveFalsa, nombre: 'x' })).rejects.toThrow(
+      /forma/i,
+    );
   });
 
   it('exige un nombre: una lista de direcciones sin nombre no se lee', async () => {
     await expect(
-      addWallet(deps(), { owner, chain: 'polygon', direccion: DIRECCION_EVM, nombre: '   ' }),
+      addWallet(deps(), { owner, direccion: DIRECCION_EVM, nombre: '   ' }),
     ).rejects.toThrow(/nombre/i);
   });
 
@@ -63,7 +73,6 @@ describe('addWallet', () => {
     // vale: el nodo devolvería cero sin decir por qué.
     await addWallet(d, {
       owner,
-      chain: 'solana',
       direccion: `  ${DIRECCION_SOLANA}\n`,
       nombre: 'Solana',
     });
@@ -75,11 +84,10 @@ describe('addWallet', () => {
     const d = deps();
     const a = await addWallet(d, {
       owner,
-      chain: 'polygon',
       direccion: DIRECCION_EVM,
       nombre: 'a',
     });
-    const b = await addWallet(d, { owner, chain: 'base', direccion: DIRECCION_EVM, nombre: 'b' });
+    const b = await addWallet(d, { owner, direccion: DIRECCION_EVM, nombre: 'b' });
 
     expect(a.id).not.toBe(b.id);
   });
@@ -88,8 +96,8 @@ describe('addWallet', () => {
 describe('listWallets y removeWallet', () => {
   it('lista solo las del propietario', async () => {
     const d = deps();
-    await addWallet(d, { owner, chain: 'polygon', direccion: DIRECCION_EVM, nombre: 'mía' });
-    await addWallet(d, { owner: otro, chain: 'base', direccion: DIRECCION_EVM, nombre: 'ajena' });
+    await addWallet(d, { owner, direccion: DIRECCION_EVM, nombre: 'mía' });
+    await addWallet(d, { owner: otro, direccion: DIRECCION_EVM, nombre: 'ajena' });
 
     expect((await listWallets(d, owner)).map((w) => w.nombre)).toEqual(['mía']);
   });
@@ -97,7 +105,7 @@ describe('listWallets y removeWallet', () => {
   it('una wallet recién añadida no tiene lectura todavía', async () => {
     // Distinto de «se leyó y dio cero»: sin esto no se puede decir cuál es cuál.
     const d = deps();
-    await addWallet(d, { owner, chain: 'polygon', direccion: DIRECCION_EVM, nombre: 'x' });
+    await addWallet(d, { owner, direccion: DIRECCION_EVM, nombre: 'x' });
 
     expect((await listWallets(d, owner))[0]?.leidoEn).toBeNull();
   });
@@ -106,7 +114,6 @@ describe('listWallets y removeWallet', () => {
     const d = deps();
     const w = await addWallet(d, {
       owner,
-      chain: 'polygon',
       direccion: DIRECCION_EVM,
       nombre: 'x',
     });

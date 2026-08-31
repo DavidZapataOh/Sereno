@@ -10,7 +10,7 @@ const MINT_USDC = 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v';
 const wallet: Wallet = {
   id: 'w-solana',
   owner,
-  chain: 'solana',
+  red: 'solana',
   direccion: '2VWvtXH5du9amnpU9NHP3dnry2ggSj6qcHwzwUn8DB5J',
   nombre: 'Solana',
 };

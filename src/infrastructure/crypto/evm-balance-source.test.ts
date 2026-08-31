@@ -1,7 +1,7 @@
-import type { Wallet } from '@/domain/crypto/wallet';
+import { CADENAS_EVM, type Wallet } from '@/domain/crypto/wallet';
 import { ownerId } from '@/domain/ledger/ids';
 
-import { createEvmBalanceSource, datosDeBalanceOf } from './evm-balance-source';
+import { createEvmBalanceSource, datosDeBalanceOf, NODOS } from './evm-balance-source';
 
 const owner = ownerId('david');
 const AHORA = '2026-08-31T10:00:00.000-05:00';
@@ -9,7 +9,7 @@ const AHORA = '2026-08-31T10:00:00.000-05:00';
 const walletPolygon: Wallet = {
   id: 'w-polygon',
   owner,
-  chain: 'polygon',
+  red: 'evm',
   direccion: '0x5a4e9Bb1f224e8254C1d63e90dE34E8572f8dC71',
   nombre: 'Polygon',
 };
@@ -122,5 +122,19 @@ describe('evmBalanceSource', () => {
     const saldos = await leer(doble({ result: '0xc350' }));
 
     expect(saldos.every((s) => s.leidoEn === AHORA)).toBe(true);
+  });
+});
+
+describe('NODOS', () => {
+  /**
+   * Una cadena declarada sin nodo se salta en silencio y su saldo se queda en
+   * cero para siempre —y un cero no se distingue de no tener nada—.
+   */
+  it('hay un nodo por cada cadena EVM declarada', () => {
+    expect(Object.keys(NODOS).sort()).toEqual([...CADENAS_EVM].sort());
+  });
+
+  it('todos son HTTPS: un nodo en claro deja ver qué direcciones se consultan', () => {
+    for (const url of Object.values(NODOS)) expect(url).toMatch(/^https:\/\//);
   });
 });

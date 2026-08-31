@@ -7,12 +7,12 @@ import { TEXTO_WALLET, WalletCard, type WalletEnPantalla } from './wallet-card';
 const base: WalletEnPantalla = {
   id: 'wallet:solana:1',
   owner: ownerId('david'),
-  chain: 'solana',
+  red: 'solana',
   direccion: '2VWvtXH5du9amnpU9NHP3dnry2ggSj6qcHwzwUn8DB5J',
   nombre: 'Solana',
   leidoEn: null,
   error: null,
-  saldos: [{ simbolo: 'USDC', saldo: money(85_761n, 'USDC') }],
+  saldos: [{ chain: 'solana', simbolo: 'USDC', saldo: money(85_761n, 'USDC') }],
 };
 
 const HACE_UNA_HORA = '2026-08-31T09:00:00.000-05:00';
@@ -55,7 +55,7 @@ describe('WalletCard', () => {
         estado={{
           ...base,
           leidoEn: HACE_UNA_HORA,
-          saldos: [{ simbolo: 'USDC', saldo: money(0n, 'USDC') }],
+          saldos: [{ chain: 'solana', simbolo: 'USDC', saldo: money(0n, 'USDC') }],
         }}
         ahora={AHORA}
         onBorrar={jest.fn()}
@@ -77,6 +77,40 @@ describe('WalletCard', () => {
     );
 
     expect(getByText(TEXTO_WALLET.sinLeer)).toBeOnTheScreen();
+    expect(queryByText(TEXTO_WALLET.noSePudoLeer)).toBeNull();
+  });
+
+  it('dice en qué cadena está cada saldo: con catorce, «USDC» no basta', async () => {
+    const { getByText } = await renderWithProviders(
+      <WalletCard
+        estado={{
+          ...base,
+          red: 'evm',
+          leidoEn: HACE_UNA_HORA,
+          saldos: [
+            { chain: 'polygon', simbolo: 'USDC.e', saldo: money(50_000n, 'USDC') },
+            { chain: 'arbitrum', simbolo: 'USDC', saldo: money(1n, 'USDC') },
+          ],
+        }}
+        ahora={AHORA}
+        onBorrar={jest.fn()}
+      />,
+    );
+
+    expect(getByText('USDC.e en polygon')).toBeOnTheScreen();
+    expect(getByText('USDC en arbitrum')).toBeOnTheScreen();
+  });
+
+  it('sin saldo en ninguna cadena lo dice, y no como si fuera un fallo', async () => {
+    const { getByText, queryByText } = await renderWithProviders(
+      <WalletCard
+        estado={{ ...base, leidoEn: HACE_UNA_HORA, saldos: [] }}
+        ahora={AHORA}
+        onBorrar={jest.fn()}
+      />,
+    );
+
+    expect(getByText(TEXTO_WALLET.sinSaldo)).toBeOnTheScreen();
     expect(queryByText(TEXTO_WALLET.noSePudoLeer)).toBeNull();
   });
 

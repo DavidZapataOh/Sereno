@@ -1,6 +1,6 @@
 import { eq } from 'drizzle-orm';
 
-import type { Chain } from '@/domain/crypto/wallet';
+import type { Red } from '@/domain/crypto/wallet';
 import type { EstadoWallet, WalletRepository } from '@/domain/crypto/wallet-repository';
 import { ownerId } from '@/domain/ledger/ids';
 
@@ -18,7 +18,7 @@ function asPromise<T>(operacion: () => T): Promise<T> {
 const toWallet = (fila: typeof wallets.$inferSelect): EstadoWallet => ({
   id: fila.id,
   owner: ownerId(fila.ownerId),
-  chain: fila.chain as Chain,
+  red: fila.red as Red,
   direccion: fila.direccion,
   nombre: fila.nombre,
   leidoEn: fila.leidoEn,
@@ -32,7 +32,7 @@ export function createDrizzleWalletRepository(db: Database): WalletRepository {
         const fila = {
           id: wallet.id,
           ownerId: wallet.owner,
-          chain: wallet.chain,
+          red: wallet.red,
           direccion: wallet.direccion,
           nombre: wallet.nombre,
         };
@@ -42,7 +42,7 @@ export function createDrizzleWalletRepository(db: Database): WalletRepository {
             target: wallets.id,
             // No se pisa `leidoEn` ni `error`: editar el nombre no borra la
             // constancia de la última lectura.
-            set: { chain: fila.chain, direccion: fila.direccion, nombre: fila.nombre },
+            set: { red: fila.red, direccion: fila.direccion, nombre: fila.nombre },
           })
           .run();
       }),

@@ -134,6 +134,13 @@
       "when": 1788206605192,
       "tag": "0018_slimy_invaders",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "6",
+      "when": 1788214293893,
+      "tag": "0019_renombrar_chain_a_red",
+      "breakpoints": true
     }
   ]
 }

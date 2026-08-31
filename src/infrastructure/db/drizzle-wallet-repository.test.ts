@@ -10,14 +10,14 @@ const otro = ownerId('otra-persona');
 const polygon: Wallet = {
   id: 'wallet:polygon:1',
   owner,
-  chain: 'polygon',
+  red: 'evm',
   direccion: '0x5a4e9Bb1f224e8254C1d63e90dE34E8572f8dC71',
   nombre: 'Polygon',
 };
 const solana: Wallet = {
   id: 'wallet:solana:1',
   owner,
-  chain: 'solana',
+  red: 'solana',
   direccion: '2VWvtXH5du9amnpU9NHP3dnry2ggSj6qcHwzwUn8DB5J',
   nombre: 'Solana',
 };
