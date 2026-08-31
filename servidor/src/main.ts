@@ -40,14 +40,16 @@ async function arrancar(): Promise<void> {
   // impide arrancar, y es a propósito: aquí el riesgo no es un dato mal leído,
   // es una cuenta vaciada. Una clave con todos los permisos leería los saldos
   // igual de bien, y nadie lo notaría hasta que se filtrara.
+  let saldosBinance;
   if (config.binance !== null) {
     const cliente = crearClienteBinance(config.binance);
     const avisos = verificarPermisos(await cliente.permisos());
     for (const aviso of avisos) observabilidad.log('warn', aviso, {});
     observabilidad.log('info', 'clave de Binance verificada: solo lectura', {});
+    saldosBinance = () => cliente.saldos();
   }
 
-  const app = crearApp({ repos, token: config.token, observabilidad });
+  const app = crearApp({ repos, token: config.token, observabilidad, saldosBinance });
   serve({ fetch: app.fetch, port: config.puerto });
 
   // IMAP salvo que haya credenciales completas de Gmail. Ver «Decisiones» en

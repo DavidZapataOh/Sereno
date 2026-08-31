@@ -82,6 +82,7 @@ export default function HoyScreen() {
       <OverviewHeader
         patrimonio={o.patrimonio}
         sinValorar={o.sinValorar.map((c) => c.saldo)}
+        tasaMasVieja={o.tasasUsadas.map((t) => t.momento).sort()[0] ?? null}
         ultimaSincronizacion={o.ultimaSincronizacion?.terminadoEn ?? null}
         now={deps.clock()}
       />
@@ -106,6 +107,13 @@ export default function HoyScreen() {
         ))}
       </Card>
       <Card style={{ padding: 0 }}>
+        <NavRow
+          title="Patrimonio"
+          subtitle="Cómo se ha movido con el tiempo"
+          onPress={() => {
+            router.push('/patrimonio');
+          }}
+        />
         <NavRow
           title="Suscripciones"
           subtitle="Lo que se te cobra solo cada mes"

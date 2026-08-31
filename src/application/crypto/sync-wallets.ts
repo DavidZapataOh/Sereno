@@ -1,11 +1,10 @@
 import type { BalanceSource, SaldoLeido } from '@/domain/crypto/balance-source';
 import { CADENAS_DE, type Chain, type Wallet } from '@/domain/crypto/wallet';
 import type { WalletRepository } from '@/domain/crypto/wallet-repository';
-import { createAccount } from '@/domain/ledger/account';
 import { accountId, type AccountId, type OwnerId } from '@/domain/ledger/ids';
-import { isZero, type Money } from '@/domain/money/money';
 
-import { registerAdjustment, type LedgerDeps } from '../ledger/register-adjustment';
+import { reconcileHolding } from '../ledger/reconcile-holding';
+import type { LedgerDeps } from '../ledger/register-adjustment';
 
 export interface SyncWalletsDeps extends LedgerDeps {
   /**
@@ -108,56 +107,17 @@ async function asentarSaldos(
   saldos: SaldoLeido[],
   resumen: ResumenWallets,
 ): Promise<void> {
-  {
-    for (const saldo of saldos) {
-      const id = walletAccountId(wallet, chain, saldo.token.simbolo);
-      const cuenta = await deps.accounts.findById(id);
-
-      // Un token en cero que nunca ha tenido nada no crea cuenta. Con catorce
-      // cadenas serían casi treinta cuentas vacías en la lista, y una lista
-      // llena de ceros esconde lo que sí importa. El «miré y no hay» se sigue
-      // viendo en la pantalla de Wallets, que lee token por token.
-      if (cuenta === null && isZero(saldo.cantidad)) continue;
-      if (cuenta === null) await crearCuenta(deps, owner, wallet, chain, saldo, id);
-
-      const actual = await deps.accounts.balanceOf(id);
-      const diferencia: Money = {
-        amount: saldo.cantidad.amount - actual.amount,
-        currency: saldo.cantidad.currency,
-      };
-      if (isZero(diferencia)) continue;
-
-      // La cadena dice **cuánto** hay, no **por qué** cambió: la contrapartida
-      // va a Ajustes, igual que el conteo de efectivo. Saber la causa exigiría
-      // leer las transferencias on-chain, y eso no es de este sprint.
-      await registerAdjustment(deps, {
-        owner,
-        accountId: id,
-        amount: diferencia,
-        motivo: `Saldo leído de ${wallet.nombre} en ${chain}: ${saldo.token.simbolo}`,
-        fecha: saldo.leidoEn,
-      });
-      resumen.ajustes += 1;
-    }
-  }
-}
-
-/** La cuenta de un token en una cadena. El nombre dice dónde está. */
-async function crearCuenta(
-  deps: SyncWalletsDeps,
-  owner: OwnerId,
-  wallet: Wallet,
-  chain: Chain,
-  saldo: SaldoLeido,
-  id: AccountId,
-): Promise<void> {
-  await deps.accounts.save(
-    createAccount({
-      id,
-      owner,
-      kind: 'activo',
+  for (const saldo of saldos) {
+    // La conciliación es idéntica a la de un exchange —la fuente dice cuánto
+    // hay, no qué pasó—, así que vive en un solo sitio.
+    const asentado = await reconcileHolding(deps, owner, {
+      accountId: walletAccountId(wallet, chain, saldo.token.simbolo),
       nombre: `${saldo.token.simbolo} en ${chain}`,
       currency: saldo.token.currency,
-    }),
-  );
+      cantidad: saldo.cantidad,
+      leidoEn: saldo.leidoEn,
+      motivo: `Saldo leído de ${wallet.nombre} en ${chain}: ${saldo.token.simbolo}`,
+    });
+    if (asentado) resumen.ajustes += 1;
+  }
 }

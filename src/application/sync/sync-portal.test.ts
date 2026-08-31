@@ -17,6 +17,7 @@ import { createInMemoryTransactionRepository } from '@/test/fakes/in-memory-tran
 import { createInMemoryTransferRepository } from '@/test/fakes/in-memory-transfer-repository';
 import { createSequentialIds } from '@/test/fakes/sequential-ids';
 import { createInMemoryCardRepository } from '@/test/fakes/in-memory-card-repository';
+import { createInMemorySnapshotRepository } from '@/test/fakes/in-memory-snapshot-repository';
 import { createInMemoryWalletRepository } from '@/test/fakes/in-memory-wallet-repository';
 import { mustExist } from '@/test/must-exist';
 
@@ -38,6 +39,7 @@ function deps() {
     reconciliations: createInMemoryReconciliationRepository(),
     rates: createInMemoryRateRepository(),
     wallets: createInMemoryWalletRepository(),
+    snapshots: createInMemorySnapshotRepository(),
     fuentesDeSaldo: [],
     fuentesDeTasas: [],
     categories: createInMemoryCategoryRepository(),

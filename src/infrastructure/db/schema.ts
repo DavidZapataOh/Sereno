@@ -368,3 +368,28 @@ export const reconciliations = sqliteTable(
   },
   (tabla) => [index('idx_reconciliations_account_fecha').on(tabla.accountId, tabla.fecha)],
 );
+
+/**
+ * El patrimonio de cada día, ya valorado (sprint 08).
+ *
+ * La clave es (propietario, día): dos arranques el mismo día son un solo punto,
+ * no dos. Y el valor va **guardado, no recalculado**: si la serie se
+ * recalculara con las tasas de hoy, la línea del pasado cambiaría cada mañana y
+ * no mediría nada. `tasas` queda como constancia de con qué se calculó.
+ */
+export const net_worth_snapshots = sqliteTable(
+  'net_worth_snapshots',
+  {
+    ownerId: text('owner_id').notNull(),
+    dia: text('dia').notNull(),
+    /** Entero en la unidad mínima, como TEXT: igual que `postings.amount`. */
+    patrimonio: text('patrimonio').notNull(),
+    moneda: text('moneda').notNull(),
+    tasas: text('tasas').notNull(),
+    tomadaEn: text('tomada_en').notNull(),
+  },
+  (tabla) => [
+    primaryKey({ columns: [tabla.ownerId, tabla.dia] }),
+    index('idx_snapshots_owner_dia').on(tabla.ownerId, tabla.dia),
+  ],
+);

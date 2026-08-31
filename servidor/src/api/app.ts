@@ -7,11 +7,14 @@ import type { Observabilidad } from '../observabilidad';
 
 import { montarMovimientos } from './movimientos';
 import { montarRevision } from './revision';
+import { montarSaldos, type SaldosBinance } from './saldos';
 
 export interface Dependencias {
   repos: Repositorios;
   token: string;
   observabilidad: Observabilidad;
+  /** Ausente si no hay claves de Binance: la ruta lo dice en vez de mentir. */
+  saldosBinance?: SaldosBinance;
 }
 
 /**
@@ -60,6 +63,7 @@ export function crearApp(deps: Dependencias) {
 
   montarMovimientos(app, deps.repos);
   montarRevision(app, deps.repos, deps.observabilidad);
+  montarSaldos(app, deps.observabilidad, deps.saldosBinance);
 
   app.notFound((c) => c.json({ error: 'No existe' }, 404));
 
