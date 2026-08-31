@@ -105,3 +105,31 @@ describe('merchantCoverage', () => {
     });
   });
 });
+
+/**
+ * David, primera transferencia de verdad tras conectar el correo: el
+ * movimiento se tituló «La Cuenta». Quitarle el prefijo del banco y el número
+ * de cuenta a «Transferencia a la cuenta *3218502671» no deja comercio, deja
+ * relleno.
+ */
+describe('descripciones que no nombran a nadie', () => {
+  it('no titula un movimiento «La Cuenta»', () => {
+    const m = merchantOf('Transferencia a la cuenta *3218502671');
+
+    expect(m.nombre).toBe('Transferencia a la cuenta *3218502671');
+    expect(m.conocido).toBe(false);
+  });
+
+  it('agrupa por el tipo de movimiento, no por el número de cuenta', () => {
+    const a = merchantOf('Transferencia a la cuenta *3218502671');
+    const b = merchantOf('Transferencia a la cuenta *9999999999');
+
+    expect(a.clave).toBe(b.clave);
+    expect(a.nombre).not.toBe(b.nombre);
+  });
+
+  it('un comercio de verdad sigue saliendo como comercio', () => {
+    expect(merchantOf('Compra en EXITO SUR').conocido).toBe(true);
+    expect(merchantOf('Pago por QR a la llave 3001234567').nombre).not.toBe('La Llave');
+  });
+});
