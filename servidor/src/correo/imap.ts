@@ -4,7 +4,8 @@ import { simpleParser, type ParsedMail } from 'mailparser';
 import type { MailCursor, MailSource, RawMessage } from '@/domain/mail/message';
 import { direccionDe, esRemitenteConocido } from '@/domain/mail/senders';
 
-import { formatearCursorImap, parsearCursorImap, rangoDesde } from './imap-cursor';
+import { criteriosDe, cursorTras } from './imap-busqueda';
+import { formatearCursorImap, parsearCursorImap } from './imap-cursor';
 
 export interface ConfigImap {
   host: string;
@@ -13,6 +14,8 @@ export interface ConfigImap {
   /** Contraseña de aplicación, nunca la del correo. */
   clave: string;
   buzon: string;
+  /** Cuántos días atrás mira la primera pasada, cuando aún no hay cursor. */
+  diasIniciales: number;
 }
 
 /** `simpleParser` tiene una sobrecarga con callback; esta fija la de promesa. */
@@ -37,6 +40,11 @@ export function mensajeDesde(uid: number, correo: ParsedMail): RawMessage {
 /**
  * Lee el buzón por IMAP, en solo lectura y desde el último UID visto.
  *
+ * El filtro por remitente lo hace el servidor de correo, no nosotros: pedir
+ * todo y descartar después obliga a descargar el buzón entero. En uno de años
+ * eso no es «lento», es una pasada que no termina —y la primera corrida en
+ * Railway se quedó colgada así (sprint 06, hallazgo 15)—.
+ *
  * Se conecta y se desconecta en cada pasada: la ingesta corre cada pocos
  * minutos, y una conexión viva durante horas es una conexión que se cae sin
  * que nadie se entere.
@@ -57,33 +65,52 @@ export function crearFuenteImap(config: ConfigImap): MailSource {
         // Solo lectura: este proceso no puede marcar, mover ni borrar nada.
         const buzon = await cliente.mailboxOpen(config.buzon, { readOnly: true });
         const validezActual = Number(buzon.uidValidity);
+        const uidNext = typeof buzon.uidNext === 'number' ? buzon.uidNext : null;
         const anterior = parsearCursorImap(desde?.valor ?? null);
-        const rango = rangoDesde(anterior, validezActual);
+        const mismoBuzon = anterior?.uidValidity === validezActual;
+
+        const encontrados = await cliente.search(
+          criteriosDe(anterior, validezActual, new Date(), config.diasIniciales),
+          { uid: true },
+        );
+        // `search` devuelve `false` si el servidor rechaza la búsqueda. Traer
+        // el buzón entero «por si acaso» sería justo el fallo que esto arregla.
+        const uids = (encontrados === false ? [] : encontrados).slice().sort((a, b) => a - b);
+        const aLeer = uids.slice(0, limite);
 
         const mensajes: RawMessage[] = [];
-        let ultimoUid = anterior?.uidValidity === validezActual ? anterior.ultimoUid : 0;
-
-        for await (const sobre of cliente.fetch(
-          rango,
-          { uid: true, envelope: true, source: true },
-          { uid: true },
-        )) {
-          ultimoUid = Math.max(ultimoUid, sobre.uid);
-          // El filtro va antes de parsear: lo que no es del banco no se abre.
-          if (!esRemitenteConocido(sobre.envelope?.from?.[0]?.address ?? '')) continue;
-          // `source` solo falta si el servidor no lo mandó pese a pedirlo; sin
-          // cuerpo no hay nada que leer, y saltarlo es mejor que reventar el
-          // lote entero por un correo.
-          if (sobre.source === undefined) continue;
-          mensajes.push(mensajeDesde(sobre.uid, await parsearMime(sobre.source)));
-          if (mensajes.length >= limite) break;
+        const leidos: number[] = [];
+        if (aLeer.length > 0) {
+          for await (const sobre of cliente.fetch(
+            aLeer,
+            { uid: true, envelope: true, source: true },
+            { uid: true },
+          )) {
+            leidos.push(sobre.uid);
+            // El servidor ya filtró, pero su `FROM` compara por texto suelto.
+            // Esta es la comprobación que entiende de dominios.
+            if (!esRemitenteConocido(sobre.envelope?.from?.[0]?.address ?? '')) continue;
+            // `source` solo falta si el servidor no lo mandó pese a pedirlo; sin
+            // cuerpo no hay nada que leer, y saltarlo es mejor que reventar el
+            // lote entero por un correo.
+            if (sobre.source === undefined) continue;
+            mensajes.push(mensajeDesde(sobre.uid, await parsearMime(sobre.source)));
+          }
         }
 
         return {
           mensajes,
           cursor: {
             tipo: 'imap' as const,
-            valor: formatearCursorImap({ uidValidity: validezActual, ultimoUid }),
+            valor: formatearCursorImap({
+              uidValidity: validezActual,
+              ultimoUid: cursorTras({
+                encontrados: uids.length,
+                leidos,
+                uidNext,
+                anteriorUltimoUid: mismoBuzon ? anterior.ultimoUid : 0,
+              }),
+            }),
           },
         };
       } finally {
