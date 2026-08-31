@@ -22,7 +22,10 @@ export interface Repositorios {
     guardar: (m: typeof mensajes.$inferInsert) => Promise<void>;
     existe: (id: string) => Promise<boolean>;
     marcar: (id: string, estado: EstadoMensaje, motivo?: string) => Promise<void>;
-    listarParaRevision: (limite: number) => Promise<MensajeGuardado[]>;
+    listarParaRevision: (
+      limite: number,
+      estados?: readonly EstadoMensaje[],
+    ) => Promise<MensajeGuardado[]>;
   };
   movimientos: {
     guardarLote: (mensajeId: string, movs: readonly NormalizedTransaction[]) => Promise<number>;
@@ -95,11 +98,14 @@ export function crearRepositorios(db: BaseDeDatos, opciones: OpcionesRepositorio
           .where(eq(mensajes.id, id));
       },
 
-      listarParaRevision: async (limite) => {
+      // Por defecto, lo que hay que arreglar. Con estados explícitos se puede
+      // pedir también lo «ignorado», que si no no se ve en ninguna parte: ahí
+      // cae el estado de cuenta mensual de una tarjeta (sprint 07, plan 02).
+      listarParaRevision: async (limite, estados = ['desconocido', 'error']) => {
         const filas = await db
           .select()
           .from(mensajes)
-          .where(inArray(mensajes.estado, ['desconocido', 'error']))
+          .where(inArray(mensajes.estado, [...estados]))
           .orderBy(desc(mensajes.recibidoEn))
           .limit(limite);
         return filas.map((f) => ({
