@@ -1,7 +1,10 @@
 import { useEffect, useState } from 'react';
 
+import { observability } from '../observability';
+
 import { applyMigrations, openDatabase } from './client';
 import type { Database } from './database';
+import { estadoDeMigraciones } from './migration-state';
 
 export type DatabaseBoot =
   { estado: 'cargando' } | { estado: 'listo'; db: Database } | { estado: 'error'; error: Error };
@@ -21,7 +24,13 @@ export function useDatabaseBoot(): DatabaseBoot {
 
   useEffect(() => {
     let vigente = true;
-    const { db } = openDatabase();
+    const { db, sqlite } = openDatabase();
+
+    // Antes de migrar, y siempre: si una migración se va a descartar en
+    // silencio —marca fuera de orden—, esta es la única línea que lo dice.
+    // Sin ella, el síntoma aparece semanas después como «no such table».
+    const estado = estadoDeMigraciones(sqlite);
+    observability.log(estado.descartadas.length > 0 ? 'warn' : 'info', 'migraciones', estado);
 
     applyMigrations(db)
       .then(() => {
