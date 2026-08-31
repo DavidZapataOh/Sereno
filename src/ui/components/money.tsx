@@ -11,7 +11,13 @@ import type { TypeLevel } from '@/ui/theme/typography';
 import { useTheme } from '@/ui/theme/use-theme';
 
 interface Props {
-  /** Monto en la unidad mínima. El signo se ignora: la dirección la marca `direction`. */
+  /**
+   * Monto en la unidad mínima.
+   *
+   * Con `direction` «entra» o «sale», el signo lo pone la dirección y el del
+   * número se ignora. Con «neutro» —un saldo, un patrimonio— el signo del
+   * número **sí** se muestra: ahí es parte del dato.
+   */
   amount: bigint | number;
   currency?: CurrencyCode;
   direction: MoneyDirection;
@@ -55,7 +61,11 @@ export function Money({
   return (
     <Text
       testID={testID}
-      accessibilityLabel={`${VERBO_POR_DIRECCION[direction]} ${formatAmount(amount, currency)} ${currencyName(currency)}`}
+      // El verbo ya dice la dirección, así que el número va en absoluto y sin
+      // símbolo: «Salen 45.000 pesos». La excepción es un neutro negativo —un
+      // saldo, un patrimonio—, donde el signo **es** el dato y sin él el
+      // lector diría «Son 1.814.013» de una deuda.
+      accessibilityLabel={`${VERBO_POR_DIRECCION[direction]} ${signoAccesible(amount, direction)}${formatAmount(amount, currency)} ${currencyName(currency)}`}
       // Nunca se desactiva la ampliación de fuente: se acota, para que un monto
       // muy grande no rompa el diseño de quien usa texto al 200 %.
       allowFontScaling
@@ -74,4 +84,9 @@ export function Money({
       {formatSigned(amount, direction, currency)}
     </Text>
   );
+}
+
+/** El menos del lector de pantalla: solo para un neutro negativo. */
+function signoAccesible(amount: bigint | number, direction: MoneyDirection): string {
+  return direction === 'neutro' && BigInt(amount) < 0n ? '−' : '';
 }

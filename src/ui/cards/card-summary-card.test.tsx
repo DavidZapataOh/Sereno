@@ -54,7 +54,8 @@ describe('CardSummaryCard', () => {
     expect(queryByText(TEXTO_TARJETA.disponible)).toBeNull();
     // El monto del sobregiro, no el de la deuda: por eso va por testID y no
     // por texto —«100.000» también está dentro de «3.100.000»—.
-    expect(getByTestId('tarjeta-disponible')).toHaveTextContent('$ 100.000');
+    // Con el signo: un disponible negativo es un sobregiro, y el número lo dice.
+    expect(getByTestId('tarjeta-disponible')).toHaveTextContent('−$ 100.000');
   });
 
   /**
