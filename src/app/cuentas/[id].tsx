@@ -4,6 +4,8 @@ import { useState } from 'react';
 import { FlatList, Modal, View, type ViewStyle } from 'react-native';
 
 import { cardSummary } from '@/application/cards/card-summary';
+import { cycleStatement } from '@/application/cards/cycle-statement';
+import { verifyCycle } from '@/application/cards/verify-cycle';
 import { countCash } from '@/application/ledger/count-cash';
 import { registerCashExpense } from '@/application/ledger/register-cash-expense';
 import { listMovements } from '@/application/movements/movements';
@@ -18,6 +20,7 @@ import { Card } from '@/ui/components/card';
 import { Money } from '@/ui/components/money';
 import { EmptyState, ErrorState, LoadingState } from '@/ui/components/states';
 import { CardSummaryCard } from '@/ui/cards/card-summary-card';
+import { CycleCard } from '@/ui/cards/cycle-card';
 import { CashCountForm } from '@/ui/movements/cash-count-form';
 import { CashExpenseForm } from '@/ui/movements/cash-expense-form';
 import { MovementRow } from '@/ui/movements/movement-row';
@@ -48,6 +51,19 @@ export default function CuentaRoute() {
   const tarjeta = useQuery({
     queryKey: ['card-summary', CURRENT_OWNER, id],
     queryFn: () => cardSummary(deps, { owner: CURRENT_OWNER, accountId: cuentaId }),
+  });
+  // Depende de lo mismo que la tarjeta: si la cuenta no es una tarjeta
+  // configurada, `cycleStatement` devuelve null y no se pinta nada.
+  const ciclo = useQuery({
+    queryKey: ['card-cycle', CURRENT_OWNER, id],
+    queryFn: async () => {
+      const extracto = await cycleStatement(deps, {
+        owner: CURRENT_OWNER,
+        accountId: cuentaId,
+        fecha: deps.clock(),
+      });
+      return extracto === null ? null : verifyCycle(extracto, deps.clock());
+    },
   });
   const conciliacion = useQuery({
     queryKey: ['reconciliation', id],
@@ -130,6 +146,9 @@ export default function CuentaRoute() {
             </View>
             {tarjeta.data !== undefined && tarjeta.data !== null && (
               <CardSummaryCard resumen={tarjeta.data} />
+            )}
+            {ciclo.data !== undefined && ciclo.data !== null && (
+              <CycleCard check={ciclo.data} hoy={deps.clock()} />
             )}
             {conciliacion.data !== undefined && conciliacion.data !== null && (
               <DriftCard reconciliation={conciliacion.data} />
