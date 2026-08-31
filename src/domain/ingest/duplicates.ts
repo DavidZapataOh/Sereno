@@ -1,6 +1,7 @@
 import type { NormalizedTransaction } from '@/domain/capture/normalized-transaction';
 import { daysBetween } from '@/domain/time/colombia';
 
+import { type Channel, via } from './channel';
 import { dayOf, fingerprintOf, normalizeDescription } from './fingerprint';
 import type { Observation } from './observation';
 
@@ -55,8 +56,14 @@ export function assignDerivedReferences(lote: NormalizedTransaction[]): Normaliz
 
 export interface MatchContext {
   observation: Observation;
-  /** Fuentes que ya aportaron una observación a esa transacción. */
-  fuentesQueLaVieron: string[];
+  /**
+   * Vías —fuente y canal— que ya aportaron una observación a esa transacción.
+   *
+   * Antes eran solo fuentes. No bastaba: Bancolombia llega por el portal y
+   * por el correo, con referencias distintas, y «la misma fuente ya la vio»
+   * impedía fundirlas. El mismo gasto entraba dos veces.
+   */
+  viasQueLaVieron: string[];
 }
 
 /**
@@ -64,20 +71,24 @@ export interface MatchContext {
  * misma transacción que el candidato.
  *
  * Reglas, en orden:
- *  1. Nunca la misma fuente: dentro de una fuente la identidad es la referencia.
- *  2. Nunca una transacción que esta fuente ya vio: uno a uno por fuente.
+ *  1. Nunca la misma vía: dentro de una fuente **y un canal** la identidad es
+ *     la referencia.
+ *  2. Nunca una transacción que esta vía ya vio: uno a uno por vía.
  *  3. Entre las que quedan, la del día más cercano; a igual distancia, la
  *     observada primero.
  */
 export function chooseDuplicate(
   candidate: NormalizedTransaction,
+  canal: Channel,
   contextos: MatchContext[],
 ): Observation | null {
   const fechaCandidato = instanteDe(candidate);
+  const viaCandidato = via(candidate.fuente, canal);
 
   const elegibles = contextos.filter(
     (c) =>
-      c.observation.fuente !== candidate.fuente && !c.fuentesQueLaVieron.includes(candidate.fuente),
+      via(c.observation.fuente, c.observation.canal) !== viaCandidato &&
+      !c.viasQueLaVieron.includes(viaCandidato),
   );
   if (elegibles.length === 0) return null;
 

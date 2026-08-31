@@ -54,6 +54,7 @@ const observacionEntrada: Observation = {
   transactionId: transactionId('e'),
   owner,
   fuente: 'nequi',
+  canal: 'web' as const,
   referencia: 'e',
   huella: '2026-08-11|200000|te llego plata',
   capturadoEn: '2026-08-11T10:00:00.000-05:00',

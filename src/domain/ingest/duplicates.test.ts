@@ -42,6 +42,7 @@ const observacion = (
   transactionId: transactionId(tx),
   owner,
   fuente: n.fuente,
+  canal: 'web' as const,
   referencia: n.referencia,
   huella: fingerprintOf(n),
   capturadoEn: '2026-08-28T10:00:00.000-05:00',
@@ -102,46 +103,54 @@ describe('assignDerivedReferences', () => {
 });
 
 describe('chooseDuplicate', () => {
-  const contexto = (n: NormalizedTransaction, tx: string, fuentes: string[]): MatchContext => ({
+  const contexto = (n: NormalizedTransaction, tx: string, vias: string[]): MatchContext => ({
     observation: observacion(n, tx),
-    fuentesQueLaVieron: fuentes,
+    viasQueLaVieron: vias,
   });
 
   it('empareja con una observación de otra fuente y huella compatible', () => {
-    const elegida = chooseDuplicate(correo, [contexto(web, 'bancolombia:REF-1', ['bancolombia'])]);
+    const elegida = chooseDuplicate(correo, 'web', [
+      contexto(web, 'bancolombia:REF-1', ['bancolombia:web']),
+    ]);
     expect(elegida?.transactionId).toBe('bancolombia:REF-1');
   });
 
-  it('nunca empareja con la misma fuente: ahí la identidad es la referencia', () => {
+  it('nunca empareja con la misma vía: ahí la identidad es la referencia', () => {
     const otraCompraIgual = { ...web, referencia: 'REF-2' };
     expect(
-      chooseDuplicate(otraCompraIgual, [contexto(web, 'bancolombia:REF-1', ['bancolombia'])]),
+      chooseDuplicate(otraCompraIgual, 'web', [
+        contexto(web, 'bancolombia:REF-1', ['bancolombia:web']),
+      ]),
     ).toBeNull();
   });
 
   it('no empareja con una transacción que esta fuente ya vio', () => {
     // Uno a uno por fuente: si el correo ya aportó su observación a esa
     // transacción, un segundo correo igual es OTRA compra.
-    const ctx = contexto(web, 'bancolombia:REF-1', ['bancolombia', 'nequi']);
-    expect(chooseDuplicate(correo, [ctx])).toBeNull();
+    const ctx = contexto(web, 'bancolombia:REF-1', ['bancolombia:web', 'nequi:web']);
+    expect(chooseDuplicate(correo, 'web', [ctx])).toBeNull();
   });
 
   it('con varias candidatas elige la del día más cercano', () => {
     const lejana = contexto(
       { ...web, fecha: '2026/08/29', referencia: 'REF-L' },
       'bancolombia:REF-L',
-      ['bancolombia'],
+      ['bancolombia:web'],
     );
     const cercana = contexto(
       { ...web, fecha: '2026/08/27', referencia: 'REF-C' },
       'bancolombia:REF-C',
-      ['bancolombia'],
+      ['bancolombia:web'],
     );
-    expect(chooseDuplicate(correo, [lejana, cercana])?.transactionId).toBe('bancolombia:REF-C');
+    expect(chooseDuplicate(correo, 'web', [lejana, cercana])?.transactionId).toBe(
+      'bancolombia:REF-C',
+    );
   });
 
   it('a igual distancia, elige la observada primero', () => {
-    const tarde = contexto({ ...web, referencia: 'REF-T' }, 'bancolombia:REF-T', ['bancolombia']);
+    const tarde = contexto({ ...web, referencia: 'REF-T' }, 'bancolombia:REF-T', [
+      'bancolombia:web',
+    ]);
     tarde.observation = { ...tarde.observation, capturadoEn: '2026-08-28T12:00:00.000-05:00' };
     const temprano = contexto({ ...web, referencia: 'REF-E' }, 'bancolombia:REF-E', [
       'bancolombia',
@@ -150,14 +159,16 @@ describe('chooseDuplicate', () => {
       ...temprano.observation,
       capturadoEn: '2026-08-28T08:00:00.000-05:00',
     };
-    expect(chooseDuplicate(correo, [tarde, temprano])?.transactionId).toBe('bancolombia:REF-E');
+    expect(chooseDuplicate(correo, 'web', [tarde, temprano])?.transactionId).toBe(
+      'bancolombia:REF-E',
+    );
   });
 
   it('sin candidatas devuelve null', () => {
-    expect(chooseDuplicate(correo, [])).toBeNull();
+    expect(chooseDuplicate(correo, 'web', [])).toBeNull();
   });
 
-  it('propiedad: nunca elige una observación de la misma fuente', () => {
+  it('propiedad: nunca elige una observación de la misma vía', () => {
     const arb = record({
       monto: integer({ min: 1, max: 100 }),
       dia: integer({ min: 1, max: 28 }),
@@ -176,11 +187,47 @@ describe('chooseDuplicate', () => {
               referencia: `R${String(i)}`,
             },
             `bancolombia:R${String(i)}`,
-            ['bancolombia'],
+            ['bancolombia:web'],
           ),
         );
-        expect(chooseDuplicate(candidato, contextos)).toBeNull();
+        expect(chooseDuplicate(candidato, 'web', contextos)).toBeNull();
       }),
     );
+  });
+
+  /**
+   * El caso que David tenía activo el 2026-08-30: Bancolombia entra por el
+   * portal y por el correo. Misma fuente, canales distintos, y el correo no
+   * trae el número de autorización del portal, así que las referencias no
+   * coinciden. Con la regla vieja —«nunca la misma fuente»— esto no se fundía
+   * y **el mismo gasto se contaba dos veces**.
+   */
+  it('empareja la misma fuente vista por dos canales distintos', () => {
+    const porCorreo: NormalizedTransaction = {
+      ...web,
+      fecha: '2026/08/27',
+      descripcion: 'Compraste en EXITO SUR',
+      referencia: 'correo:4471',
+    };
+
+    const elegida = chooseDuplicate(porCorreo, 'correo', [
+      contexto(web, 'bancolombia:REF-1', ['bancolombia:web']),
+    ]);
+
+    expect(elegida?.transactionId).toBe('bancolombia:REF-1');
+  });
+
+  it('pero no con el mismo canal de la misma fuente: eso sí es otra compra', () => {
+    const otra = { ...web, referencia: 'REF-2' };
+
+    expect(
+      chooseDuplicate(otra, 'web', [contexto(web, 'bancolombia:REF-1', ['bancolombia:web'])]),
+    ).toBeNull();
+  });
+
+  it('y no dos veces por el mismo canal: uno a uno por vía', () => {
+    const ctx = contexto(web, 'bancolombia:REF-1', ['bancolombia:web', 'bancolombia:correo']);
+
+    expect(chooseDuplicate({ ...web, referencia: 'correo:9' }, 'correo', [ctx])).toBeNull();
   });
 });

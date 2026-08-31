@@ -49,6 +49,7 @@ const correo: NormalizedTransaction = {
 const porWeb = (lote: NormalizedTransaction[]) => ({
   owner,
   fuente: 'bancolombia' as const,
+  canal: 'web' as const,
   nombreFuente: 'Bancolombia',
   lote,
   capturadoEn: '2026-08-28T10:00:00.000-05:00',
@@ -56,6 +57,7 @@ const porWeb = (lote: NormalizedTransaction[]) => ({
 const porCorreo = (lote: NormalizedTransaction[]) => ({
   owner,
   fuente: 'nequi' as const,
+  canal: 'web' as const,
   nombreFuente: 'Nequi',
   lote,
   capturadoEn: '2026-08-27T21:00:00.000-05:00',

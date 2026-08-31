@@ -49,6 +49,7 @@ const correo: NormalizedTransaction = {
 const porWeb = (lote: NormalizedTransaction[]) => ({
   owner,
   fuente: 'bancolombia' as const,
+  canal: 'web' as const,
   nombreFuente: 'Bancolombia',
   lote,
   capturadoEn: '2026-08-28T10:00:00.000-05:00',
@@ -56,6 +57,7 @@ const porWeb = (lote: NormalizedTransaction[]) => ({
 const porCorreo = (lote: NormalizedTransaction[]) => ({
   owner,
   fuente: 'nequi' as const,
+  canal: 'correo' as const,
   nombreFuente: 'Nequi',
   lote,
   capturadoEn: '2026-08-27T21:00:00.000-05:00',
@@ -245,5 +247,81 @@ describe('ingestNormalized — deduplicación entre fuentes', () => {
 
     const sinInicio = await ingestNormalized(d, porWeb([web]));
     expect(sinInicio).toMatchObject({ nuevas: 1, anteriores: 0, desde: null });
+  });
+});
+
+/**
+ * El caso que David tenía activo el 2026-08-30, tras conectar el correo.
+ *
+ * Bancolombia entra por el portal y por el correo. Es **la misma fuente**, y
+ * la regla del sprint 04 —«nunca la misma fuente»— impedía fundirlas. Como el
+ * correo no trae el número de autorización del portal, las referencias no
+ * coincidían y el mismo gasto entraba dos veces.
+ */
+describe('ingestNormalized — la misma fuente por dos canales', () => {
+  const mismaCompraPorCorreo: NormalizedTransaction = {
+    ...web,
+    fecha: '2026/08/27',
+    // Así es como la deja el parser del sprint 06: el comercio a secas.
+    descripcion: 'EXITO SUR',
+    referencia: 'correo:4471',
+  };
+
+  const porPortal = (lote: NormalizedTransaction[]) => ({
+    owner,
+    fuente: 'bancolombia' as const,
+    canal: 'web' as const,
+    nombreFuente: 'Bancolombia',
+    lote,
+    capturadoEn: '2026-08-28T10:00:00.000-05:00',
+  });
+  const porCorreoBancolombia = (lote: NormalizedTransaction[]) => ({
+    owner,
+    fuente: 'bancolombia' as const,
+    canal: 'correo' as const,
+    nombreFuente: 'Bancolombia',
+    lote,
+    capturadoEn: '2026-08-28T20:00:00.000-05:00',
+  });
+
+  it('es un solo movimiento, con una observación por canal', async () => {
+    const d = deps();
+
+    await ingestNormalized(d, porPortal([web]));
+    const resumen = await ingestNormalized(d, porCorreoBancolombia([mismaCompraPorCorreo]));
+
+    expect(resumen.fusionadas).toBe(1);
+    expect(resumen.nuevas).toBe(0);
+    expect(d.transactions.all()).toHaveLength(1);
+
+    const observaciones = await d.ingest.listObservations(d.transactions.all()[0]!.id);
+    expect(observaciones).toHaveLength(2);
+    expect(observaciones.map((o) => o.canal).sort()).toEqual(['correo', 'web']);
+  });
+
+  it('y el gasto se cuenta una sola vez', async () => {
+    const d = deps();
+
+    await ingestNormalized(d, porPortal([web]));
+    await ingestNormalized(d, porCorreoBancolombia([mismaCompraPorCorreo]));
+
+    // Contar transacciones no basta: lo que descuadra un saldo son los apuntes.
+    // Una transacción de doble partida deja dos, y suman cero. Contada dos
+    // veces dejaría cuatro, y el saldo de Bancolombia sería el doble.
+    expect(d.accounts.postings).toHaveLength(2);
+    expect(d.accounts.postings.reduce((s, p) => s + p.amount.amount, 0n)).toBe(0n);
+
+    // Y hay exactamente una salida de 45.000, no dos.
+    const salidas = d.accounts.postings.filter((p) => p.amount.amount === -45000n);
+    expect(salidas).toHaveLength(1);
+  });
+
+  it('pero dos compras distintas del mismo canal siguen siendo dos', async () => {
+    const d = deps();
+
+    await ingestNormalized(d, porPortal([web]));
+    await ingestNormalized(d, porPortal([{ ...web, referencia: 'REF-2' }]));
+
+    expect(d.transactions.all()).toHaveLength(2);
   });
 });

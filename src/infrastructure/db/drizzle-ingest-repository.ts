@@ -51,6 +51,7 @@ function toObservation(fila: ObservationRow): Observation {
     transactionId: transactionId(fila.transactionId),
     owner: fila.ownerId as OwnerId,
     fuente: fila.fuente,
+    canal: fila.canal,
     referencia: fila.referencia,
     huella: fila.huella,
     capturadoEn: fila.capturadoEn,

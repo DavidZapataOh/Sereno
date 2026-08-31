@@ -37,7 +37,7 @@ export async function undoTransfer(
   for (const o of r.observacionesEntrada) {
     await deps.ingest.saveObservation({
       ...o,
-      id: observationId(r.entrada.id, o.fuente),
+      id: observationId(r.entrada.id, o.fuente, o.canal),
       transactionId: r.entrada.id,
     });
   }

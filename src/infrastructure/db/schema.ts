@@ -220,6 +220,10 @@ export const transactionObservations = sqliteTable(
       .references(() => transactions.id, { onDelete: 'cascade' }),
     ownerId: text('owner_id').notNull(),
     fuente: text('fuente').notNull(),
+    /** Por dónde llegó. Dos canales de la misma fuente son dos observaciones. */
+    canal: text('canal', { enum: ['web', 'correo', 'notificacion'] })
+      .notNull()
+      .default('web'),
     referencia: text('referencia'),
     huella: text('huella').notNull(),
     capturadoEn: text('capturado_en').notNull(),

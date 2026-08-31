@@ -25,6 +25,9 @@ const observationSchema = z.object({
   transactionId: z.string(),
   owner: z.string(),
   fuente: z.string(),
+  // Las instantáneas guardadas antes del canal no lo traen; venían del portal,
+  // que era el único canal que producía transferencias entonces.
+  canal: z.enum(['web', 'correo', 'notificacion']).default('web'),
   referencia: z.string().nullable(),
   huella: z.string(),
   capturadoEn: z.string(),

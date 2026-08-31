@@ -51,6 +51,7 @@ const observacion = (id: string, tx: string, extra: Partial<Observation> = {}): 
   transactionId: transactionId(tx),
   owner,
   fuente: 'bancolombia',
+  canal: 'web' as const,
   referencia: 'REF-1',
   huella: '2026-08-28|45000|exito',
   capturadoEn: '2026-08-28T10:00:00.000-05:00',

@@ -53,6 +53,7 @@ async function sembrar(d: ReturnType<typeof deps>, envioReal: NormalizedTransact
   await ingestNormalized(d, {
     owner,
     fuente: 'bancolombia',
+    canal: 'web' as const,
     nombreFuente: 'Bancolombia',
     lote: [envioReal],
     capturadoEn: '2026-08-10T10:00:00.000-05:00',
@@ -60,6 +61,7 @@ async function sembrar(d: ReturnType<typeof deps>, envioReal: NormalizedTransact
   await ingestNormalized(d, {
     owner,
     fuente: 'nequi',
+    canal: 'web' as const,
     nombreFuente: 'Nequi',
     lote: [recibo],
     capturadoEn: '2026-08-11T10:00:00.000-05:00',

@@ -39,6 +39,8 @@ export async function ingestCaptures(deps: IngestDeps, input: IngestInput): Prom
   return ingestNormalized(deps, {
     owner: input.owner,
     fuente: input.portalId,
+    // Una captura sale de la sesión del portal, por definición.
+    canal: 'web',
     nombreFuente: portal.nombre,
     lote,
     capturadoEn,
