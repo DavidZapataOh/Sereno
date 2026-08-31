@@ -2,6 +2,8 @@ import { accountId, ownerId } from './ids';
 import {
   isSystemAccount,
   isUnclassified,
+  conversionAccount,
+  conversionAccountId,
   sourceAccountId,
   SYSTEM_ACCOUNT_KEYS,
   systemAccount,
@@ -15,6 +17,24 @@ describe('cuentas del sistema', () => {
     expect([...SYSTEM_ACCOUNT_KEYS].sort()).toEqual(
       ['ajustes', 'efectivo', 'gastos-sin-clasificar', 'ingresos-sin-clasificar'].sort(),
     );
+  });
+
+  /**
+   * El puente entre monedas es **una cuenta por moneda**, no una con las dos
+   * dentro: `balanceOf` suma con la moneda de la cuenta, así que un puente con
+   * pesos y USDC no se podría consultar. Por eso no está entre las claves
+   * fijas: es una familia, no una cuenta.
+   *
+   * Es de patrimonio para que no infle el patrimonio neto —que suma activos y
+   * pasivos—: cambiar de moneda no es ganar ni perder dinero.
+   */
+  it('el puente de conversiones es una cuenta de patrimonio por moneda', () => {
+    expect(conversionAccountId('USDC')).toBe('sistema:conversiones:USDC');
+    expect(conversionAccountId('COP')).not.toBe(conversionAccountId('USDC'));
+
+    const puente = conversionAccount(owner, 'USDC');
+    expect(puente.kind).toBe('patrimonio');
+    expect(puente.currency).toBe('USDC');
   });
 
   it('los ids son estables y llevan el prefijo del sistema', () => {

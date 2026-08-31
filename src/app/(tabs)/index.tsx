@@ -81,6 +81,7 @@ export default function HoyScreen() {
     >
       <OverviewHeader
         patrimonio={o.patrimonio}
+        sinValorar={o.sinValorar.map((c) => c.saldo)}
         ultimaSincronizacion={o.ultimaSincronizacion?.terminadoEn ?? null}
         now={deps.clock()}
       />

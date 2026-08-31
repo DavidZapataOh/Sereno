@@ -178,3 +178,19 @@ describe('formatSigned con montos negativos', () => {
     expect(formatSigned(-300_000, 'entra').startsWith('+')).toBe(true);
   });
 });
+
+describe('USDC', () => {
+  /**
+   * El saldo real de la wallet de Solana medido el 2026-08-31. Seis
+   * decimales: tratar sus unidades como centavos sería un error de cuatro
+   * órdenes de magnitud.
+   */
+  it('85.761 unidades mínimas son 0,085761 USDC', () => {
+    expect(formatAmount(85_761n, 'USDC')).toContain('0,085761');
+  });
+
+  /** El saldo real de Polygon: 0,05 USDC.e. */
+  it('50.000 unidades mínimas son 0,05', () => {
+    expect(formatAmount(50_000n, 'USDC')).toContain('0,05');
+  });
+});
