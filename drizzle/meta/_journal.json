@@ -106,6 +106,13 @@
       "when": 1788190000000,
       "tag": "0014_corte_al_conectar_correo",
       "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "6",
+      "when": 1788200000000,
+      "tag": "0015_canal_en_observaciones",
+      "breakpoints": true
     }
   ]
 }

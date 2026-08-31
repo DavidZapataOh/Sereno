@@ -154,6 +154,7 @@ describe('createInMemoryIngestRepository', () => {
       transactionId: transactionId('t1'),
       owner,
       fuente: 'bancolombia',
+      canal: 'web' as const,
       referencia: 'REF-1',
       huella: 'h1',
       capturadoEn: '2026-08-28T10:00:00.000-05:00',

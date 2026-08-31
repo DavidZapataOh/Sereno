@@ -8,6 +8,7 @@ import {
 import { isBeforeStart } from '@/domain/ingest/account-start';
 import { fingerprintOf } from '@/domain/ingest/fingerprint';
 import type { IngestRun } from '@/domain/ingest/ingest-run';
+import { type Channel, via } from '@/domain/ingest/channel';
 import { observationId } from '@/domain/ingest/observation';
 import { ingestedTransactionId, toLedgerTransaction } from '@/domain/ingest/to-transaction';
 import type { OwnerId } from '@/domain/ledger/ids';
@@ -19,6 +20,13 @@ import type { IngestDeps, IngestSummary } from './types';
 export interface NormalizedBatch {
   owner: OwnerId;
   fuente: SourceId;
+  /**
+   * Por dónde llegó este lote. No tiene valor por defecto a propósito: un
+   * defecto silencioso aquí es justo el error que costó contar dos veces la
+   * misma compra de Bancolombia (portal y correo son fuentes iguales y
+   * canales distintos).
+   */
+  canal: Channel;
   nombreFuente: string;
   lote: NormalizedTransaction[];
   /** Cuándo se obtuvo el lote. Va a cada observación. */
@@ -99,6 +107,7 @@ export async function ingestNormalized(
       const observacionBase = {
         owner: batch.owner,
         fuente: normalizada.fuente,
+        canal: batch.canal,
         referencia,
         huella: fingerprintOf(normalizada),
         capturadoEn: batch.capturadoEn,
@@ -115,15 +124,15 @@ export async function ingestNormalized(
         const hermanas = await deps.ingest.listObservations(candidata.transactionId);
         contextos.push({
           observation: candidata,
-          fuentesQueLaVieron: hermanas.map((o) => o.fuente),
+          viasQueLaVieron: hermanas.map((o) => via(o.fuente, o.canal)),
         });
       }
 
-      const duplicada = chooseDuplicate(normalizada, contextos);
+      const duplicada = chooseDuplicate(normalizada, batch.canal, contextos);
       if (duplicada !== null) {
         await deps.ingest.saveObservation({
           ...observacionBase,
-          id: observationId(duplicada.transactionId, normalizada.fuente),
+          id: observationId(duplicada.transactionId, normalizada.fuente, batch.canal),
           transactionId: duplicada.transactionId,
         });
         run.fusionadas += 1;
@@ -152,7 +161,7 @@ export async function ingestNormalized(
       await deps.transactions.save(transaccion);
       await deps.ingest.saveObservation({
         ...observacionBase,
-        id: observationId(id, normalizada.fuente),
+        id: observationId(id, normalizada.fuente, batch.canal),
         transactionId: id,
       });
       run.nuevas += 1;

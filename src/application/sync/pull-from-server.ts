@@ -82,6 +82,8 @@ export async function pullFromServer(
       const parcial = await ingestNormalized(deps, {
         owner: input.owner,
         fuente,
+        // Todo lo que entrega el servidor salió de un correo.
+        canal: 'correo',
         nombreFuente: SOURCES[fuente].nombre,
         lote,
         capturadoEn: deps.clock(),

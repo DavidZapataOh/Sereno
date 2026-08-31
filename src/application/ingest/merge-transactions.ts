@@ -54,7 +54,7 @@ export async function mergeTransactions(
     await deps.ingest.deleteObservation(o.id);
     await deps.ingest.saveObservation({
       ...o,
-      id: observationId(input.keep, o.fuente),
+      id: observationId(input.keep, o.fuente, o.canal),
       transactionId: input.keep,
     });
   }

@@ -55,7 +55,7 @@ export async function splitObservation(
   await deps.ingest.deleteObservation(observacion.id);
   await deps.ingest.saveObservation({
     ...observacion,
-    id: observationId(nuevoId, observacion.fuente),
+    id: observationId(nuevoId, observacion.fuente, observacion.canal),
     transactionId: nuevoId,
   });
 

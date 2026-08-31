@@ -102,6 +102,7 @@ describe('syncPortal', () => {
     await ingestNormalized(d, {
       owner,
       fuente: 'nequi',
+      canal: 'web' as const,
       nombreFuente: 'Nequi',
       capturadoEn: '2026-08-28T09:00:00.000-05:00',
       lote: [

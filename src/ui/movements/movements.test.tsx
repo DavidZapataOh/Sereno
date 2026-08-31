@@ -137,6 +137,7 @@ describe('MovementDetail', () => {
     transactionId: transaccion.id,
     owner,
     fuente: 'bancolombia',
+    canal: 'web' as const,
     referencia: 'T1',
     huella: 'h',
     capturadoEn: '2026-08-28T10:00:00.000-05:00',
