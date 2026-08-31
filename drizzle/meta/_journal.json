@@ -113,6 +113,13 @@
       "when": 1788200000000,
       "tag": "0015_canal_en_observaciones",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "6",
+      "when": 1788150655757,
+      "tag": "0016_cold_living_lightning",
+      "breakpoints": true
     }
   ]
 }

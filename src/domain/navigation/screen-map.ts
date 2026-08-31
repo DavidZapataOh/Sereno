@@ -178,6 +178,14 @@ export const SCREEN_MAP: readonly Screen[] = [
     fase: 5,
   },
   {
+    id: 'tarjetas',
+    titulo: 'Tarjetas',
+    ruta: '/ajustes/tarjetas',
+    padre: 'ajustes',
+    pregunta: '¿Cuánto cupo tiene cada tarjeta y cuándo corta y se paga?',
+    fase: 7,
+  },
+  {
     id: 'revisar',
     titulo: 'Revisar',
     ruta: '/categorias/revisar',
