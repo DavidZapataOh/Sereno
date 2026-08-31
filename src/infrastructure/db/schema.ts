@@ -170,6 +170,35 @@ export const classificationBatches = sqliteTable(
 );
 
 /**
+ * Tasas de cambio guardadas (sprint 08).
+ *
+ * El valor va como TEXT y entero con su escala —«3202.79» es 320279 con
+ * escala 2— por lo mismo que `postings.amount`: un float aquí introduce un
+ * error que después se multiplica por el saldo.
+ *
+ * `origen` y `momento` no son adorno: sin ellos, dentro de un mes el número no
+ * dice de dónde salió ni si se quedó pegado. Y la clave incluye el momento
+ * para que **el pasado no se reescriba**: valorar el patrimonio de hace un mes
+ * con la tasa de hoy haría que la gráfica cambiara sola.
+ */
+export const rates = sqliteTable(
+  'rates',
+  {
+    desde: text('desde').notNull(),
+    hacia: text('hacia').notNull(),
+    momento: text('momento').notNull(),
+    valor: text('valor').notNull(),
+    escala: integer('escala').notNull(),
+    origen: text('origen').notNull(),
+  },
+  (tabla) => [
+    primaryKey({ columns: [tabla.desde, tabla.hacia, tabla.momento] }),
+    // «La vigente de este par» y «la de aquel día» son las dos consultas.
+    index('idx_rates_par_momento').on(tabla.desde, tabla.hacia, tabla.momento),
+  ],
+);
+
+/**
  * Lo que una cuenta que es tarjeta de crédito tiene de más (sprint 07).
  *
  * Clave: la cuenta, como en `categories` (ADR 0005). Una tabla aparte y no
