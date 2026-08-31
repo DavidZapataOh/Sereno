@@ -1,3 +1,4 @@
+import type { CardRepository } from '@/domain/cards/card-repository';
 import type { BatchRepository } from '@/domain/categorization/batch';
 import type { CategoryRepository } from '@/domain/categorization/category';
 import type { ClassificationRepository } from '@/domain/categorization/classification';
@@ -13,6 +14,7 @@ import type { SyncStateRepository } from '@/domain/sync/server-client';
 import type { Database } from './database';
 import { createDrizzleAccountRepository } from './drizzle-account-repository';
 import { createDrizzleBatchRepository } from './drizzle-batch-repository';
+import { createDrizzleCardRepository } from './drizzle-card-repository';
 import { createDrizzleCategoryRepository } from './drizzle-category-repository';
 import { createDrizzleClassificationRepository } from './drizzle-classification-repository';
 import { createDrizzleEvidenceRepository } from './drizzle-evidence-repository';
@@ -35,6 +37,7 @@ export interface Repositories {
   evidence: EvidenceRepository;
   batches: BatchRepository;
   sync: SyncStateRepository;
+  cards: CardRepository;
 }
 
 /** Todos los repositorios sobre una misma base. Las rutas lo llaman una vez. */
@@ -51,5 +54,6 @@ export function createRepositories(db: Database): Repositories {
     evidence: createDrizzleEvidenceRepository(db),
     batches: createDrizzleBatchRepository(db),
     sync: createDrizzleSyncStateRepository(db),
+    cards: createDrizzleCardRepository(db),
   };
 }

@@ -112,6 +112,13 @@ export default function AjustesScreen() {
               }}
             />
             <NavRow
+              title="Tarjetas"
+              subtitle="Cupo, día de corte y día de pago"
+              onPress={() => {
+                router.push('/ajustes/tarjetas');
+              }}
+            />
+            <NavRow
               title="Diagnóstico"
               subtitle="Salud de la contabilidad y muestra tipográfica"
               onPress={() => {

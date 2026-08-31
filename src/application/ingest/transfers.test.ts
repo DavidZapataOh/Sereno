@@ -198,3 +198,73 @@ describe('undoTransfer', () => {
     );
   });
 });
+
+/**
+ * El pago de la tarjeta llega por dos correos: el de Bancolombia dice que
+ * salió plata, y el de RappiCard dice que bajó la deuda. Es una transferencia
+ * entre cuentas propias como cualquier otra, pero **con un pasivo de un lado**,
+ * y ese caso nunca se había probado: hasta el sprint 07 todas las cuentas
+ * conectadas eran activos.
+ */
+describe('detectTransfers con una tarjeta de por medio', () => {
+  const salidaDelBanco: NormalizedTransaction = {
+    fecha: '2026/08/25',
+    descripcion: 'PAGO TARJETA RAPPICARD',
+    monto: 140378,
+    moneda: 'COP',
+    tipo: 'debito',
+    fuente: 'bancolombia',
+    referencia: 'PAG-1',
+  };
+  const pagoDeLaTarjeta: NormalizedTransaction = {
+    fecha: '2026/08/25',
+    descripcion: 'Pago de la tarjeta',
+    monto: 140378,
+    moneda: 'COP',
+    tipo: 'credito',
+    fuente: 'rappicard',
+    referencia: 'PAG-RAPPI-1',
+  };
+
+  async function sembrarPago(d: ReturnType<typeof deps>) {
+    await ingestNormalized(d, {
+      owner,
+      fuente: 'bancolombia',
+      canal: 'correo' as const,
+      nombreFuente: 'Bancolombia',
+      lote: [salidaDelBanco],
+      capturadoEn: '2026-08-25T10:00:00.000-05:00',
+    });
+    await ingestNormalized(d, {
+      owner,
+      fuente: 'rappicard',
+      canal: 'correo' as const,
+      nombreFuente: 'RappiCard',
+      lote: [pagoDeLaTarjeta],
+      capturadoEn: '2026-08-25T11:00:00.000-05:00',
+    });
+  }
+
+  it('es una transferencia, no un gasto y un ingreso', async () => {
+    const d = deps();
+    await sembrarPago(d);
+
+    const resultado = await detectTransfers(d, { owner });
+
+    expect(resultado.detectadas).toBe(1);
+    expect(d.transactions.all()).toHaveLength(1);
+  });
+
+  it('la plata sale del banco y la deuda baja, y nada toca las cuentas de gasto', async () => {
+    const d = deps();
+    await sembrarPago(d);
+
+    await detectTransfers(d, { owner });
+
+    expect(await saldo(d, 'bancolombia:ahorros')).toBe(-140378n);
+    // Un pasivo baja con signo positivo: la deuda se acerca a cero.
+    expect(await saldo(d, 'rappicard:tarjeta')).toBe(140378n);
+    expect(await saldo(d, 'sistema:gastos-sin-clasificar')).toBe(0n);
+    expect(await saldo(d, 'sistema:ingresos-sin-clasificar')).toBe(0n);
+  });
+});

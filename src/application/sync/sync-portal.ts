@@ -6,6 +6,7 @@ import type { PortalId } from '@/domain/portals/registry';
 import type { Reconciliation } from '@/domain/reconciliation/reconciliation';
 import { calendarDay } from '@/domain/time/colombia';
 
+import type { CardSummaryDeps } from '../cards/card-summary';
 import { classifyUnclassified } from '../categorization/classify';
 import { ensureDefaultCategories } from '../categorization/ensure-default-categories';
 import type { CategorizationDeps } from '../categorization/types';
@@ -20,7 +21,11 @@ import {
 } from '../reconciliation/reconcile-from-captures';
 
 /** Todos los puertos del sprint. Las rutas lo construyen una vez. */
-export type AppDeps = IngestDeps & ReconciliationDeps & CategorizationDeps & PullDeps;
+export type AppDeps = IngestDeps &
+  ReconciliationDeps &
+  CategorizationDeps &
+  PullDeps &
+  CardSummaryDeps;
 
 export interface SyncSummary extends IngestSummary {
   transferencias: number;

@@ -170,6 +170,32 @@ export const classificationBatches = sqliteTable(
 );
 
 /**
+ * Lo que una cuenta que es tarjeta de crédito tiene de más (sprint 07).
+ *
+ * Clave: la cuenta, como en `categories` (ADR 0005). Una tabla aparte y no
+ * columnas en `accounts` porque la mayoría de las cuentas no son tarjetas, y
+ * una columna que casi siempre está vacía invita a llenarla con cualquier cosa.
+ *
+ * El cupo va en TEXT por lo mismo que `postings.amount`: los enteros de SQLite
+ * no cubren todas las escalas y el redondeo de un float no se nota hasta que
+ * duele.
+ */
+export const creditCards = sqliteTable(
+  'credit_cards',
+  {
+    accountId: text('account_id')
+      .primaryKey()
+      .references(() => accounts.id),
+    ownerId: text('owner_id').notNull(),
+    cupo: text('cupo').notNull(),
+    currency: text('currency').notNull(),
+    diaDeCorte: integer('dia_de_corte').notNull(),
+    diaDePago: integer('dia_de_pago').notNull(),
+  },
+  (tabla) => [index('idx_credit_cards_owner').on(tabla.ownerId)],
+);
+
+/**
  * Dónde va la traída del servidor y cuándo fue la última (sprint 06).
  *
  * Una fila por clave. El cursor es la secuencia del último movimiento que ya

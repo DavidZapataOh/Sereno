@@ -15,6 +15,7 @@ import { createInMemoryReconciliationRepository } from '@/test/fakes/in-memory-r
 import { createInMemoryTransactionRepository } from '@/test/fakes/in-memory-transaction-repository';
 import { createInMemoryTransferRepository } from '@/test/fakes/in-memory-transfer-repository';
 import { createSequentialIds } from '@/test/fakes/sequential-ids';
+import { createInMemoryCardRepository } from '@/test/fakes/in-memory-card-repository';
 import { mustExist } from '@/test/must-exist';
 
 import { ingestNormalized } from '../ingest/ingest-normalized';
@@ -40,6 +41,7 @@ function deps() {
     batches: createInMemoryBatchRepository(),
     servidor: createFakeServerClient([]),
     sync: createInMemorySyncStateRepository(),
+    cards: createInMemoryCardRepository(),
     ids: createSequentialIds('id'),
     clock: () => '2026-08-28T12:00:00.000-05:00',
   };

@@ -3,6 +3,7 @@ import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { FlatList, Modal, View, type ViewStyle } from 'react-native';
 
+import { cardSummary } from '@/application/cards/card-summary';
 import { countCash } from '@/application/ledger/count-cash';
 import { registerCashExpense } from '@/application/ledger/register-cash-expense';
 import { listMovements } from '@/application/movements/movements';
@@ -16,6 +17,7 @@ import { Button } from '@/ui/components/button';
 import { Card } from '@/ui/components/card';
 import { Money } from '@/ui/components/money';
 import { EmptyState, ErrorState, LoadingState } from '@/ui/components/states';
+import { CardSummaryCard } from '@/ui/cards/card-summary-card';
 import { CashCountForm } from '@/ui/movements/cash-count-form';
 import { CashExpenseForm } from '@/ui/movements/cash-expense-form';
 import { MovementRow } from '@/ui/movements/movement-row';
@@ -40,6 +42,12 @@ export default function CuentaRoute() {
   const saldo = useQuery({
     queryKey: ['balance', CURRENT_OWNER, id],
     queryFn: () => deps.accounts.balanceOf(cuentaId),
+  });
+  // Solo devuelve algo si la cuenta es una tarjeta configurada; en cualquier
+  // otra cuenta es `null` y la tarjeta no se pinta.
+  const tarjeta = useQuery({
+    queryKey: ['card-summary', CURRENT_OWNER, id],
+    queryFn: () => cardSummary(deps, { owner: CURRENT_OWNER, accountId: cuentaId }),
   });
   const conciliacion = useQuery({
     queryKey: ['reconciliation', id],
@@ -120,6 +128,9 @@ export default function CuentaRoute() {
                 size="montoGrande"
               />
             </View>
+            {tarjeta.data !== undefined && tarjeta.data !== null && (
+              <CardSummaryCard resumen={tarjeta.data} />
+            )}
             {conciliacion.data !== undefined && conciliacion.data !== null && (
               <DriftCard reconciliation={conciliacion.data} />
             )}
