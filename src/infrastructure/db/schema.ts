@@ -183,7 +183,8 @@ export const wallets = sqliteTable(
   {
     id: text('id').primaryKey(),
     ownerId: text('owner_id').notNull(),
-    chain: text('chain').notNull(),
+    /** La red, no la cadena: una dirección EVM vale en las catorce cadenas EVM. */
+    red: text('red').notNull(),
     direccion: text('direccion').notNull(),
     nombre: text('nombre').notNull(),
     /** Cuándo se leyó por última vez, y si falló. */

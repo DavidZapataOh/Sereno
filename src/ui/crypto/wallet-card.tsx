@@ -13,10 +13,13 @@ export const TEXTO_WALLET = {
   leidoHace: (cuando: string) => `Leído ${cuando}`,
   sinLeer: 'Todavía no se ha leído',
   noSePudoLeer: 'No se pudo leer la última vez. Se muestra el último saldo bueno.',
+  sinSaldo: 'Se miró en todas las cadenas y no hay saldo.',
   borrar: 'Dejar de seguir esta wallet',
 };
 
 export interface SaldoEnPantalla {
+  /** En qué cadena está. Con catorce, «USDC» a secas no dice dónde. */
+  chain: string;
   simbolo: string;
   saldo: MoneyValue;
 }
@@ -63,10 +66,15 @@ export function WalletCard({ estado, ahora, onBorrar }: Props) {
         <IconButton icon="close" label={TEXTO_WALLET.borrar} onPress={onBorrar} />
       </View>
 
+      {estado.saldos.length === 0 && !fallo && (
+        <AppText level="apoyo" color="textSecondary">
+          {TEXTO_WALLET.sinSaldo}
+        </AppText>
+      )}
       {estado.saldos.map((s) => (
-        <View key={s.simbolo} style={{ gap: theme.spacing.xs }}>
+        <View key={`${s.chain}:${s.simbolo}`} style={{ gap: theme.spacing.xs }}>
           <AppText level="apoyo" color="textSecondary">
-            {s.simbolo}
+            {`${s.simbolo} en ${s.chain}`}
           </AppText>
           <Money
             amount={s.saldo.amount}

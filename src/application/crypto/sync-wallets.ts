@@ -1,5 +1,5 @@
 import type { BalanceSource, SaldoLeido } from '@/domain/crypto/balance-source';
-import type { Chain, Wallet } from '@/domain/crypto/wallet';
+import { CADENAS_DE, type Chain, type Wallet } from '@/domain/crypto/wallet';
 import type { WalletRepository } from '@/domain/crypto/wallet-repository';
 import { createAccount } from '@/domain/ledger/account';
 import { accountId, type AccountId, type OwnerId } from '@/domain/ledger/ids';
@@ -31,16 +31,14 @@ export interface ResumenWallets {
 }
 
 /**
- * Por qué se guarda el motivo y no solo «falló»: dentro de una semana, «el nodo
- * no respondió» y «esa dirección no existe» piden cosas distintas.
+ * La cuenta del ledger de un token de una wallet en una cadena.
+ *
+ * Lleva el id de la wallet dentro: sin él, dos direcciones distintas en la
+ * misma cadena compartirían cuenta y cada lectura desharía el ajuste de la
+ * otra, para siempre.
  */
-function motivo(error: unknown): string {
-  return error instanceof Error ? error.message : String(error);
-}
-
-/** La cuenta del ledger de un token en una wallet. */
-export function walletAccountId(wallet: Wallet, simbolo: string): AccountId {
-  return accountId(`wallet:${wallet.chain}:${simbolo}`);
+export function walletAccountId(wallet: Wallet, chain: Chain, simbolo: string): AccountId {
+  return accountId(`${wallet.id}:${chain}:${simbolo}`);
 }
 
 /**
@@ -69,24 +67,58 @@ export async function syncWallets(
   const wallets = await deps.wallets.listar(input.owner);
 
   for (const wallet of wallets) {
-    const fuente = deps.fuentesDeSaldo.find((f) => f.chain === wallet.chain);
-    if (fuente === undefined) continue;
+    const falladas: Chain[] = [];
 
-    let saldos: SaldoLeido[];
-    try {
-      saldos = await fuente.leerSaldos(wallet);
-    } catch (error) {
-      // Un fallo en una cadena no impide leer las demás, y no toca su saldo.
-      resumen.fallidas.push(wallet.chain);
-      await deps.wallets.marcarLectura(wallet.id, deps.clock(), motivo(error));
-      continue;
+    // Todas las cadenas de su red. Una dirección EVM vale en las catorce, y
+    // mirar solo una deja plata invisible sin que nada lo diga.
+    for (const chain of CADENAS_DE[wallet.red]) {
+      const fuente = deps.fuentesDeSaldo.find((f) => f.chain === chain);
+      if (fuente === undefined) continue;
+
+      let saldos: SaldoLeido[];
+      try {
+        saldos = await fuente.leerSaldos(wallet);
+      } catch {
+        // Una cadena caída no impide leer las otras trece, y no toca su saldo.
+        resumen.fallidas.push(chain);
+        falladas.push(chain);
+        continue;
+      }
+      resumen.leidas += 1;
+
+      await asentarSaldos(deps, input.owner, wallet, chain, saldos, resumen);
     }
-    resumen.leidas += 1;
-    await deps.wallets.marcarLectura(wallet.id, deps.clock(), null);
 
+    await deps.wallets.marcarLectura(
+      wallet.id,
+      deps.clock(),
+      falladas.length === 0 ? null : `No se pudo leer en: ${falladas.join(', ')}`,
+    );
+  }
+
+  return resumen;
+}
+
+/** Compara lo leído con el ledger y asienta la diferencia. */
+async function asentarSaldos(
+  deps: SyncWalletsDeps,
+  owner: OwnerId,
+  wallet: Wallet,
+  chain: Chain,
+  saldos: SaldoLeido[],
+  resumen: ResumenWallets,
+): Promise<void> {
+  {
     for (const saldo of saldos) {
-      const id = walletAccountId(wallet, saldo.token.simbolo);
-      await asegurarCuenta(deps, input.owner, wallet, saldo, id);
+      const id = walletAccountId(wallet, chain, saldo.token.simbolo);
+      const cuenta = await deps.accounts.findById(id);
+
+      // Un token en cero que nunca ha tenido nada no crea cuenta. Con catorce
+      // cadenas serían casi treinta cuentas vacías en la lista, y una lista
+      // llena de ceros esconde lo que sí importa. El «miré y no hay» se sigue
+      // viendo en la pantalla de Wallets, que lee token por token.
+      if (cuenta === null && isZero(saldo.cantidad)) continue;
+      if (cuenta === null) await crearCuenta(deps, owner, wallet, chain, saldo, id);
 
       const actual = await deps.accounts.balanceOf(id);
       const diferencia: Money = {
@@ -99,34 +131,32 @@ export async function syncWallets(
       // va a Ajustes, igual que el conteo de efectivo. Saber la causa exigiría
       // leer las transferencias on-chain, y eso no es de este sprint.
       await registerAdjustment(deps, {
-        owner: input.owner,
+        owner,
         accountId: id,
         amount: diferencia,
-        motivo: `Saldo leído de ${wallet.nombre}: ${saldo.token.simbolo}`,
+        motivo: `Saldo leído de ${wallet.nombre} en ${chain}: ${saldo.token.simbolo}`,
         fecha: saldo.leidoEn,
       });
       resumen.ajustes += 1;
     }
   }
-
-  return resumen;
 }
 
-/** La cuenta de un token existe o se crea. Idempotente. */
-async function asegurarCuenta(
+/** La cuenta de un token en una cadena. El nombre dice dónde está. */
+async function crearCuenta(
   deps: SyncWalletsDeps,
   owner: OwnerId,
   wallet: Wallet,
+  chain: Chain,
   saldo: SaldoLeido,
   id: AccountId,
 ): Promise<void> {
-  if ((await deps.accounts.findById(id)) !== null) return;
   await deps.accounts.save(
     createAccount({
       id,
       owner,
       kind: 'activo',
-      nombre: `${saldo.token.simbolo} en ${wallet.nombre}`,
+      nombre: `${saldo.token.simbolo} en ${chain}`,
       currency: saldo.token.currency,
     }),
   );

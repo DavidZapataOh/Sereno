@@ -1,4 +1,4 @@
-import { esDireccionValida, type Chain, type Wallet } from '@/domain/crypto/wallet';
+import { redDe, type Wallet } from '@/domain/crypto/wallet';
 import type { EstadoWallet, WalletRepository } from '@/domain/crypto/wallet-repository';
 import type { IdGenerator, OwnerId } from '@/domain/ledger/ids';
 
@@ -10,27 +10,31 @@ export interface ManageWalletsDeps {
 /**
  * Añade una wallet a seguir.
  *
- * Solo la dirección **pública**. Si alguien pega aquí una clave privada, la
- * validación de forma la rechaza —no tiene forma de dirección— y así el error
- * se ve en vez de guardarse.
+ * **La red se deduce de la dirección**, no se pregunta. Es una decisión que el
+ * usuario no tiene por qué tomar, y en la que se puede equivocar sin
+ * enterarse: una dirección buena en la red equivocada devuelve cero, y un cero
+ * no se distingue de un saldo vacío.
+ *
+ * Solo la dirección **pública**. Si alguien pega aquí una clave privada, no
+ * tiene forma de dirección de ninguna red y se rechaza: el error se ve en vez
+ * de guardarse.
  */
 export async function addWallet(
   deps: ManageWalletsDeps,
-  input: { owner: OwnerId; chain: Chain; direccion: string; nombre: string },
+  input: { owner: OwnerId; direccion: string; nombre: string },
 ): Promise<Wallet> {
   const direccion = input.direccion.trim();
-  if (!esDireccionValida(input.chain, direccion)) {
-    // Una dirección de otra cadena devuelve cero, y un cero no se distingue
-    // de no tener nada: por eso se valida por cadena y no «que parezca una».
-    throw new Error(`Esa dirección no tiene la forma de una de ${input.chain}`);
+  const red = redDe(direccion);
+  if (red === null) {
+    throw new Error('Eso no tiene forma de dirección pública de ninguna red conocida');
   }
   const nombre = input.nombre.trim();
   if (nombre.length === 0) throw new Error('La wallet necesita un nombre');
 
   const wallet: Wallet = {
-    id: `wallet:${input.chain}:${deps.ids.next()}`,
+    id: `wallet:${red}:${deps.ids.next()}`,
     owner: input.owner,
-    chain: input.chain,
+    red,
     direccion,
     nombre,
   };

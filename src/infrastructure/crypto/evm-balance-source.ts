@@ -1,5 +1,5 @@
 import { aMoneda, type BalanceSource, type SaldoLeido } from '@/domain/crypto/balance-source';
-import { tokensDe, type Chain, type Wallet } from '@/domain/crypto/wallet';
+import { tokensDe, type ChainEvm, type Wallet } from '@/domain/crypto/wallet';
 
 /**
  * El nodo público de cada cadena.
@@ -8,13 +8,21 @@ import { tokensDe, type Chain, type Wallet } from '@/domain/crypto/wallet';
  * se probaron —`llamarpc`— devolvían HTML cuando limitaban, y una respuesta
  * que no es JSON tomada como saldo cero borraría plata de la pantalla.
  */
-export const NODOS: Record<Exclude<Chain, 'solana'>, string> = {
+export const NODOS: Record<ChainEvm, string> = {
   ethereum: 'https://ethereum-rpc.publicnode.com',
   polygon: 'https://polygon-bor-rpc.publicnode.com',
   arbitrum: 'https://arb1.arbitrum.io/rpc',
   base: 'https://mainnet.base.org',
   bsc: 'https://bsc-rpc.publicnode.com',
   optimism: 'https://mainnet.optimism.io',
+  avalanche: 'https://avalanche-c-chain-rpc.publicnode.com',
+  linea: 'https://rpc.linea.build',
+  scroll: 'https://rpc.scroll.io',
+  gnosis: 'https://rpc.gnosischain.com',
+  celo: 'https://forno.celo.org',
+  zksync: 'https://mainnet.era.zksync.io',
+  mantle: 'https://rpc.mantle.xyz',
+  sonic: 'https://rpc.soniclabs.com',
 };
 
 /**
@@ -40,7 +48,7 @@ interface RespuestaRpc {
 const TIEMPO_LIMITE = 15_000;
 
 export function createEvmBalanceSource(
-  chain: Exclude<Chain, 'solana'>,
+  chain: ChainEvm,
   hacerFetch: Fetch = fetch,
   reloj: () => string = () => new Date().toISOString(),
 ): BalanceSource {
