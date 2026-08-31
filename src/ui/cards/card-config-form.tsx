@@ -5,7 +5,7 @@ import type { CardConfig } from '@/application/cards/configure-card';
 import { AppText } from '@/ui/components/app-text';
 import { Button } from '@/ui/components/button';
 import { Card } from '@/ui/components/card';
-import { TextField } from '@/ui/components/text-field';
+import { MoneyField } from '@/ui/components/text-field';
 import { useTheme } from '@/ui/theme/use-theme';
 
 export const TEXTO_CONFIG = {
@@ -15,7 +15,6 @@ export const TEXTO_CONFIG = {
   guardar: 'Guardar',
   ayuda:
     'Estos tres datos no llegan en ningún correo y no cambian: se ponen una vez. El corte es el día en que la tarjeta cierra el mes; el pago, el día en que vence.',
-  soloEnteros: 'Escribe solo números',
 };
 
 /** De 1 a 28: los días 29, 30 y 31 no existen todos los meses. */
@@ -36,25 +35,23 @@ interface Props {
  */
 export function CardConfigForm({ config, onGuardar, guardando = false }: Props) {
   const theme = useTheme();
-  const [cupo, setCupo] = useState(
-    config.tarjeta === null ? '' : config.tarjeta.cupo.amount.toString(),
-  );
+  const [cupo, setCupo] = useState<bigint | null>(config.tarjeta?.cupo.amount ?? null);
   const [corte, setCorte] = useState(config.tarjeta?.diaDeCorte ?? 15);
   const [pago, setPago] = useState(config.tarjeta?.diaDePago ?? 5);
 
-  const soloDigitos = /^\d*$/.test(cupo);
-  const puedeGuardar = soloDigitos && cupo.length > 0 && !guardando;
+  const puedeGuardar = cupo !== null && !guardando;
 
   return (
     <Card style={{ gap: theme.spacing.md }}>
       <AppText level="titulo">{config.cuenta.nombre}</AppText>
 
-      <TextField
+      {/* `MoneyField`, no un `TextField` con el teclado numérico: es el único
+          sitio donde se escribe dinero, y formatea los miles mientras se
+          escribe igual que en los demás formularios de la app. */}
+      <MoneyField
         label={TEXTO_CONFIG.cupo}
         value={cupo}
-        onChangeText={setCupo}
-        keyboardType="number-pad"
-        error={soloDigitos ? undefined : TEXTO_CONFIG.soloEnteros}
+        onChange={setCupo}
         testID={`cupo-${config.cuenta.id}`}
       />
 
@@ -93,7 +90,8 @@ export function CardConfigForm({ config, onGuardar, guardando = false }: Props) 
       <Button
         label={TEXTO_CONFIG.guardar}
         onPress={() => {
-          onGuardar({ cupo: BigInt(cupo), diaDeCorte: corte, diaDePago: pago });
+          if (cupo === null) return;
+          onGuardar({ cupo, diaDeCorte: corte, diaDePago: pago });
         }}
         disabled={!puedeGuardar}
         loading={guardando}
