@@ -1,0 +1,23 @@
+# El contexto de construcción es la raíz del repositorio, no `servidor/`
+# (ver la cabecera de servidor/Dockerfile). Todo lo que no se excluya aquí
+# viaja entero al constructor: pesa, y sobre todo puede llevar datos reales.
+
+# --- Nunca, jamás ---
+# Correos y volcados de verdad, con movimientos y saldos.
+capturas
+*.capture.json
+# Credenciales. Con dos asteriscos porque el que importa es servidor/.env.
+**/.env
+**/.env.*
+!**/.env.example
+
+# --- Peso muerto ---
+**/node_modules
+**/dist
+coverage
+.git
+.expo
+docs
+assets
+android
+ios
