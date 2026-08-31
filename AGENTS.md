@@ -156,6 +156,21 @@ Reglas del sprint 04 que conviene conocer antes de tocar la ingesta:
   clasificar. Umbrales explícitos en `naive-bayes.ts`; no bajarlos para «que clasifique más».
 - **La descripción cruda nunca se toca:** el comercio legible se deriva al mostrar
   (`merchantOf`). Si el catálogo mejora, mejora todo el historial.
+- **Nunca edites un `.sql` de `drizzle/` que ya se haya compilado, y nunca escribas a mano
+  el `when` del journal.** Las dos cosas fallan en silencio y solo en el dispositivo:
+  - `babel.config.js` usa `inline-import`, que **pega el contenido del `.sql` dentro del
+    JavaScript** y cachea por el archivo JS. Si cambias el `.sql` sin tocar
+    `drizzle/migrations.js`, Metro sigue sirviendo el SQL viejo: el teléfono ejecuta una
+    sentencia que ya no existe en disco. Se arregla con `npx expo start --clear`. Si hay
+    que corregir una migración ya generada, **añade otra**; y si la editas igualmente,
+    limpia la caché.
+  - `migrate` solo aplica las migraciones con marca de tiempo **mayor** que la última
+    aplicada, y lee esa última **una sola vez antes del bucle**. En una base vacía se
+    aplican todas sin mirar marcas —por eso las pruebas no lo ven—; en una base con
+    historia, una marca fuera de orden **descarta esa migración para siempre**, sin error.
+  - El arranque registra `migraciones {...}` con lo aplicado, lo pendiente y lo descartado
+    (`infrastructure/db/migration-state.ts`). Es lo primero que hay que mirar ante un «no
+    such table» o un `ALTER` que se repite.
 - **Sereno cuenta desde el día en que se conecta la cuenta.** El saldo del banco es el punto
   de partida (se asienta como «Saldo inicial» en la primera conciliación) y los movimientos
   anteriores a ese día no entran al ledger: se cuentan como `anteriores`. El día de inicio
