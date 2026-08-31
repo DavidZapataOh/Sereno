@@ -166,3 +166,63 @@ describe('getOverview', () => {
     expect(o.patrimonio).toEqual(money(0, 'COP'));
   });
 });
+
+/**
+ * Antes del sprint 08, `getOverview` filtraba `c.currency === 'COP'`: una
+ * cuenta en USDC no aparecía ni en la lista ni en el patrimonio, y no había
+ * forma de notarlo salvo echarla de menos.
+ */
+describe('cuentas en otra moneda', () => {
+  const wallet = accountId('wallet:solana');
+
+  async function conWallet() {
+    const d = await deps();
+    await d.accounts.save(
+      createAccount({ id: wallet, owner, kind: 'activo', nombre: 'Solana', currency: 'USDC' }),
+    );
+    await d.transactions.save(
+      createTransaction({
+        id: transactionId('saldo-wallet'),
+        owner,
+        fecha: '2026-08-31T10:00:00.000-05:00',
+        descripcion: 'Saldo leído de la cadena',
+        origen: { fuente: 'manual', referencia: null },
+        postings: [
+          // El saldo real de Solana medido el 2026-08-31.
+          { accountId: wallet, amount: money(85_761n, 'USDC') },
+          { accountId: systemAccountId('ajustes'), amount: money(-85_761n, 'USDC') },
+        ],
+      }),
+    );
+    return d;
+  }
+
+  it('una cuenta en USDC aparece en la lista', async () => {
+    const overview = await getOverview(await conWallet(), owner);
+
+    expect(overview.cuentas.map((c) => c.account.currency)).toContain('USDC');
+  });
+
+  /**
+   * Lo que no se pudo valorar se declara y **no se suma como cero**: un total
+   * que calla lo que no supo valorar miente por omisión, y se ve bien.
+   */
+  it('lo que no está en pesos se lista aparte y no se suma al patrimonio', async () => {
+    const overview = await getOverview(await conWallet(), owner);
+
+    expect(overview.sinValorar).toHaveLength(1);
+    expect(overview.sinValorar[0]?.saldo.amount).toBe(85_761n);
+    expect(overview.patrimonio.currency).toBe('COP');
+  });
+
+  it('el patrimonio sigue siendo la suma de lo que sí está en pesos', async () => {
+    const d = await conWallet();
+
+    const overview = await getOverview(d, owner);
+
+    const enPesos = overview.cuentas
+      .filter((c) => c.account.currency === 'COP')
+      .reduce((s, c) => s + c.saldo.amount, 0n);
+    expect(overview.patrimonio.amount).toBe(enPesos);
+  });
+});

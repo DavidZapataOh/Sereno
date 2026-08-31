@@ -43,4 +43,17 @@ describe('getCurrency', () => {
   it('no confunde propiedades heredadas con monedas', () => {
     expect(getCurrency('toString')).toBeUndefined();
   });
+
+  /**
+   * Es lo que David tiene de verdad: USDC.e en Polygon y USDC en Solana. El
+   * registro tenía USDT y no USDC, así que ninguna cuenta suya se habría
+   * podido crear.
+   */
+  it('USDC está en el registro, con seis decimales', () => {
+    expect(getCurrency('USDC')).toEqual({ code: 'USDC', scale: 6, symbol: 'USDC' });
+  });
+
+  it('USDC y USDT son monedas distintas', () => {
+    expect(CURRENCIES.USDC.code).not.toBe(CURRENCIES.USDT.code);
+  });
 });

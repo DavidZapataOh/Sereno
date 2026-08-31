@@ -13,6 +13,7 @@ const SEPARADOR_DECIMAL = ',';
 const NOMBRES: Record<CurrencyCode, string> = {
   COP: 'pesos',
   USD: 'dólares',
+  USDC: 'USDC',
   USDT: 'USDT',
   BTC: 'bitcoin',
   ETH: 'ether',

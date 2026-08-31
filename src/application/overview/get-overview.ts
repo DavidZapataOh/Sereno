@@ -21,9 +21,17 @@ export interface AccountSummary {
 }
 
 export interface Overview {
-  /** Activos menos pasivos, en pesos. Las cuentas en otra moneda llegan en el sprint 08. */
+  /** Activos menos pasivos, en pesos. Lo que no se pudo valorar va aparte. */
   patrimonio: Money;
   cuentas: AccountSummary[];
+  /**
+   * Saldos que existen y **no** están sumados en el patrimonio, porque están
+   * en otra moneda y todavía no hay con qué valorarlos.
+   *
+   * Van aparte y no como cero: un total que calla lo que no supo valorar
+   * miente por omisión, y se ve perfectamente bien.
+   */
+  sinValorar: AccountSummary[];
   sinClasificar: { gastos: Money; ingresos: Money };
   ultimaSincronizacion: IngestRun | null;
   conciliacion: Reconciliation | null;
@@ -38,17 +46,22 @@ const NO_SE_MUESTRAN = new Set<string>([
 
 export async function getOverview(deps: OverviewDeps, owner: OwnerId): Promise<Overview> {
   const todas = await deps.accounts.listByOwner(owner);
-  const reales = todas.filter(
-    (c) => isRealAccount(c.kind) && !NO_SE_MUESTRAN.has(c.id) && c.currency === 'COP',
-  );
+  const reales = todas.filter((c) => isRealAccount(c.kind) && !NO_SE_MUESTRAN.has(c.id));
 
   const cuentas: AccountSummary[] = [];
+  const sinValorar: AccountSummary[] = [];
   let patrimonio = zero('COP');
   for (const account of reales) {
     const saldo = await deps.accounts.balanceOf(account.id);
     cuentas.push({ account, saldo });
-    // El saldo de un pasivo ya es negativo en el ledger: sumar es restar.
-    patrimonio = add(patrimonio, saldo);
+    if (account.currency === 'COP') {
+      // El saldo de un pasivo ya es negativo en el ledger: sumar es restar.
+      patrimonio = add(patrimonio, saldo);
+    } else {
+      // Hasta que el plan 03 traiga las tasas, lo que no está en pesos se
+      // lista pero no se suma, y se declara.
+      sinValorar.push({ account, saldo });
+    }
   }
 
   const saldoDe = async (
@@ -75,6 +88,7 @@ export async function getOverview(deps: OverviewDeps, owner: OwnerId): Promise<O
   return {
     patrimonio,
     cuentas,
+    sinValorar,
     sinClasificar: {
       gastos: await saldoDe('gastos-sin-clasificar'),
       ingresos: await saldoDe('ingresos-sin-clasificar'),
