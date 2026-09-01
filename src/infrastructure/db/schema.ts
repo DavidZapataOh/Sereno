@@ -443,3 +443,26 @@ export const sinking_funds = sqliteTable(
   },
   (tabla) => [index('idx_sinking_owner').on(tabla.ownerId)],
 );
+
+/**
+ * El presupuesto de cada mes (sprint 10).
+ *
+ * **Solo la asignación**, que es la decisión de David y no se puede derivar.
+ * Lo gastado sale del ledger: una categoría ya es una cuenta (ADR 0005), y
+ * «cuánto llevo en Mercado este mes» son dos cortes de `balanceOf` y una resta.
+ * Guardarlo aquí daría dos verdades sobre el mismo mes.
+ */
+export const budget_envelopes = sqliteTable(
+  'budget_envelopes',
+  {
+    ownerId: text('owner_id').notNull(),
+    mes: text('mes').notNull(),
+    categoria: text('categoria').notNull(),
+    asignado: text('asignado').notNull(),
+    moneda: text('moneda').notNull(),
+  },
+  (tabla) => [
+    primaryKey({ columns: [tabla.ownerId, tabla.mes, tabla.categoria] }),
+    index('idx_budget_owner_mes').on(tabla.ownerId, tabla.mes),
+  ],
+);

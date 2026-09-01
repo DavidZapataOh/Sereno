@@ -125,6 +125,14 @@ export const SCREEN_MAP: readonly Screen[] = [
     fase: 10,
   },
   {
+    id: 'presupuesto',
+    titulo: 'Presupuesto',
+    ruta: '/metas/presupuesto',
+    padre: 'metas',
+    pregunta: '¿A qué le asigné mi plata este mes, y cuánto me queda en cada cosa?',
+    fase: 10,
+  },
+  {
     id: 'fondos',
     titulo: 'Fondos',
     ruta: '/metas/fondos',

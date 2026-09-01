@@ -162,6 +162,13 @@
       "when": 1788286136786,
       "tag": "0022_quiet_steve_rogers",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "6",
+      "when": 1788287651905,
+      "tag": "0023_bright_princess_powerful",
+      "breakpoints": true
     }
   ]
 }
