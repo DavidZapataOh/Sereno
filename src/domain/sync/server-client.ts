@@ -35,9 +35,25 @@ export const serverHealthSchema = z.object({
 });
 export type ServerHealth = z.infer<typeof serverHealthSchema>;
 
+/**
+ * Los saldos del exchange, tal como los entrega el servidor.
+ *
+ * La cantidad viaja como **texto**: un entero de escala cripto no cabe en un
+ * `number` de JSON sin perder dígitos, y perderlos aquí es perder plata.
+ */
+export const exchangeBalanceSchema = z.object({
+  activo: z.string().min(1),
+  cantidad: z.string().regex(/^\d+$/, 'La cantidad viene como entero en texto'),
+});
+export type ExchangeBalance = z.infer<typeof exchangeBalanceSchema>;
+
+export const exchangeBalancesSchema = z.object({ saldos: z.array(exchangeBalanceSchema) });
+
 export interface ServerClient {
   traer: (desde: number, limite: number) => Promise<ServerPage>;
   confirmar: (cursor: number) => Promise<void>;
+  /** Los saldos del exchange. Lanza si no hay servidor o si Binance falló. */
+  saldos: () => Promise<ExchangeBalance[]>;
   salud: () => Promise<ServerHealth>;
 }
 

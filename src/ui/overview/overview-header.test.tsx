@@ -63,4 +63,46 @@ describe('saldos sin valorar', () => {
 
     expect(queryByText(TEXTO_OVERVIEW.sinValorar)).toBeNull();
   });
+
+  /**
+   * Una tasa de hace tres días da una cifra que parece buena y no lo es.
+   * Decirlo es la diferencia entre un número y un número con fecha.
+   */
+  it('dice de cuándo son las tasas cuando no son de hoy', async () => {
+    const { getByText } = await renderWithProviders(
+      <OverviewHeader
+        patrimonio={money(80_000, 'COP')}
+        tasaMasVieja="2026-08-28T00:00:00.000-05:00"
+        ultimaSincronizacion={null}
+        now="2026-08-31T10:00:00.000-05:00"
+      />,
+    );
+
+    expect(getByText(/Valorado con tasas de/)).toBeOnTheScreen();
+  });
+
+  it('si son de hoy no lo dice: sería ruido todos los días', async () => {
+    const { queryByText } = await renderWithProviders(
+      <OverviewHeader
+        patrimonio={money(80_000, 'COP')}
+        tasaMasVieja="2026-08-31T06:00:00.000-05:00"
+        ultimaSincronizacion={null}
+        now="2026-08-31T10:00:00.000-05:00"
+      />,
+    );
+
+    expect(queryByText(/Valorado con tasas de/)).toBeNull();
+  });
+
+  it('sin ninguna tasa usada tampoco lo dice', async () => {
+    const { queryByText } = await renderWithProviders(
+      <OverviewHeader
+        patrimonio={money(80_000, 'COP')}
+        ultimaSincronizacion={null}
+        now="2026-08-31T10:00:00.000-05:00"
+      />,
+    );
+
+    expect(queryByText(/Valorado con tasas de/)).toBeNull();
+  });
 });

@@ -1,4 +1,9 @@
-import type { ServerClient, ServerHealth, ServerMovement } from '@/domain/sync/server-client';
+import type {
+  ExchangeBalance,
+  ServerClient,
+  ServerHealth,
+  ServerMovement,
+} from '@/domain/sync/server-client';
 
 export interface FakeServerClient extends ServerClient {
   confirmados: () => number[];
@@ -7,6 +12,8 @@ export interface FakeServerClient extends ServerClient {
   fallarTraida: () => void;
   fallarConfirmacion: () => void;
   dejarDeFallar: () => void;
+  responderSaldos: (saldos: ExchangeBalance[]) => void;
+  fallarSaldos: () => void;
 }
 
 export function createFakeServerClient(movimientos: readonly ServerMovement[]): FakeServerClient {
@@ -14,6 +21,8 @@ export function createFakeServerClient(movimientos: readonly ServerMovement[]): 
   let tamano = Number.POSITIVE_INFINITY;
   let fallaTraida = false;
   let fallaConfirmacion = false;
+  let saldos: ExchangeBalance[] = [];
+  let fallaSaldos = false;
   let salud: ServerHealth = {
     estado: 'vivo',
     movimientosPendientes: 0,
@@ -35,6 +44,12 @@ export function createFakeServerClient(movimientos: readonly ServerMovement[]): 
     fallarConfirmacion: () => {
       fallaConfirmacion = true;
     },
+    responderSaldos: (nuevos) => {
+      saldos = nuevos;
+    },
+    fallarSaldos: () => {
+      fallaSaldos = true;
+    },
     dejarDeFallar: () => {
       fallaTraida = false;
       fallaConfirmacion = false;
@@ -55,5 +70,7 @@ export function createFakeServerClient(movimientos: readonly ServerMovement[]): 
       return Promise.resolve();
     },
     salud: () => (fallaTraida ? Promise.reject(new Error('sin conexión')) : Promise.resolve(salud)),
+    saldos: () =>
+      fallaSaldos ? Promise.reject(new Error('sin conexión')) : Promise.resolve([...saldos]),
   };
 }

@@ -3,7 +3,9 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { router, Tabs } from 'expo-router';
 import { useEffect, type ComponentProps } from 'react';
 
+import { syncExchange } from '@/application/crypto/sync-exchange';
 import { syncWallets } from '@/application/crypto/sync-wallets';
+import { recordSnapshot } from '@/application/overview/record-snapshot';
 import { refreshRates } from '@/application/rates/refresh-rates';
 import { pullFromServer } from '@/application/sync/pull-from-server';
 import { useAppDeps } from '@/infrastructure/composition/use-app-deps';
@@ -58,11 +60,12 @@ function useAutoPull(): void {
 }
 
 /**
- * Lee las wallets y refresca las tasas al abrir.
+ * Lee las wallets y Binance, y refresca las tasas, al abrir.
  *
- * Va aparte de `useAutoPull` porque no depende del servidor: los nodos de las
- * cadenas y la TRM son públicos, así que esto funciona aunque no haya backend
- * configurado.
+ * Las wallets y la TRM no dependen del servidor —los nodos y datos.gov.co son
+ * públicos—, así que funcionan aunque no haya backend. Los saldos de Binance
+ * sí lo necesitan, porque las claves viven ahí; van al final y su fallo no
+ * impide lo demás.
  *
  * Primero las tasas y después los saldos: valorar en pesos con una tasa de
  * hace una semana da una cifra que parece buena y no lo es.
@@ -74,7 +77,15 @@ function useAutoCrypto(): void {
     queryKey: ['auto-crypto', CURRENT_OWNER],
     queryFn: async () => {
       await refreshRates(deps);
-      return syncWallets(deps, { owner: CURRENT_OWNER });
+      const wallets = await syncWallets(deps, { owner: CURRENT_OWNER });
+      // Binance va después y aparte: si el servidor no está configurado o no
+      // responde, las wallets ya quedaron leídas. Un fallo de uno no puede
+      // dejar al otro sin sincronizar.
+      const exchange = await syncExchange(deps, { owner: CURRENT_OWNER });
+      // La marca del día se toma **después** de leer todo, no antes: si no,
+      // guardaría el patrimonio de ayer con fecha de hoy.
+      await recordSnapshot(deps, { owner: CURRENT_OWNER });
+      return { ajustes: wallets.ajustes + exchange.ajustes };
     },
     staleTime: 5 * 60 * 1000,
     retry: 1,

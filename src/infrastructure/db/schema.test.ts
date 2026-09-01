@@ -42,7 +42,7 @@ describe('esquema y migraciones', () => {
       .run();
   };
 
-  it('aplica las migraciones y crea las dieciséis tablas', () => {
+  it('aplica las migraciones y crea las diecisiete tablas', () => {
     const tablas = cliente.db
       .all<{ name: string }>(sql`SELECT name FROM sqlite_master WHERE type = 'table' ORDER BY name`)
       .map((fila) => fila.name)
@@ -56,6 +56,7 @@ describe('esquema y migraciones', () => {
       'credit_cards',
       'estado_sync',
       'ingest_runs',
+      'net_worth_snapshots',
       'postings',
       'rates',
       'reconciliations',
@@ -68,7 +69,7 @@ describe('esquema y migraciones', () => {
     ]);
   });
 
-  it('crea los veinte índices declarados', () => {
+  it('crea los veintiún índices declarados', () => {
     const indices = cliente.db
       .all<{ name: string }>(
         sql`SELECT name FROM sqlite_master WHERE type = 'index' AND name LIKE 'idx_%' ORDER BY name`,
@@ -91,6 +92,7 @@ describe('esquema y migraciones', () => {
       'idx_rates_par_momento',
       'idx_reconciliations_account_fecha',
       'idx_rules_owner',
+      'idx_snapshots_owner_dia',
       'idx_transactions_origen',
       'idx_transactions_owner_fecha',
       'idx_transfers_owner_estado',

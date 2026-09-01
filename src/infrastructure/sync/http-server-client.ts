@@ -1,4 +1,5 @@
 import {
+  exchangeBalancesSchema,
   serverHealthSchema,
   serverPageSchema,
   type ServerClient,
@@ -43,6 +44,14 @@ export function createHttpServerClient(config: ConfigServidor): ServerClient {
       if (!respuesta.ok) throw new Error(`El servidor respondió ${String(respuesta.status)}`);
       return serverHealthSchema.parse(await respuesta.json());
     },
+
+    saldos: async () => {
+      const respuesta = await fetch(`${base}/saldos`, { headers: cabeceras });
+      // Un error se lanza y no se convierte en lista vacía: una lista vacía
+      // significaría «no tienes nada» y borraría el saldo de la pantalla.
+      if (!respuesta.ok) throw new Error(`El servidor respondió ${String(respuesta.status)}`);
+      return exchangeBalancesSchema.parse(await respuesta.json()).saldos;
+    },
   };
 }
 
@@ -58,5 +67,6 @@ export function createSinServidor(): ServerClient {
     traer: () => Promise.reject(new Error('Sin servidor configurado')),
     confirmar: () => Promise.reject(new Error('Sin servidor configurado')),
     salud: () => Promise.reject(new Error('Sin servidor configurado')),
+    saldos: () => Promise.reject(new Error('Sin servidor configurado')),
   };
 }

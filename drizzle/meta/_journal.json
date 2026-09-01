@@ -141,6 +141,13 @@
       "when": 1788214293893,
       "tag": "0019_renombrar_chain_a_red",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "6",
+      "when": 1788219789401,
+      "tag": "0020_sad_human_torch",
+      "breakpoints": true
     }
   ]
 }
