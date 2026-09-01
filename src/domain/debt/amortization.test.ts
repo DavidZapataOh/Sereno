@@ -1,6 +1,6 @@
 import { money } from '@/domain/money/money';
 
-import { repartir } from './amortization';
+import { necesarioParaSaldar, repartir } from './amortization';
 
 const COP = 'COP' as const;
 
@@ -83,5 +83,30 @@ describe('repartir', () => {
 
   it('rechaza una tasa negativa: eso no es una deuda', () => {
     expect(() => repartir(money(1_000, COP), -0.01, money(100, COP))).toThrow(/negativa/i);
+  });
+});
+
+describe('necesarioParaSaldar', () => {
+  /**
+   * El bug que hizo que la simulación declarara «no converge» sobre una deuda
+   * perfectamente pagable: topar el pago al saldo hace que la deuda baje
+   * siempre un poco menos de lo que se paga, y se acerque a cero sin llegar.
+   */
+  it('es el saldo más los intereses del mes, no el saldo', () => {
+    const saldo = money(1_000_000, COP);
+
+    expect(necesarioParaSaldar(saldo, 0.02).amount).toBe(1_020_000n);
+  });
+
+  it('pagando eso, la deuda queda exactamente en cero', () => {
+    const saldo = money(1_000_000, COP);
+    const pago = necesarioParaSaldar(saldo, 0.02);
+    const { capital } = repartir(saldo, 0.02, pago);
+
+    expect(saldo.amount - capital.amount).toBe(0n);
+  });
+
+  it('sin intereses es el saldo tal cual', () => {
+    expect(necesarioParaSaldar(money(500_000, COP), 0).amount).toBe(500_000n);
   });
 });

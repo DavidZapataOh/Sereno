@@ -54,3 +54,16 @@ export function repartir(
 
   return { intereses, capital: subtract(pago, intereses) };
 }
+
+/**
+ * Cuánto hay que pagar este mes para dejar la deuda en cero.
+ *
+ * **No es el saldo:** es el saldo más los intereses del mes. Topar el pago al
+ * saldo hace que la deuda baje siempre un poco menos de lo que se paga y no
+ * llegue nunca a cero —se acerca asintóticamente—, y una simulación con ese
+ * tope declara «no converge» sobre una deuda perfectamente pagable.
+ */
+export function necesarioParaSaldar(saldo: Money, tasaMensual: number): Money {
+  const { intereses } = repartir(saldo, tasaMensual, saldo);
+  return { amount: saldo.amount + intereses.amount, currency: saldo.currency };
+}

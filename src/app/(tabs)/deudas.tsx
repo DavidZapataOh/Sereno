@@ -23,6 +23,13 @@ export default function DeudasScreen() {
       />
       <Card style={{ padding: 0 }}>
         <NavRow
+          title="Estrategia"
+          subtitle="Cuál es el camino más corto para salir"
+          onPress={() => {
+            router.push('/deudas/estrategia');
+          }}
+        />
+        <NavRow
           title="Calendario"
           subtitle="Qué tienes que pagar y cuándo"
           onPress={() => {
