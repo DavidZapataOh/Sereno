@@ -439,7 +439,10 @@ export const sinking_funds = sqliteTable(
     objetivo: text('objetivo').notNull(),
     moneda: text('moneda').notNull(),
     proximaFecha: text('proxima_fecha').notNull(),
-    cadaMeses: integer('cada_meses').notNull(),
+    /** `NULL` cuando no se repite: una meta de ahorro. */
+    cadaMeses: integer('cada_meses'),
+    /** «gasto» o «meta». Mismo cálculo, distinta intención. */
+    tipo: text('tipo').notNull().default('gasto'),
   },
   (tabla) => [index('idx_sinking_owner').on(tabla.ownerId)],
 );

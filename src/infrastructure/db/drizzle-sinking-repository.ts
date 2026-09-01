@@ -2,7 +2,11 @@ import { eq } from 'drizzle-orm';
 
 import { accountId, ownerId } from '@/domain/ledger/ids';
 import type { CurrencyCode } from '@/domain/money/currency';
-import { createSinkingFund, type SinkingFund } from '@/domain/sinking/sinking-fund';
+import {
+  createSinkingFund,
+  type SinkingFund,
+  type TipoDeFondo,
+} from '@/domain/sinking/sinking-fund';
 import type { SinkingRepository } from '@/domain/sinking/sinking-repository';
 
 import type { Database } from './database';
@@ -21,6 +25,7 @@ const aFondo = (fila: typeof sinking_funds.$inferSelect): SinkingFund =>
     accountId: accountId(fila.accountId),
     owner: ownerId(fila.ownerId),
     nombre: fila.nombre,
+    tipo: fila.tipo as TipoDeFondo,
     objetivo: { amount: BigInt(fila.objetivo), currency: fila.moneda as CurrencyCode },
     proximaFecha: fila.proximaFecha,
     cadaMeses: fila.cadaMeses,
@@ -35,6 +40,7 @@ export function createDrizzleSinkingRepository(db: Database): SinkingRepository 
     moneda: fondo.objetivo.currency,
     proximaFecha: fondo.proximaFecha,
     cadaMeses: fondo.cadaMeses,
+    tipo: fondo.tipo,
   });
 
   return {

@@ -101,6 +101,17 @@ sin que nadie lo notara.
 
 `npm run verify` corre el mismo conjunto que CI, por separado.
 
+### `drizzle-kit` genera SQL roto al añadir una columna con `default`
+
+Cuando una columna nueva obliga a reconstruir la tabla —SQLite no sabe cambiar
+restricciones—, drizzle-kit escribe el `INSERT ... SELECT` **incluyendo la columna que
+todavía no existe**, y la migración falla con «no such column». Pasó el 2026-09-01 al
+añadir `tipo` a `sinking_funds`: veinticuatro suites caídas de golpe.
+
+Se corrige a mano en el `.sql` **recién generado** —poniendo el literal del `default` en el
+`SELECT`— y **solo si aún no se ha aplicado en ningún dispositivo**. Si ya se aplicó, se
+añade otra migración: la regla de no editar un `.sql` compilado sigue en pie.
+
 ### Los tipos de rutas de expo-router se generan, y se quedan viejos
 
 `.expo/types/router.d.ts` lo escribe Metro y está en `.gitignore`. Al añadir una pantalla,

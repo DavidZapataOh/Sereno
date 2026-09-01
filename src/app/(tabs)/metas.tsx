@@ -1,9 +1,15 @@
+import { useQuery } from '@tanstack/react-query';
 import { router } from 'expo-router';
-import { ScrollView } from 'react-native';
+import { ScrollView, View } from 'react-native';
 
+import { goalProgress } from '@/application/goals/goal-progress';
+import { useAppDeps } from '@/infrastructure/composition/use-app-deps';
+import { CURRENT_OWNER } from '@/infrastructure/session/current-owner';
+import { AppText } from '@/ui/components/app-text';
 import { Card } from '@/ui/components/card';
 import { NavRow } from '@/ui/components/nav-row';
-import { EmptyState } from '@/ui/components/states';
+import { EmptyState, LoadingState } from '@/ui/components/states';
+import { GoalRow, TEXTO_META } from '@/ui/goals/goal-row';
 import { useTheme } from '@/ui/theme/use-theme';
 
 /**
@@ -14,13 +20,36 @@ import { useTheme } from '@/ui/theme/use-theme';
  * esconde lo que ya funciona es peor que ninguna.
  */
 export default function MetasScreen() {
+  const deps = useAppDeps();
   const theme = useTheme();
+
+  const metas = useQuery({
+    queryKey: ['metas', CURRENT_OWNER],
+    queryFn: () => goalProgress(deps, CURRENT_OWNER),
+  });
+
   return (
     <ScrollView contentContainerStyle={{ padding: theme.spacing.lg, gap: theme.spacing.lg }}>
-      <EmptyState
-        title="Aquí verás si vas a llegar"
-        description="Tus metas de ahorro y cuánto tienes que apartar cada mes."
-      />
+      {metas.isPending && <LoadingState />}
+
+      {metas.data?.metas.length === 0 && (
+        <EmptyState
+          title="Aquí verás si vas a llegar"
+          description="Tus metas de ahorro y cuánto tienes que apartar cada mes."
+        />
+      )}
+
+      {metas.data?.metas.map((estado) => (
+        <GoalRow key={estado.fondo.accountId} estado={estado} />
+      ))}
+
+      {metas.data?.cabeEnElIngreso === false && (
+        <View>
+          <AppText level="apoyo" color="textSecondary">
+            {TEXTO_META.noCabe}
+          </AppText>
+        </View>
+      )}
       <Card style={{ padding: 0 }}>
         <NavRow
           title="Presupuesto"

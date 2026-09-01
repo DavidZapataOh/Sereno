@@ -20,6 +20,7 @@ import type { RescheduleDeps } from '../alerts/reschedule-reminders';
 import type { CalendarDeps } from '../calendar/payment-calendar';
 import type { SnapshotDeps } from '../overview/record-snapshot';
 import type { BudgetDeps } from '../budget/monthly-budget';
+import type { GoalDeps } from '../goals/goal-progress';
 import type { FundDeps } from '../sinking/manage-funds';
 import type { SyncExchangeDeps } from '../crypto/sync-exchange';
 import type { SyncWalletsDeps } from '../crypto/sync-wallets';
@@ -43,6 +44,7 @@ export type AppDeps = IngestDeps &
   RescheduleDeps &
   FundDeps &
   BudgetDeps &
+  GoalDeps &
   RefreshRatesDeps;
 
 export interface SyncSummary extends IngestSummary {

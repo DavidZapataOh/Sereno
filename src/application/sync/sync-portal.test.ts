@@ -47,6 +47,7 @@ function deps() {
     debts: createInMemoryDebtRepository(),
     fondos: createInMemorySinkingRepository(),
     presupuesto: createInMemoryBudgetRepository(),
+    inicio: '2026-09-01',
     ajustesDeAviso: AJUSTES_POR_DEFECTO,
     scheduler: {
       pedirPermiso: () => Promise.resolve(false),
