@@ -5,6 +5,7 @@ import { useEffect, type ComponentProps } from 'react';
 
 import { syncExchange } from '@/application/crypto/sync-exchange';
 import { syncWallets } from '@/application/crypto/sync-wallets';
+import { rescheduleReminders } from '@/application/alerts/reschedule-reminders';
 import { recordSnapshot } from '@/application/overview/record-snapshot';
 import { refreshRates } from '@/application/rates/refresh-rates';
 import { pullFromServer } from '@/application/sync/pull-from-server';
@@ -95,6 +96,13 @@ function useAutoCrypto(): void {
       // La marca del día se toma **después** de leer todo, no antes: si no,
       // guardaría el patrimonio de ayer con fecha de hoy.
       await recordSnapshot(deps, { owner: CURRENT_OWNER });
+      // Los avisos se reprograman **al final**, con la contabilidad ya al día:
+      // hacerlo antes avisaría de algo que se acaba de pagar. Y se reprograman
+      // enteros porque en Android no sobreviven a un reinicio del teléfono.
+      const avisos = await rescheduleReminders(deps, { owner: CURRENT_OWNER });
+      if (avisos.motivo !== 'ok') {
+        observability.log('info', 'avisos no programados', { motivo: avisos.motivo });
+      }
       return { ajustes: wallets.ajustes + exchange.ajustes };
     },
     staleTime: 5 * 60 * 1000,

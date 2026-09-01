@@ -1,11 +1,14 @@
 import { useMemo } from 'react';
 
+import { AJUSTES_POR_DEFECTO } from '@/domain/alerts/reminder-settings';
+
 import type { AppDeps } from '@/application/sync/sync-portal';
 
 import { createBalanceSources } from '../crypto/balance-sources';
 import { useDatabase } from '../db/database-provider';
 import { createRepositories } from '../db/repositories';
 import { createCryptoIdGenerator } from '../ids/crypto-id-generator';
+import { createLocalScheduler } from '../notifications/local-scheduler';
 import { createRateSources } from '../rates/rate-sources';
 import { createHttpServerClient, createSinServidor } from '../sync/http-server-client';
 
@@ -41,6 +44,10 @@ export function useAppDeps(): AppDeps {
       // preguntarle y devuelve cero, que es indistinguible de no tener nada.
       fuentesDeSaldo: createBalanceSources(clock),
       fuentesDeTasas: createRateSources(clock),
+      scheduler: createLocalScheduler(),
+      // Los ajustes de aviso viven en la pantalla mientras no haya dónde
+      // guardarlos; el valor por defecto es el que se usa al arrancar.
+      ajustesDeAviso: AJUSTES_POR_DEFECTO,
     };
   }, [db]);
 }
