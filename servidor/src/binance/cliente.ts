@@ -63,6 +63,15 @@ export function crearClienteBinance(config: ConfigBinance, hacerFetch: Fetch = f
       throw new Error('Binance respondió algo que no es JSON');
     })) as T & ErrorBinance;
 
+    // El estado HTTP primero. Sin esto, un 401 con un cuerpo que no trae
+    // `code` se devolvía como si fuera una respuesta buena, y el que la
+    // recibía veía un objeto vacío. El síntoma fue un servidor que se negaba a
+    // arrancar diciendo «la clave no puede leer» cuando lo que pasaba es que
+    // Binance la había rechazado —mandando a buscar donde no era—.
+    if (!respuesta.ok && typeof cuerpo.code !== 'number') {
+      throw new Error(`Binance respondió ${String(respuesta.status)} sin explicar por qué`);
+    }
+
     if (typeof cuerpo.code === 'number' && cuerpo.code < 0) {
       // El código y el mensaje de Binance, nunca la petición: la cadena
       // firmada lleva la firma dentro.

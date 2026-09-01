@@ -14,6 +14,7 @@ export interface FakeServerClient extends ServerClient {
   dejarDeFallar: () => void;
   responderSaldos: (saldos: ExchangeBalance[]) => void;
   fallarSaldos: () => void;
+  sinBinance: () => void;
 }
 
 export function createFakeServerClient(movimientos: readonly ServerMovement[]): FakeServerClient {
@@ -23,6 +24,7 @@ export function createFakeServerClient(movimientos: readonly ServerMovement[]): 
   let fallaConfirmacion = false;
   let saldos: ExchangeBalance[] = [];
   let fallaSaldos = false;
+  let sinConfigurar = false;
   let salud: ServerHealth = {
     estado: 'vivo',
     movimientosPendientes: 0,
@@ -50,6 +52,9 @@ export function createFakeServerClient(movimientos: readonly ServerMovement[]): 
     fallarSaldos: () => {
       fallaSaldos = true;
     },
+    sinBinance: () => {
+      sinConfigurar = true;
+    },
     dejarDeFallar: () => {
       fallaTraida = false;
       fallaConfirmacion = false;
@@ -70,7 +75,10 @@ export function createFakeServerClient(movimientos: readonly ServerMovement[]): 
       return Promise.resolve();
     },
     salud: () => (fallaTraida ? Promise.reject(new Error('sin conexión')) : Promise.resolve(salud)),
-    saldos: () =>
-      fallaSaldos ? Promise.reject(new Error('sin conexión')) : Promise.resolve([...saldos]),
+    saldos: () => {
+      if (sinConfigurar) return Promise.resolve({ estado: 'sin-configurar' as const });
+      if (fallaSaldos) return Promise.resolve({ estado: 'error' as const, motivo: 'sin conexión' });
+      return Promise.resolve({ estado: 'ok' as const, saldos: [...saldos] });
+    },
   };
 }

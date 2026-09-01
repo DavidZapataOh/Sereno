@@ -46,11 +46,23 @@ export function createHttpServerClient(config: ConfigServidor): ServerClient {
     },
 
     saldos: async () => {
-      const respuesta = await fetch(`${base}/saldos`, { headers: cabeceras });
-      // Un error se lanza y no se convierte en lista vacía: una lista vacía
-      // significaría «no tienes nada» y borraría el saldo de la pantalla.
-      if (!respuesta.ok) throw new Error(`El servidor respondió ${String(respuesta.status)}`);
-      return exchangeBalancesSchema.parse(await respuesta.json()).saldos;
+      try {
+        const respuesta = await fetch(`${base}/saldos`, { headers: cabeceras });
+        // 503 es «no hay claves en el servidor», que no es un fallo: es un
+        // estado que el usuario puede arreglar, y la pantalla lo dice así.
+        if (respuesta.status === 503) return { estado: 'sin-configurar' };
+        if (!respuesta.ok) {
+          return { estado: 'error', motivo: `El servidor respondió ${String(respuesta.status)}` };
+        }
+        // Nunca una lista vacía por un fallo: significaría «no tienes nada» y
+        // borraría el saldo de la pantalla.
+        return {
+          estado: 'ok',
+          saldos: exchangeBalancesSchema.parse(await respuesta.json()).saldos,
+        };
+      } catch (error) {
+        return { estado: 'error', motivo: error instanceof Error ? error.message : String(error) };
+      }
     },
   };
 }
@@ -67,6 +79,6 @@ export function createSinServidor(): ServerClient {
     traer: () => Promise.reject(new Error('Sin servidor configurado')),
     confirmar: () => Promise.reject(new Error('Sin servidor configurado')),
     salud: () => Promise.reject(new Error('Sin servidor configurado')),
-    saldos: () => Promise.reject(new Error('Sin servidor configurado')),
+    saldos: () => Promise.resolve({ estado: 'sin-configurar' as const }),
   };
 }

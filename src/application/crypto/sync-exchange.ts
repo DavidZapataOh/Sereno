@@ -1,4 +1,4 @@
-import type { ServerClient } from '@/domain/sync/server-client';
+import type { ExchangeStatus, ServerClient } from '@/domain/sync/server-client';
 import { accountId, type AccountId, type OwnerId } from '@/domain/ledger/ids';
 import { getCurrency, type CurrencyCode } from '@/domain/money/currency';
 import { money } from '@/domain/money/money';
@@ -11,9 +11,11 @@ export interface SyncExchangeDeps extends LedgerDeps {
 }
 
 export interface ResumenExchange {
+  /** El estado de la lectura, tal cual: se enseña en Ajustes. */
+  estado: ExchangeStatus['estado'];
   leidos: number;
   ajustes: number;
-  /** Por qué no se pudo leer, o `null` si salió bien. */
+  /** Por qué no se pudo leer, o `null` si no falló. */
   error: string | null;
 }
 
@@ -40,18 +42,23 @@ export async function syncExchange(
   deps: SyncExchangeDeps,
   input: { owner: OwnerId },
 ): Promise<ResumenExchange> {
-  const resumen: ResumenExchange = { leidos: 0, ajustes: 0, error: null };
   const leidoEn = deps.clock();
+  const respuesta = await deps.servidor.saldos();
 
-  let saldos;
-  try {
-    saldos = await deps.servidor.saldos();
-  } catch (error) {
-    resumen.error = error instanceof Error ? error.message : String(error);
-    return resumen;
+  // Los tres casos, explícitos. Antes esto era un `catch` que se tragaba el
+  // error: las claves no estaban en Railway y la app no dijo nada.
+  if (respuesta.estado !== 'ok') {
+    return {
+      estado: respuesta.estado,
+      leidos: 0,
+      ajustes: 0,
+      error: respuesta.estado === 'error' ? respuesta.motivo : null,
+    };
   }
 
-  for (const saldo of saldos) {
+  const resumen: ResumenExchange = { estado: 'ok', leidos: 0, ajustes: 0, error: null };
+
+  for (const saldo of respuesta.saldos) {
     const currency = monedaDe(saldo.activo);
     // Un activo que el ledger no sabe representar se salta en vez de
     // inventarle una escala: una escala mal puesta multiplica el saldo.

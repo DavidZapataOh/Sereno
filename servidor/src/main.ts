@@ -43,10 +43,29 @@ async function arrancar(): Promise<void> {
   let saldosBinance;
   if (config.binance !== null) {
     const cliente = crearClienteBinance(config.binance);
-    const avisos = verificarPermisos(await cliente.permisos());
-    for (const aviso of avisos) observabilidad.log('warn', aviso, {});
-    observabilidad.log('info', 'clave de Binance verificada: solo lectura', {});
-    saldosBinance = () => cliente.saldos();
+    try {
+      const avisos = verificarPermisos(await cliente.permisos());
+      for (const aviso of avisos) observabilidad.log('warn', aviso, {});
+      observabilidad.log('info', 'clave de Binance verificada: solo lectura', {});
+      saldosBinance = () => cliente.saldos();
+    } catch (error) {
+      // **Se desactiva Binance, no se tumba el servidor.**
+      //
+      // Antes esto era un `throw` que impedía arrancar. La intención era buena
+      // —una clave que puede mover dinero no se usa— pero la consecuencia no:
+      // un problema con Binance dejó sin ingesta al correo, que llevaba días
+      // funcionando. La seguridad se conserva igual, porque la clave sospechosa
+      // no se usa para nada: `saldosBinance` se queda sin definir y `/saldos`
+      // responde que no está configurado.
+      //
+      // Un fallo de una integración no puede llevarse por delante las otras.
+      observabilidad.captureError(error, { operacion: 'verificar-binance' });
+      observabilidad.log(
+        'error',
+        'Binance queda desactivado y el resto del servidor sigue: revisa la clave',
+        { motivo: error instanceof Error ? error.message : String(error) },
+      );
+    }
   }
 
   const app = crearApp({ repos, token: config.token, observabilidad, saldosBinance });

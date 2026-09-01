@@ -49,11 +49,27 @@ export type ExchangeBalance = z.infer<typeof exchangeBalanceSchema>;
 
 export const exchangeBalancesSchema = z.object({ saldos: z.array(exchangeBalanceSchema) });
 
+/**
+ * Qué se sabe del exchange. **Tres estados, no dos.**
+ *
+ * Va como unión y no como excepción a propósito. Cuando esto lanzaba, el
+ * llamador podía tragarse el error sin enseñarlo —y eso fue exactamente lo que
+ * pasó: las claves no estaban en Railway y la app se quedó muda—. Así el
+ * compilador obliga a decidir qué se hace con cada caso.
+ *
+ * Y «sin configurar» no es «no tienes nada»: son cosas distintas y se ven
+ * distintas.
+ */
+export type ExchangeStatus =
+  | { estado: 'ok'; saldos: ExchangeBalance[] }
+  | { estado: 'sin-configurar' }
+  | { estado: 'error'; motivo: string };
+
 export interface ServerClient {
   traer: (desde: number, limite: number) => Promise<ServerPage>;
   confirmar: (cursor: number) => Promise<void>;
-  /** Los saldos del exchange. Lanza si no hay servidor o si Binance falló. */
-  saldos: () => Promise<ExchangeBalance[]>;
+  /** Los saldos del exchange, con su estado. Nunca lanza: los tres casos se declaran. */
+  saldos: () => Promise<ExchangeStatus>;
   salud: () => Promise<ServerHealth>;
 }
 

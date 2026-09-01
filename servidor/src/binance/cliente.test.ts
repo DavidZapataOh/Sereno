@@ -9,9 +9,13 @@ const SECRETO = 'secreto-de-prueba-que-no-debe-aparecer';
  * Tipado con `typeof fetch`: así `mock.calls` conserva los argumentos y se
  * puede inspeccionar la petición, que es lo que estas pruebas comprueban.
  */
-function doble(cuerpo: unknown) {
+function doble(cuerpo: unknown, status = 200) {
   return vi.fn<typeof fetch>(() =>
-    Promise.resolve({ json: () => Promise.resolve(cuerpo) } as unknown as Response),
+    Promise.resolve({
+      ok: status >= 200 && status < 300,
+      status,
+      json: () => Promise.resolve(cuerpo),
+    } as unknown as Response),
   );
 }
 
@@ -98,9 +102,35 @@ describe('clienteBinance', () => {
     );
   });
 
+  /**
+   * El fallo que tumbó el servidor el 2026-08-31. Binance rechazó la clave con
+   * un 401 cuyo cuerpo no traía `code`, el cliente lo devolvió como si fuera
+   * bueno, y `verificarPermisos` recibió un objeto vacío: el servidor se negó a
+   * arrancar diciendo «la clave no puede leer», que era mentira y mandaba a
+   * buscar donde no era.
+   */
+  it('un estado HTTP de error lanza aunque el cuerpo no traiga código', async () => {
+    await expect(cliente(doble({}, 401)).permisos()).rejects.toThrow(/401/);
+  });
+
+  it('el mensaje del estado no inventa una causa que no conoce', async () => {
+    await expect(cliente(doble({}, 418)).permisos()).rejects.toThrow(/sin explicar por qué/);
+  });
+
+  it('si el cuerpo sí explica el error, gana el mensaje de Binance', async () => {
+    // Es más útil «Invalid API-key» que «respondió 401».
+    await expect(
+      cliente(doble({ code: -2015, msg: 'Invalid API-key' }, 401)).permisos(),
+    ).rejects.toThrow(/-2015/);
+  });
+
   it('una respuesta que no es JSON lanza', async () => {
     const f = vi.fn<typeof fetch>(() =>
-      Promise.resolve({ json: () => Promise.reject(new SyntaxError('no')) } as unknown as Response),
+      Promise.resolve({
+        ok: true,
+        status: 200,
+        json: () => Promise.reject(new SyntaxError('no')),
+      } as unknown as Response),
     );
 
     await expect(
