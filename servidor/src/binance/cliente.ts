@@ -63,15 +63,29 @@ export function crearClienteBinance(config: ConfigBinance, hacerFetch: Fetch = f
       throw new Error('Binance respondió algo que no es JSON');
     })) as T & ErrorBinance;
 
-    // El estado HTTP primero. Sin esto, un 401 con un cuerpo que no trae
-    // `code` se devolvía como si fuera una respuesta buena, y el que la
-    // recibía veía un objeto vacío. El síntoma fue un servidor que se negaba a
-    // arrancar diciendo «la clave no puede leer» cuando lo que pasaba es que
-    // Binance la había rechazado —mandando a buscar donde no era—.
-    if (!respuesta.ok && typeof cuerpo.code !== 'number') {
-      throw new Error(`Binance respondió ${String(respuesta.status)} sin explicar por qué`);
+    // **El estado HTTP manda, pase lo que pase en el cuerpo.**
+    //
+    // Aquí hubo dos errores encadenados. El primero: no mirar el estado, así
+    // que un rechazo se devolvía como si fuera una respuesta buena y quien la
+    // recibía veía un objeto vacío —el servidor se negó a arrancar diciendo
+    // «la clave no puede leer», que era falso—. El segundo: arreglarlo solo
+    // para los cuerpos sin `code`, que deja fuera el caso que importaba.
+    //
+    // Binance responde **451 con `code: 0`** cuando la petición sale de un país
+    // restringido, y cero **no es menor que cero**: pasaba las dos rejas. Es
+    // exactamente lo que ocurre desde Railway, cuyos servidores están en
+    // Estados Unidos.
+    if (!respuesta.ok) {
+      // Se conserva todo lo que Binance dice: el código distingue causas que
+      // el estado no —-2014 es «formato de clave inválido» y -2015 es «clave,
+      // IP o permisos»— y el mensaje es lo que se puede leer sin buscar tablas.
+      const codigo = typeof cuerpo.code === 'number' ? ` (${String(cuerpo.code)})` : '';
+      const detalle =
+        typeof cuerpo.msg === 'string' && cuerpo.msg.length > 0 ? `: ${cuerpo.msg}` : '';
+      throw new Error(`Binance respondió ${String(respuesta.status)}${codigo}${detalle}`);
     }
 
+    // Un código negativo con estado 200: Binance lo hace en algunas rutas.
     if (typeof cuerpo.code === 'number' && cuerpo.code < 0) {
       // El código y el mensaje de Binance, nunca la petición: la cadena
       // firmada lleva la firma dentro.
