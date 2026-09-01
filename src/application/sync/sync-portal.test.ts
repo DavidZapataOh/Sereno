@@ -19,6 +19,7 @@ import { createSequentialIds } from '@/test/fakes/sequential-ids';
 import { createInMemoryCardRepository } from '@/test/fakes/in-memory-card-repository';
 import { AJUSTES_POR_DEFECTO } from '@/domain/alerts/reminder-settings';
 import { createInMemoryDebtRepository } from '@/test/fakes/in-memory-debt-repository';
+import { createInMemorySinkingRepository } from '@/test/fakes/in-memory-sinking-repository';
 import { createInMemorySnapshotRepository } from '@/test/fakes/in-memory-snapshot-repository';
 import { createInMemoryWalletRepository } from '@/test/fakes/in-memory-wallet-repository';
 import { mustExist } from '@/test/must-exist';
@@ -43,6 +44,7 @@ function deps() {
     wallets: createInMemoryWalletRepository(),
     snapshots: createInMemorySnapshotRepository(),
     debts: createInMemoryDebtRepository(),
+    fondos: createInMemorySinkingRepository(),
     ajustesDeAviso: AJUSTES_POR_DEFECTO,
     scheduler: {
       pedirPermiso: () => Promise.resolve(false),

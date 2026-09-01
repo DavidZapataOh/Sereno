@@ -421,3 +421,25 @@ export const debts = sqliteTable(
   },
   (tabla) => [index('idx_debts_owner').on(tabla.ownerId)],
 );
+
+/**
+ * Fondos para gastos que no llegan todos los meses (sprint 10).
+ *
+ * **Sin columna de lo apartado:** eso sale del ledger. La cuenta es de tipo
+ * `activo`, no de patrimonio: `isRealAccount` solo cuenta activos y pasivos, y
+ * con un fondo de patrimonio apartar plata haría **bajar** el patrimonio neto.
+ */
+export const sinking_funds = sqliteTable(
+  'sinking_funds',
+  {
+    accountId: text('account_id').primaryKey(),
+    ownerId: text('owner_id').notNull(),
+    nombre: text('nombre').notNull(),
+    /** Entero en la unidad mínima, como TEXT: igual que `postings.amount`. */
+    objetivo: text('objetivo').notNull(),
+    moneda: text('moneda').notNull(),
+    proximaFecha: text('proxima_fecha').notNull(),
+    cadaMeses: integer('cada_meses').notNull(),
+  },
+  (tabla) => [index('idx_sinking_owner').on(tabla.ownerId)],
+);
