@@ -186,6 +186,14 @@ export const SCREEN_MAP: readonly Screen[] = [
     fase: 7,
   },
   {
+    id: 'recordatorios',
+    titulo: 'Recordatorios',
+    ruta: '/ajustes/recordatorios',
+    padre: 'ajustes',
+    pregunta: '¿Con cuánta antelación quiero que me avisen, y de qué?',
+    fase: 9,
+  },
+  {
     id: 'wallets',
     titulo: 'Wallets',
     ruta: '/ajustes/wallets',

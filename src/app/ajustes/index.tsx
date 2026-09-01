@@ -134,6 +134,13 @@ export default function AjustesScreen() {
               }}
             />
             <NavRow
+              title="Recordatorios"
+              subtitle="Avisos antes de cada vencimiento"
+              onPress={() => {
+                router.push('/ajustes/recordatorios');
+              }}
+            />
+            <NavRow
               title="Wallets"
               subtitle="Direcciones que Sereno mira en la cadena"
               onPress={() => {
