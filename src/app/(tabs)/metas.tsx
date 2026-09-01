@@ -52,6 +52,13 @@ export default function MetasScreen() {
       )}
       <Card style={{ padding: 0 }}>
         <NavRow
+          title="Proyección"
+          subtitle="Si el saldo va a alcanzar los próximos meses"
+          onPress={() => {
+            router.push('/metas/proyeccion');
+          }}
+        />
+        <NavRow
           title="Presupuesto"
           subtitle="A qué le asignaste tu plata este mes"
           onPress={() => {
