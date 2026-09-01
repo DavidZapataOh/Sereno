@@ -7,7 +7,7 @@ import type { Observabilidad } from '../observabilidad';
 
 import { montarMovimientos } from './movimientos';
 import { montarRevision } from './revision';
-import { montarSaldos, type SaldosBinance } from './saldos';
+import { montarSaldos, type MotivoSinBinance, type SaldosBinance } from './saldos';
 
 export interface Dependencias {
   repos: Repositorios;
@@ -15,6 +15,8 @@ export interface Dependencias {
   observabilidad: Observabilidad;
   /** Ausente si no hay claves de Binance: la ruta lo dice en vez de mentir. */
   saldosBinance?: SaldosBinance;
+  /** Por qué no hay saldos. Sin claves, o con una clave que fue rechazada. */
+  motivoSinBinance?: MotivoSinBinance;
 }
 
 /**
@@ -63,7 +65,7 @@ export function crearApp(deps: Dependencias) {
 
   montarMovimientos(app, deps.repos);
   montarRevision(app, deps.repos, deps.observabilidad);
-  montarSaldos(app, deps.observabilidad, deps.saldosBinance);
+  montarSaldos(app, deps.observabilidad, deps.saldosBinance, deps.motivoSinBinance);
 
   app.notFound((c) => c.json({ error: 'No existe' }, 404));
 

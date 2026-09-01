@@ -7,6 +7,16 @@ import type { Observabilidad } from '../observabilidad';
 export type SaldosBinance = () => Promise<SaldoBinance[]>;
 
 /**
+ * Por qué no hay saldos, cuando no los hay.
+ *
+ * «No hay claves» y «la clave fue rechazada» piden cosas distintas —añadir dos
+ * variables, o revisar la que ya está— y desde fuera se veían igual: hubo que
+ * mirar los registros de Railway para distinguirlas. Un estado que no se puede
+ * distinguir es un estado que no sirve.
+ */
+export type MotivoSinBinance = 'sin-claves' | 'clave-rechazada';
+
+/**
  * Los saldos del exchange, para que el teléfono los meta a su ledger.
  *
  * Vive en el servidor y no en el teléfono porque ahí están las claves, igual
@@ -25,12 +35,22 @@ export function montarSaldos(
   app: Hono,
   observabilidad: Observabilidad,
   saldosBinance?: SaldosBinance,
+  motivo: MotivoSinBinance = 'sin-claves',
 ): void {
   app.get('/saldos', async (c) => {
     if (saldosBinance === undefined) {
       // 503 y no 200 con lista vacía: no está configurado, que no es lo mismo
-      // que no tener nada.
-      return c.json({ error: 'Binance no está configurado' }, 503);
+      // que no tener nada. Y se dice **cuál** de los dos casos es.
+      return c.json(
+        {
+          error:
+            motivo === 'sin-claves'
+              ? 'Binance no está configurado'
+              : 'Binance está configurado pero la clave fue rechazada: revísala',
+          motivo,
+        },
+        503,
+      );
     }
 
     try {

@@ -56,7 +56,28 @@ describe('saldos de Binance', () => {
     const res = await app.request('/saldos', con);
 
     expect(res.status).toBe(503);
-    await expect(res.json()).resolves.toEqual({ error: 'Binance no está configurado' });
+    await expect(res.json()).resolves.toMatchObject({ motivo: 'sin-claves' });
+  });
+
+  /**
+   * «No hay claves» y «la clave fue rechazada» piden cosas distintas —añadir
+   * dos variables, o revisar la que ya está— y desde fuera se veían igual:
+   * hubo que mirar los registros de Railway para distinguirlas.
+   */
+  it('una clave rechazada se distingue de una que falta', async () => {
+    const app = crearApp({
+      repos,
+      token: TOKEN,
+      observabilidad: sinRuido,
+      motivoSinBinance: 'clave-rechazada',
+    });
+
+    const res = await app.request('/saldos', con);
+
+    expect(res.status).toBe(503);
+    const cuerpo = (await res.json()) as { error: string; motivo: string };
+    expect(cuerpo.motivo).toBe('clave-rechazada');
+    expect(cuerpo.error).toMatch(/revísala/);
   });
 
   /**
