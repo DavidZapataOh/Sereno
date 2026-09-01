@@ -393,3 +393,31 @@ export const net_worth_snapshots = sqliteTable(
     index('idx_snapshots_owner_dia').on(tabla.ownerId, tabla.dia),
   ],
 );
+
+/**
+ * Los términos de una deuda (sprint 09).
+ *
+ * **No lleva saldo.** El saldo de una deuda sale del ledger, como el de
+ * cualquier cuenta: guardarlo sería tener dos verdades sobre la misma deuda, y
+ * la guardada siempre acaba siendo la vieja.
+ *
+ * La tasa va con su tipo al lado —«EA» o «MV»— porque «0.024» no significa
+ * nada sin él, y confundirlos cambia la cuota lo bastante como para que la
+ * simulación mienta. `NULL` en la tasa es «no aplica», que no es lo mismo que
+ * cero: cero es una tasa pactada del 0 %.
+ */
+export const debts = sqliteTable(
+  'debts',
+  {
+    accountId: text('account_id').primaryKey(),
+    ownerId: text('owner_id').notNull(),
+    tipo: text('tipo').notNull(),
+    nombre: text('nombre').notNull(),
+    /** Como TEXT: un `real` aquí introduce el error que todo esto evita. */
+    tasaValor: text('tasa_valor'),
+    tasaTipo: text('tasa_tipo'),
+    cuotasTotales: integer('cuotas_totales'),
+    diaDePago: integer('dia_de_pago'),
+  },
+  (tabla) => [index('idx_debts_owner').on(tabla.ownerId)],
+);

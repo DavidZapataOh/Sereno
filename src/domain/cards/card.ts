@@ -1,5 +1,6 @@
 import type { AccountId, OwnerId } from '@/domain/ledger/ids';
 import { subtract, type Money } from '@/domain/money/money';
+import { validarDiaDelMes } from '@/domain/time/month-day';
 
 /**
  * Lo que una tarjeta de crédito tiene y una cuenta cualquiera no.
@@ -19,27 +20,12 @@ export interface CreditCard {
   diaDePago: number;
 }
 
-/**
- * Los días 29, 30 y 31 no existen todos los meses.
- *
- * Aceptarlos aquí sería empujar el problema a los ciclos de facturación, donde
- * ya no se sabría si un «31» fue un error de quien lo escribió o una decisión
- * que hay que respetar en febrero.
- */
-const DIA_MAXIMO = 28;
-
-function validarDia(dia: number, nombre: string): void {
-  if (!Number.isInteger(dia) || dia < 1 || dia > DIA_MAXIMO) {
-    throw new Error(`El ${nombre} debe estar entre 1 y ${String(DIA_MAXIMO)}`);
-  }
-}
-
 export function createCreditCard(input: CreditCard): CreditCard {
   if (input.cupo.amount < 0n) {
     throw new Error('El cupo no puede ser negativo');
   }
-  validarDia(input.diaDeCorte, 'día de corte');
-  validarDia(input.diaDePago, 'día de pago');
+  validarDiaDelMes(input.diaDeCorte, 'día de corte');
+  validarDiaDelMes(input.diaDePago, 'día de pago');
   return { ...input };
 }
 
