@@ -108,6 +108,13 @@ export default function HoyScreen() {
       </Card>
       <Card style={{ padding: 0 }}>
         <NavRow
+          title="Medidas"
+          subtitle="Si estás mejorando, no solo cuánto gastaste"
+          onPress={() => {
+            router.push('/metricas');
+          }}
+        />
+        <NavRow
           title="Patrimonio"
           subtitle="Cómo se ha movido con el tiempo"
           onPress={() => {
