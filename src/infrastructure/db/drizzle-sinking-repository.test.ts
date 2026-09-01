@@ -13,6 +13,7 @@ const seguro: SinkingFund = {
   accountId: id,
   owner,
   nombre: 'Seguro del carro',
+  tipo: 'gasto',
   objetivo: money(1_200_000, 'COP'),
   proximaFecha: '2027-09-01',
   cadaMeses: 12,

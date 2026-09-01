@@ -48,6 +48,9 @@ export function useAppDeps(): AppDeps {
       // Los ajustes de aviso viven en la pantalla mientras no haya dónde
       // guardarlos; el valor por defecto es el que se usa al arrancar.
       ajustesDeAviso: AJUSTES_POR_DEFECTO,
+      // Desde cuándo se mide el ritmo de las metas. Con una sola instalación,
+      // el día de hoy basta: lo que importa es la proporción de tiempo pasado.
+      inicio: clock().slice(0, 10),
     };
   }, [db]);
 }

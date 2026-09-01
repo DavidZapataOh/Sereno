@@ -6,6 +6,7 @@ import {
   aporteMensual,
   createSinkingFund,
   mesesHasta,
+  ritmoDe,
   siguienteCiclo,
   type SinkingFund,
 } from './sinking-fund';
@@ -18,6 +19,7 @@ const seguro: SinkingFund = createSinkingFund({
   accountId: accountId('fondo:seguro'),
   owner: ownerId('david'),
   nombre: 'Seguro del carro',
+  tipo: 'gasto',
   objetivo: money(1_200_000, COP),
   proximaFecha: '2027-09-01',
   cadaMeses: 12,
@@ -132,5 +134,76 @@ describe('siguienteCiclo', () => {
     const semestral = createSinkingFund({ ...seguro, proximaFecha: '2026-10-01', cadaMeses: 6 });
 
     expect(siguienteCiclo(semestral).proximaFecha).toBe('2027-04-01');
+  });
+});
+
+describe('metas de ahorro: el mismo fondo con otra intención', () => {
+  /** Un viaje de 6.000.000 para dentro de un año, sin repetición. */
+  const viaje: SinkingFund = createSinkingFund({
+    ...seguro,
+    tipo: 'meta',
+    nombre: 'Viaje',
+    objetivo: money(6_000_000, COP),
+    proximaFecha: '2027-09-01',
+    cadaMeses: null,
+  });
+
+  it('una meta no se repite', () => {
+    expect(viaje.cadaMeses).toBeNull();
+  });
+
+  /** Una meta que se repite sola no es una meta: es un gasto recurrente. */
+  it('rechaza una meta con repetición', () => {
+    expect(() => createSinkingFund({ ...viaje, cadaMeses: 12 })).toThrow(/no se repite/);
+  });
+
+  it('una meta no se reproyecta al cumplirse: se cumplió', () => {
+    expect(siguienteCiclo(viaje).proximaFecha).toBe('2027-09-01');
+  });
+
+  it('el aporte requerido se calcula igual que en un fondo', () => {
+    const aporte = aporteMensual(viaje, money(0, COP), HOY);
+
+    expect(aporte.amount).toBeGreaterThan(450_000n);
+    expect(aporte.amount).toBeLessThan(470_000n);
+  });
+});
+
+describe('ritmoDe', () => {
+  const desde = '2026-09-15';
+  const meta: SinkingFund = createSinkingFund({
+    ...seguro,
+    tipo: 'meta',
+    nombre: 'Viaje',
+    objetivo: money(1_200_000, COP),
+    proximaFecha: '2027-09-01',
+    cadaMeses: null,
+  });
+
+  it('recién creado está al día, no atrasado', () => {
+    expect(ritmoDe(meta, money(0, COP), desde, desde).estado).toBe('al-dia');
+  });
+
+  it('con más de lo que tocaba, va adelantado', () => {
+    // A los seis meses tocaría la mitad; con 900.000 va sobrado.
+    expect(ritmoDe(meta, money(900_000, COP), '2027-03-15', desde).estado).toBe('adelantado');
+  });
+
+  it('con menos de lo que tocaba, va atrasado y dice cuánto', () => {
+    const ritmo = ritmoDe(meta, money(100_000, COP), '2027-03-15', desde);
+
+    expect(ritmo.estado).toBe('atrasado');
+    expect(ritmo.diferencia.amount).toBeLessThan(0n);
+  });
+
+  /**
+   * Exigir el céntimo exacto haría que «al día» no se alcanzara nunca, y un
+   * estado inalcanzable no informa de nada.
+   */
+  it('una diferencia de unos pesos sigue siendo al día', () => {
+    const tocaria = ritmoDe(meta, money(0, COP), '2027-03-15', desde).diferencia.amount;
+    const casi = money(-tocaria - 500n, COP);
+
+    expect(ritmoDe(meta, casi, '2027-03-15', desde).estado).toBe('al-dia');
   });
 });
