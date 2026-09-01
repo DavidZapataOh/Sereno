@@ -4,6 +4,7 @@ import { migrate } from 'drizzle-orm/postgres-js/migrator';
 import { crearApp } from './api/app';
 import { leerConfig } from './config';
 import { crearFuenteGmail } from './correo/gmail';
+import { crearClienteAsistente } from './asistente/cliente';
 import { crearClienteBinance } from './binance/cliente';
 import { verificarPermisos } from './binance/permisos';
 import { crearFuenteImap } from './correo/imap';
@@ -72,6 +73,14 @@ async function arrancar(): Promise<void> {
     }
   }
 
+  // El asistente, si hay clave. Sin ella el servidor arranca igual y la ruta
+  // dice qué falta: es una función accesoria, no puede tumbar nada.
+  const asistente =
+    config.anthropic === null ? undefined : crearClienteAsistente(config.anthropic.clave);
+  if (asistente === undefined) {
+    observabilidad.log('info', 'sin ANTHROPIC_API_KEY: el asistente queda apagado', {});
+  }
+
   const app = crearApp({
     repos,
     token: config.token,
@@ -79,6 +88,7 @@ async function arrancar(): Promise<void> {
     saldosBinance,
     motivoSinBinance,
     detalleSinBinance,
+    preguntar: asistente?.preguntar,
   });
   serve({ fetch: app.fetch, port: config.puerto });
 

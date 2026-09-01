@@ -1,3 +1,5 @@
+import { z } from 'zod';
+
 import { DEFAULT_CATEGORIES } from '@/domain/categorization/taxonomy';
 
 /**
@@ -76,3 +78,31 @@ function redondearONull(valor: number | null): number | null {
   if (valor === null || !Number.isFinite(valor)) return null;
   return Math.round(valor * 10) / 10;
 }
+
+/**
+ * La misma frontera, comprobable desde el otro lado.
+ *
+ * El servidor no confía en que el teléfono haya filtrado: valida con este
+ * esquema antes de reenviar nada a la API. **Se defiende en los dos lados**
+ * porque un fallo en la app no puede acabar mandando un comercio fuera.
+ *
+ * `strict()` es lo que hace el trabajo: un campo de más —añadido por descuido
+ * dentro de seis meses— no pasa, en vez de colarse ignorado.
+ */
+export const resumenPublicableSchema = z
+  .object({
+    gastoPorCategoria: z
+      .record(z.string(), z.number())
+      .refine((r) => Object.keys(r).every((k) => SLUGS_CONOCIDOS.includes(k)), {
+        message: 'hay una categoría que no es un slug de la taxonomía',
+      }),
+    saldoTotal: z.number(),
+    deudaTotal: z.number(),
+    patrimonio: z.number(),
+    patrimonioHace30Dias: z.number().nullable(),
+    tasaDeAhorroPct: z.number().nullable(),
+    mesesDeColchon: z.number().nullable(),
+    ingresoMensual: z.number().nullable(),
+    moneda: z.literal('COP'),
+  })
+  .strict();

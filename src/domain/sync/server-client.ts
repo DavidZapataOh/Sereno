@@ -1,5 +1,6 @@
 import { z } from 'zod';
 
+import type { ResumenPublicable } from '@/domain/assistant/publishable-summary';
 import { normalizedTransactionSchema } from '@/domain/capture/normalized-transaction';
 
 /** Un movimiento tal como lo entrega el servidor: el del dominio, con su id y su lugar en la fila. */
@@ -65,12 +66,44 @@ export type ExchangeStatus =
   | { estado: 'sin-configurar' }
   | { estado: 'error'; motivo: string };
 
+/** Lo que el servidor responde cuando el asistente contesta. */
+export const assistantAnswerSchema = z.object({
+  respuesta: z.string(),
+  /** Qué cifras dijo haber usado. Sin esto, la respuesta es un oráculo. */
+  cifrasUsadas: z.array(z.string()),
+  tokens: z.object({
+    entrada: z.number().int().nonnegative(),
+    salida: z.number().int().nonnegative(),
+  }),
+  /** Lo que costó, en dólares. Es plata de David y se enseña. */
+  costoUsd: z.number().nonnegative(),
+});
+export type AssistantAnswer = z.infer<typeof assistantAnswerSchema>;
+
+/**
+ * Qué pasó al preguntar. **Cuatro estados, y ninguno lanza.**
+ *
+ * La misma forma que `ExchangeStatus`, por la misma razón: cuando esto lanzaba,
+ * el llamador podía tragarse el error sin enseñarlo. «Sin configurar» y «se
+ * acabaron las consultas de hoy» piden cosas distintas y se ven distintas.
+ */
+export type AssistantStatus =
+  | { estado: 'ok'; respuesta: AssistantAnswer }
+  | { estado: 'sin-configurar' }
+  | { estado: 'tope-diario' }
+  | { estado: 'error'; motivo: string };
+
 export interface ServerClient {
   traer: (desde: number, limite: number) => Promise<ServerPage>;
   confirmar: (cursor: number) => Promise<void>;
   /** Los saldos del exchange, con su estado. Nunca lanza: los tres casos se declaran. */
   saldos: () => Promise<ExchangeStatus>;
   salud: () => Promise<ServerHealth>;
+  /**
+   * Una pregunta al asistente. **Solo sale el resumen agregado**, y nunca
+   * lanza: los cuatro casos se declaran.
+   */
+  preguntar: (resumen: ResumenPublicable, pregunta: string) => Promise<AssistantStatus>;
 }
 
 /** Dónde va el dispositivo y cuándo fue la última vez. */

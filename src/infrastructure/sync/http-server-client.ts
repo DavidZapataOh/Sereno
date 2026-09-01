@@ -1,4 +1,5 @@
 import {
+  assistantAnswerSchema,
   exchangeBalancesSchema,
   serverHealthSchema,
   serverPageSchema,
@@ -64,6 +65,28 @@ export function createHttpServerClient(config: ConfigServidor): ServerClient {
         return { estado: 'error', motivo: error instanceof Error ? error.message : String(error) };
       }
     },
+
+    preguntar: async (resumen, pregunta) => {
+      try {
+        const respuesta = await fetch(`${base}/asistente`, {
+          method: 'POST',
+          headers: cabeceras,
+          // **Esto es todo lo que sale del teléfono.** El resumen agregado y
+          // la pregunta, nada más.
+          body: JSON.stringify({ resumen, pregunta }),
+        });
+        // Sin clave en el servidor no es un fallo: es un estado que David
+        // puede arreglar, y la pantalla lo dice así.
+        if (respuesta.status === 503) return { estado: 'sin-configurar' };
+        if (respuesta.status === 429) return { estado: 'tope-diario' };
+        if (!respuesta.ok) {
+          return { estado: 'error', motivo: `El servidor respondió ${String(respuesta.status)}` };
+        }
+        return { estado: 'ok', respuesta: assistantAnswerSchema.parse(await respuesta.json()) };
+      } catch (error) {
+        return { estado: 'error', motivo: error instanceof Error ? error.message : String(error) };
+      }
+    },
   };
 }
 
@@ -80,5 +103,6 @@ export function createSinServidor(): ServerClient {
     confirmar: () => Promise.reject(new Error('Sin servidor configurado')),
     salud: () => Promise.reject(new Error('Sin servidor configurado')),
     saldos: () => Promise.resolve({ estado: 'sin-configurar' as const }),
+    preguntar: () => Promise.resolve({ estado: 'sin-configurar' as const }),
   };
 }

@@ -1,4 +1,9 @@
-import { resumenPublicable, SLUGS_CONOCIDOS, type EntradaDelResumen } from './publishable-summary';
+import {
+  resumenPublicable,
+  resumenPublicableSchema,
+  SLUGS_CONOCIDOS,
+  type EntradaDelResumen,
+} from './publishable-summary';
 
 const entrada: EntradaDelResumen = {
   gastoPorCategoria: { mercado: 620_000, 'taxi-y-apps': 180_000 },
@@ -109,5 +114,42 @@ describe('resumenPublicable', () => {
     const valores = Object.values(resumenPublicable(entrada)).filter((v) => typeof v === 'string');
 
     expect(valores).toEqual(['COP']);
+  });
+});
+
+describe('resumenPublicableSchema', () => {
+  const valido = resumenPublicable({
+    gastoPorCategoria: { mercado: 400_000 },
+    saldoTotal: 1_000_000,
+    deudaTotal: 0,
+    patrimonio: 1_000_000,
+    patrimonioHace30Dias: null,
+    tasaDeAhorroPct: null,
+    mesesDeColchon: null,
+    ingresoMensual: null,
+  });
+
+  it('acepta lo que produce resumenPublicable', () => {
+    expect(resumenPublicableSchema.parse(valido)).toEqual(valido);
+  });
+
+  /** La frontera se defiende en los dos lados: el servidor no confía en la app. */
+  it('rechaza una categoría que no es un slug de la taxonomía', () => {
+    const result = resumenPublicableSchema.safeParse({
+      ...valido,
+      gastoPorCategoria: { 'RAPPI*BURGER 4512': 30_000 },
+    });
+
+    expect(result.success).toBe(false);
+  });
+
+  it('un campo de más no se cuela ignorado', () => {
+    const result = resumenPublicableSchema.safeParse({ ...valido, descripcion: 'COMPRA EXITO' });
+
+    expect(result.success).toBe(false);
+  });
+
+  it('exige pesos: otra moneda no pasa', () => {
+    expect(resumenPublicableSchema.safeParse({ ...valido, moneda: 'USD' }).success).toBe(false);
   });
 });

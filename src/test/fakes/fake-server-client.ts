@@ -1,4 +1,6 @@
 import type {
+  AssistantAnswer,
+  AssistantStatus,
   ExchangeBalance,
   ServerClient,
   ServerHealth,
@@ -15,6 +17,10 @@ export interface FakeServerClient extends ServerClient {
   responderSaldos: (saldos: ExchangeBalance[]) => void;
   fallarSaldos: () => void;
   sinBinance: () => void;
+  /** Qué responde el asistente, y qué se le preguntó. */
+  responderAsistente: (respuesta: AssistantAnswer) => void;
+  asistenteResponde: (estado: AssistantStatus) => void;
+  preguntado: () => { resumen: unknown; pregunta: string }[];
 }
 
 export function createFakeServerClient(movimientos: readonly ServerMovement[]): FakeServerClient {
@@ -25,6 +31,16 @@ export function createFakeServerClient(movimientos: readonly ServerMovement[]): 
   let saldos: ExchangeBalance[] = [];
   let fallaSaldos = false;
   let sinConfigurar = false;
+  const preguntado: { resumen: unknown; pregunta: string }[] = [];
+  let asistente: AssistantStatus = {
+    estado: 'ok',
+    respuesta: {
+      respuesta: 'Con lo que tienes, no.',
+      cifrasUsadas: ['saldoTotal'],
+      tokens: { entrada: 400, salida: 120 },
+      costoUsd: 0.005,
+    },
+  };
   let salud: ServerHealth = {
     estado: 'vivo',
     movimientosPendientes: 0,
@@ -55,6 +71,13 @@ export function createFakeServerClient(movimientos: readonly ServerMovement[]): 
     sinBinance: () => {
       sinConfigurar = true;
     },
+    responderAsistente: (respuesta) => {
+      asistente = { estado: 'ok', respuesta };
+    },
+    asistenteResponde: (estado) => {
+      asistente = estado;
+    },
+    preguntado: () => [...preguntado],
     dejarDeFallar: () => {
       fallaTraida = false;
       fallaConfirmacion = false;
@@ -79,6 +102,10 @@ export function createFakeServerClient(movimientos: readonly ServerMovement[]): 
       if (sinConfigurar) return Promise.resolve({ estado: 'sin-configurar' as const });
       if (fallaSaldos) return Promise.resolve({ estado: 'error' as const, motivo: 'sin conexión' });
       return Promise.resolve({ estado: 'ok' as const, saldos: [...saldos] });
+    },
+    preguntar: (resumen, pregunta) => {
+      preguntado.push({ resumen, pregunta });
+      return Promise.resolve(asistente);
     },
   };
 }

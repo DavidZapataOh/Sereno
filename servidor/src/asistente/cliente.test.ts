@@ -6,7 +6,7 @@ import { cifrasDe, sinLaLineaDeCifras, SISTEMA } from './prompt';
 
 /** Un SDK de mentira que recuerda con qué se le llamó. */
 function sdkDoble(texto: string) {
-  const create = vi.fn(() =>
+  const create = vi.fn<(peticion: Record<string, unknown>) => Promise<unknown>>(() =>
     Promise.resolve({
       content: [{ type: 'text', text: texto }],
       usage: { input_tokens: 400, output_tokens: 120 },
@@ -22,9 +22,9 @@ describe('clienteAsistente', () => {
     const { sdk, create } = sdkDoble(RESPUESTA);
     await crearClienteAsistente('x', sdk).preguntar({ saldoTotal: 1 }, '¿me alcanza?');
 
-    const peticion = create.mock.calls[0]?.[0] as Record<string, unknown>;
-    expect(peticion['model']).toBe(MODELO);
-    expect(peticion['output_config']).toEqual({ effort: 'low' });
+    const peticion = create.mock.calls[0]?.[0];
+    expect(peticion?.['model']).toBe(MODELO);
+    expect(peticion?.['output_config']).toEqual({ effort: 'low' });
   });
 
   /**
@@ -42,7 +42,7 @@ describe('clienteAsistente', () => {
     const { sdk, create } = sdkDoble(RESPUESTA);
     await crearClienteAsistente('x', sdk).preguntar({}, 'hola');
 
-    expect((create.mock.calls[0]?.[0] as Record<string, unknown>)['thinking']).toEqual({
+    expect(create.mock.calls[0]?.[0]?.['thinking']).toEqual({
       type: 'adaptive',
     });
   });
@@ -85,7 +85,9 @@ describe('clienteAsistente', () => {
 
   /** Los errores del SDK suben tal cual: nunca se comparan cadenas. */
   it('un error del SDK no se traga', async () => {
-    const create = vi.fn(() => Promise.reject(new Error('rate limited')));
+    const create = vi.fn<(peticion: Record<string, unknown>) => Promise<unknown>>(() =>
+      Promise.reject(new Error('rate limited')),
+    );
     const sdk = { messages: { create } } as never;
 
     await expect(crearClienteAsistente('x', sdk).preguntar({}, 'hola')).rejects.toThrow();
