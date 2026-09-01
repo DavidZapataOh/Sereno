@@ -108,6 +108,13 @@ export default function HoyScreen() {
       </Card>
       <Card style={{ padding: 0 }}>
         <NavRow
+          title="Informes"
+          subtitle="En qué se te va la plata"
+          onPress={() => {
+            router.push('/informes');
+          }}
+        />
+        <NavRow
           title="Avisos"
           subtitle="Cobros que se salen de tu patrón"
           onPress={() => {

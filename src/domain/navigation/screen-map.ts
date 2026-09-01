@@ -141,6 +141,14 @@ export const SCREEN_MAP: readonly Screen[] = [
     fase: 10,
   },
   {
+    id: 'informes',
+    titulo: 'Informes',
+    ruta: '/informes',
+    padre: 'hoy',
+    pregunta: '¿En qué se me va la plata, y gasto más que antes?',
+    fase: 11,
+  },
+  {
     id: 'anomalias',
     titulo: 'Avisos',
     ruta: '/anomalias',
