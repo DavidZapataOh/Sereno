@@ -19,7 +19,32 @@ function doble(cuerpo: unknown, status = 200) {
   );
 }
 
-/** La URL de la primera petición. El primer argumento de `fetch` puede no ser texto. */
+/**
+ * Un doble que responde según la ruta. Hace falta porque `saldos()` pide dos
+ * billeteras distintas: Spot y Fondos.
+ */
+function doblePorRuta(spot: unknown, fondos: unknown) {
+  return vi.fn<typeof fetch>((entrada) =>
+    Promise.resolve({
+      ok: true,
+      status: 200,
+      json: () => Promise.resolve(comoTexto(entrada).includes('get-funding-asset') ? fondos : spot),
+    } as unknown as Response),
+  );
+}
+
+/**
+ * La URL de una llamada, como texto.
+ *
+ * El primer argumento de `fetch` puede ser `URL` o `Request`, así que
+ * convertirlo con `String()` daría «[object Object]» en cuanto alguien pase
+ * otra cosa: una prueba que compara contra eso pasa siempre y no comprueba
+ * nada. El lint lo prohíbe por ese motivo.
+ */
+function comoTexto(entrada: unknown): string {
+  return typeof entrada === 'string' ? entrada : '';
+}
+
 function urlDe(f: ReturnType<typeof doble>): string {
   const url = f.mock.calls[0]?.[0];
   if (typeof url !== 'string') throw new Error('la petición no llevó una URL de texto');
@@ -193,5 +218,100 @@ describe('clienteBinance', () => {
 
   it('sin balances no falla', async () => {
     expect(await cliente(doble({})).saldos()).toEqual([]);
+  });
+});
+
+describe('Spot y Fondos', () => {
+  /**
+   * El caso real: el dinero de David estaba en Fondos, y mirar solo Spot
+   * devolvía cero —que no se distingue de no tener nada—.
+   */
+  it('encuentra el saldo aunque solo esté en Fondos', async () => {
+    const saldos = await cliente(
+      doblePorRuta(cuentaCon([]), [{ asset: 'USDC', free: '12.50000000' }]),
+    ).saldos();
+
+    expect(saldos).toEqual([{ activo: 'USDC', cantidad: 12_500_000n }]);
+  });
+
+  /**
+   * Se suman en un solo número. Mover dinero de Fondos a Spot es cambiarlo de
+   * bolsillo: con cuentas separadas cada traslado dejaría dos ajustes que se
+   * anulan, y eso es ruido en el historial.
+   */
+  it('suma el mismo activo en las dos billeteras', async () => {
+    const saldos = await cliente(
+      doblePorRuta(cuentaCon([{ asset: 'USDC', free: '3.00000000' }]), [
+        { asset: 'USDC', free: '2.00000000' },
+      ]),
+    ).saldos();
+
+    expect(saldos).toEqual([{ activo: 'USDC', cantidad: 5_000_000n }]);
+  });
+
+  /**
+   * Fondos trae dos columnas que Spot no: lo congelado y lo que está saliendo
+   * en un retiro. Lo que está en camino todavía es suyo hasta que llega al
+   * otro lado; descontarlo lo haría desaparecer a mitad de camino.
+   */
+  it('cuenta también lo congelado y lo que está saliendo', async () => {
+    const saldos = await cliente(
+      doblePorRuta(cuentaCon([]), [
+        {
+          asset: 'USDT',
+          free: '1.00000000',
+          locked: '2.00000000',
+          freeze: '3.00000000',
+          withdrawing: '4.00000000',
+        },
+      ]),
+    ).saldos();
+
+    expect(saldos[0]?.cantidad).toBe(10_000_000n);
+  });
+
+  it('en Fondos también se ignora lo que no se sigue', async () => {
+    const saldos = await cliente(
+      doblePorRuta(cuentaCon([]), [
+        { asset: 'HMSTR', free: '999.00000000' },
+        { asset: 'USDC', free: '1.00000000' },
+      ]),
+    ).saldos();
+
+    expect(saldos.map((s) => s.activo)).toEqual(['USDC']);
+  });
+
+  it('un activo en cero en las dos no aparece', async () => {
+    const saldos = await cliente(
+      doblePorRuta(cuentaCon([{ asset: 'USDC', free: '0' }]), [{ asset: 'USDC', free: '0' }]),
+    ).saldos();
+
+    expect(saldos).toEqual([]);
+  });
+
+  it('Fondos se pide con POST: en GET Binance no la sirve', async () => {
+    const f = doblePorRuta(cuentaCon([]), []);
+
+    await cliente(f).saldos();
+
+    const llamada = f.mock.calls.find((c) => comoTexto(c[0]).includes('get-funding-asset'));
+    expect(llamada?.[1]?.method).toBe('POST');
+    // La firma va en la URL también en POST: Binance no la lee del cuerpo.
+    expect(comoTexto(llamada?.[0])).toMatch(/&signature=[0-9a-f]{64}$/);
+  });
+
+  it('si Fondos falla, no se devuelve solo Spot en silencio', async () => {
+    // Media respuesta enseñada como si fuera entera es un saldo que falta sin
+    // que nada lo diga.
+    const f = vi.fn<typeof fetch>((entrada) =>
+      Promise.resolve({
+        ok: !comoTexto(entrada).includes('get-funding-asset'),
+        status: comoTexto(entrada).includes('get-funding-asset') ? 500 : 200,
+        json: () =>
+          Promise.resolve(comoTexto(entrada).includes('get-funding-asset') ? {} : cuentaCon([])),
+      } as unknown as Response),
+    );
+
+    await expect(cliente(f).saldos()).rejects.toThrow(/500/);
   });
 });

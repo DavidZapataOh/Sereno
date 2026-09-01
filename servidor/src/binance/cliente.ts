@@ -20,6 +20,20 @@ interface CuentaBinance {
   balances?: { asset?: string; free?: string; locked?: string }[];
 }
 
+/**
+ * La billetera de Fondos, comprobada contra la API real el 2026-08-31.
+ *
+ * Devuelve un arreglo, no un objeto con `balances` como Spot, y trae dos
+ * columnas más: `freeze` y `withdrawing`.
+ */
+interface ActivoDeFondos {
+  asset?: string;
+  free?: string;
+  locked?: string;
+  freeze?: string;
+  withdrawing?: string;
+}
+
 interface ErrorBinance {
   code?: number;
   msg?: string;
@@ -52,9 +66,16 @@ export type Fetch = typeof fetch;
  * mensajes acaban en registros que no controlamos.
  */
 export function crearClienteBinance(config: ConfigBinance, hacerFetch: Fetch = fetch) {
-  const pedir = async <T>(ruta: string, parametros: Record<string, string> = {}): Promise<T> => {
+  const pedir = async <T>(
+    ruta: string,
+    parametros: Record<string, string> = {},
+    metodo: 'GET' | 'POST' = 'GET',
+  ): Promise<T> => {
     const consulta = consultaFirmada(parametros, config.secreto);
+    // La firma va en la URL también en POST: Binance no la lee del cuerpo, y
+    // mandarla ahí devuelve un error de firma que no menciona el método.
     const respuesta = await hacerFetch(`${BASE}${ruta}?${consulta}`, {
+      method: metodo,
       headers: { 'X-MBX-APIKEY': config.clave },
       signal: AbortSignal.timeout(TIEMPO_LIMITE),
     });
@@ -99,21 +120,47 @@ export function crearClienteBinance(config: ConfigBinance, hacerFetch: Fetch = f
     permisos: () => pedir<RestriccionesApi>('/sapi/v1/account/apiRestrictions'),
 
     /**
-     * Los saldos que no son cero, de los activos seguidos.
+     * Los saldos que no son cero, de los activos seguidos, **sumando Spot y
+     * Fondos**.
      *
-     * Binance devuelve cientos de monedas, casi todas en cero. Y suma `free` y
-     * `locked`: lo bloqueado en una orden sigue siendo suyo.
+     * Son dos billeteras distintas con dos endpoints distintos, y el dinero
+     * puede estar en cualquiera de las dos —el de David estaba en Fondos, y
+     * mirar solo Spot devolvía cero, que no se distingue de no tener nada—.
+     *
+     * **Se suman en un solo número por activo, no en dos cuentas.** Mover
+     * dinero de Fondos a Spot es cambiarlo de bolsillo, no ganarlo ni
+     * perderlo: con cuentas separadas, cada traslado dejaría dos ajustes que se
+     * anulan, y eso es ruido en el historial.
+     *
+     * Binance devuelve cientos de monedas, casi todas en cero.
      */
     saldos: async (): Promise<SaldoBinance[]> => {
-      const cuenta = await pedir<CuentaBinance>('/api/v3/account');
-      const saldos: SaldoBinance[] = [];
-      for (const fila of cuenta.balances ?? []) {
-        const escala = fila.asset === undefined ? undefined : SEGUIDOS[fila.asset];
-        if (fila.asset === undefined || escala === undefined) continue;
-        const cantidad = aEntero(fila.free ?? '0', escala) + aEntero(fila.locked ?? '0', escala);
-        if (cantidad > 0n) saldos.push({ activo: fila.asset, cantidad });
+      const [spot, fondos] = await Promise.all([
+        pedir<CuentaBinance>('/api/v3/account'),
+        pedir<ActivoDeFondos[]>('/sapi/v1/asset/get-funding-asset', {}, 'POST'),
+      ]);
+
+      const porActivo = new Map<string, bigint>();
+      const sumar = (activo: string | undefined, partes: (string | undefined)[]): void => {
+        const escala = activo === undefined ? undefined : SEGUIDOS[activo];
+        if (activo === undefined || escala === undefined) return;
+        const total = partes.reduce((acc, p) => acc + aEntero(p ?? '0', escala), 0n);
+        porActivo.set(activo, (porActivo.get(activo) ?? 0n) + total);
+      };
+
+      // Spot: lo bloqueado en una orden sigue siendo suyo.
+      for (const fila of spot.balances ?? []) sumar(fila.asset, [fila.free, fila.locked]);
+
+      // Fondos: además de `locked`, hay `freeze` y `withdrawing`. Lo que está
+      // saliendo en un retiro todavía es suyo hasta que llega al otro lado;
+      // descontarlo lo haría desaparecer a mitad de camino.
+      for (const fila of Array.isArray(fondos) ? fondos : []) {
+        sumar(fila.asset, [fila.free, fila.locked, fila.freeze, fila.withdrawing]);
       }
-      return saldos;
+
+      return [...porActivo]
+        .filter(([, cantidad]) => cantidad > 0n)
+        .map(([activo, cantidad]) => ({ activo, cantidad }));
     },
   };
 }
