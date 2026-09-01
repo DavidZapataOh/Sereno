@@ -41,6 +41,7 @@ async function arrancar(): Promise<void> {
   // es una cuenta vaciada. Una clave con todos los permisos leería los saldos
   // igual de bien, y nadie lo notaría hasta que se filtrara.
   let saldosBinance;
+  let motivoSinBinance: 'sin-claves' | 'clave-rechazada' = 'sin-claves';
   if (config.binance !== null) {
     const cliente = crearClienteBinance(config.binance);
     try {
@@ -59,6 +60,7 @@ async function arrancar(): Promise<void> {
       // responde que no está configurado.
       //
       // Un fallo de una integración no puede llevarse por delante las otras.
+      motivoSinBinance = 'clave-rechazada';
       observabilidad.captureError(error, { operacion: 'verificar-binance' });
       observabilidad.log(
         'error',
@@ -68,7 +70,13 @@ async function arrancar(): Promise<void> {
     }
   }
 
-  const app = crearApp({ repos, token: config.token, observabilidad, saldosBinance });
+  const app = crearApp({
+    repos,
+    token: config.token,
+    observabilidad,
+    saldosBinance,
+    motivoSinBinance,
+  });
   serve({ fetch: app.fetch, port: config.puerto });
 
   // IMAP salvo que haya credenciales completas de Gmail. Ver «Decisiones» en
