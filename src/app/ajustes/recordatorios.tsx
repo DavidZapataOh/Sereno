@@ -17,7 +17,14 @@ export const TEXTO_RECORDATORIOS = {
   explicacion:
     'Sereno te avisa antes de cada vencimiento. Los avisos se vuelven a programar cada vez que abres la app, porque Android los olvida al reiniciar el teléfono.',
   sinPermiso:
-    'Android no ha dado permiso para avisarte. Sin él la app funciona igual, pero no te llegará ningún recordatorio.',
+    'No se pueden programar avisos ahora mismo. Sin ellos la app funciona igual, pero no te llegará ningún recordatorio.',
+  /**
+   * El caso real. En Expo Go el módulo de notificaciones ni siquiera carga, así
+   * que decir «Android no dio permiso» mandaría a buscar donde no es: a unos
+   * ajustes del teléfono donde no hay nada que tocar.
+   */
+  enExpoGo:
+    'En Expo Go no hay avisos: el módulo de notificaciones no está disponible ahí. Funcionarán cuando la app corra como APK instalado.',
   pedirPermiso: 'Permitir avisos',
   silenciado: 'Los avisos están silenciados.',
   programados: (cuantos: number) =>
@@ -76,6 +83,12 @@ export default function RecordatoriosRoute() {
             <AppText level="apoyo" color="textSecondary">
               {TEXTO_RECORDATORIOS.antelacion(deps.ajustesDeAviso.diasAntes)}
             </AppText>
+
+            {estado.data.motivo === 'sin-permiso' && (
+              <AppText level="apoyo" color="textSecondary">
+                {TEXTO_RECORDATORIOS.enExpoGo}
+              </AppText>
+            )}
 
             {estado.data.motivo === 'sin-permiso' && (
               <Button
