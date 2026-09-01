@@ -18,6 +18,7 @@ import { createInMemoryTransferRepository } from '@/test/fakes/in-memory-transfe
 import { createSequentialIds } from '@/test/fakes/sequential-ids';
 import { createInMemoryCardRepository } from '@/test/fakes/in-memory-card-repository';
 import { AJUSTES_POR_DEFECTO } from '@/domain/alerts/reminder-settings';
+import { createInMemoryAnomalyRepository } from '@/test/fakes/in-memory-anomaly-repository';
 import { createInMemoryBudgetRepository } from '@/test/fakes/in-memory-budget-repository';
 import { createInMemoryDebtRepository } from '@/test/fakes/in-memory-debt-repository';
 import { createInMemorySinkingRepository } from '@/test/fakes/in-memory-sinking-repository';
@@ -47,6 +48,7 @@ function deps() {
     debts: createInMemoryDebtRepository(),
     fondos: createInMemorySinkingRepository(),
     presupuesto: createInMemoryBudgetRepository(),
+    anomalias: createInMemoryAnomalyRepository(),
     inicio: '2026-09-01',
     ajustesDeAviso: AJUSTES_POR_DEFECTO,
     scheduler: {

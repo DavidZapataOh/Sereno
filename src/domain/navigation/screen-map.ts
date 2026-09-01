@@ -141,6 +141,14 @@ export const SCREEN_MAP: readonly Screen[] = [
     fase: 10,
   },
   {
+    id: 'anomalias',
+    titulo: 'Avisos',
+    ruta: '/anomalias',
+    padre: 'hoy',
+    pregunta: '¿Hay algún cobro que se salga de lo normal?',
+    fase: 11,
+  },
+  {
     id: 'metricas',
     titulo: 'Medidas',
     ruta: '/metricas',

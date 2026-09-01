@@ -22,6 +22,7 @@ import type { SnapshotDeps } from '../overview/record-snapshot';
 import type { BudgetDeps } from '../budget/monthly-budget';
 import type { CashFlowDeps } from '../cashflow/cash-flow';
 import type { RequiredIncomeDeps } from '../income/required-income';
+import type { AnomalyDeps } from '../anomalies/detect-anomalies';
 import type { BehaviorDeps } from '../metrics/behavior-metrics';
 import type { GoalDeps } from '../goals/goal-progress';
 import type { FundDeps } from '../sinking/manage-funds';
@@ -51,6 +52,7 @@ export type AppDeps = IngestDeps &
   CashFlowDeps &
   RequiredIncomeDeps &
   BehaviorDeps &
+  AnomalyDeps &
   RefreshRatesDeps;
 
 export interface SyncSummary extends IngestSummary {

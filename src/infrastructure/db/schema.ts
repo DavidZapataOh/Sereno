@@ -469,3 +469,22 @@ export const budget_envelopes = sqliteTable(
     index('idx_budget_owner_mes').on(tabla.ownerId, tabla.mes),
   ],
 );
+
+/**
+ * Anomalías que el usuario dio por buenas (sprint 11).
+ *
+ * **Solo lo descartado.** Las anomalías se derivan del ledger en cada consulta;
+ * lo único que no se puede derivar es que él dijo «esto está bien».
+ */
+export const dismissed_anomalies = sqliteTable(
+  'dismissed_anomalies',
+  {
+    ownerId: text('owner_id').notNull(),
+    anomalyId: text('anomaly_id').notNull(),
+    descartadaEn: text('descartada_en').notNull(),
+  },
+  (tabla) => [
+    primaryKey({ columns: [tabla.ownerId, tabla.anomalyId] }),
+    index('idx_dismissed_owner').on(tabla.ownerId),
+  ],
+);
