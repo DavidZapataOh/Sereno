@@ -3,6 +3,7 @@ import { router } from 'expo-router';
 import { ScrollView, View } from 'react-native';
 
 import { goalProgress } from '@/application/goals/goal-progress';
+import { requiredIncome } from '@/application/income/required-income';
 import { useAppDeps } from '@/infrastructure/composition/use-app-deps';
 import { CURRENT_OWNER } from '@/infrastructure/session/current-owner';
 import { AppText } from '@/ui/components/app-text';
@@ -10,6 +11,7 @@ import { Card } from '@/ui/components/card';
 import { NavRow } from '@/ui/components/nav-row';
 import { EmptyState, LoadingState } from '@/ui/components/states';
 import { GoalRow, TEXTO_META } from '@/ui/goals/goal-row';
+import { RequiredIncomeCard } from '@/ui/income/required-income-card';
 import { useTheme } from '@/ui/theme/use-theme';
 
 /**
@@ -28,9 +30,17 @@ export default function MetasScreen() {
     queryFn: () => goalProgress(deps, CURRENT_OWNER),
   });
 
+  const ingreso = useQuery({
+    queryKey: ['ingreso-requerido', CURRENT_OWNER],
+    queryFn: () => requiredIncome(deps, { owner: CURRENT_OWNER }),
+  });
+
   return (
     <ScrollView contentContainerStyle={{ padding: theme.spacing.lg, gap: theme.spacing.lg }}>
       {metas.isPending && <LoadingState />}
+
+      {/* Lo primero: cuánto hay que ganar. Es la pregunta que trae aquí. */}
+      {ingreso.data !== undefined && <RequiredIncomeCard resumen={ingreso.data} />}
 
       {metas.data?.metas.length === 0 && (
         <EmptyState

@@ -1,8 +1,8 @@
-import { categoryAccountId, DEFAULT_CATEGORIES } from '@/domain/categorization/taxonomy';
 import type { OwnerId } from '@/domain/ledger/ids';
-import { subtract, sum, zero, type Money } from '@/domain/money/money';
+import { sum, type Money } from '@/domain/money/money';
 import { ritmoDe, type Ritmo } from '@/domain/sinking/sinking-fund';
 
+import { observedIncome } from '../income/observed-income';
 import { listFunds, type FundDeps, type FundState } from '../sinking/manage-funds';
 
 export interface GoalDeps extends FundDeps {
@@ -27,9 +27,6 @@ export interface GoalsSummary {
   cabeEnElIngreso: boolean | null;
 }
 
-/** Cuántos meses atrás se mira el ingreso. */
-const VENTANA = 3;
-
 /**
  * Las metas con su progreso, y si el plan cabe en lo que se gana.
  *
@@ -50,7 +47,7 @@ export async function goalProgress(deps: GoalDeps, owner: OwnerId): Promise<Goal
     moneda,
   );
 
-  const ingresoObservado = await ingresoMensual(deps, hoy, moneda);
+  const { promedio: ingresoObservado } = await observedIncome(deps, { hasta: hoy, moneda });
   return {
     metas,
     aporteTotal,
@@ -58,51 +55,4 @@ export async function goalProgress(deps: GoalDeps, owner: OwnerId): Promise<Goal
     cabeEnElIngreso:
       ingresoObservado === null ? null : aporteTotal.amount <= ingresoObservado.amount,
   };
-}
-
-/**
- * El ingreso mensual que el ledger observa.
- *
- * Lo declarado es lo que uno cree ganar; el ledger sabe lo que entró. `null`
- * cuando no hay historia: devolver cero diría «no ganas nada».
- */
-async function ingresoMensual(
-  deps: GoalDeps,
-  hoy: string,
-  moneda: Money['currency'],
-): Promise<Money | null> {
-  const slugs = DEFAULT_CATEGORIES.filter((c) => c.kind === 'ingreso').map((c) => c.slug);
-  const meses: Money[] = [];
-
-  let cursor = mesAnterior(hoy.slice(0, 7));
-  for (let i = 0; i < VENTANA; i += 1) {
-    let delMes = zero(moneda);
-    for (const slug of slugs) {
-      const id = categoryAccountId(slug);
-      if ((await deps.accounts.findById(id)) === null) continue;
-      const cierre = await deps.accounts.balanceOf(id, { hasta: finDe(cursor) });
-      const inicio = await deps.accounts.balanceOf(id, { hasta: finDe(mesAnterior(cursor)) });
-      // El ingreso llega como crédito: negativo sobre la cuenta de ingreso.
-      const delSlug = subtract(inicio, cierre);
-      delMes = { amount: delMes.amount + delSlug.amount, currency: moneda };
-    }
-    if (delMes.amount !== 0n) meses.push(delMes);
-    cursor = mesAnterior(cursor);
-  }
-
-  if (meses.length === 0) return null;
-  return { amount: sum(meses, moneda).amount / BigInt(meses.length), currency: moneda };
-}
-
-function mesAnterior(mes: string): string {
-  const [anio = 1970, m = 1] = mes.split('-').map(Number);
-  const total = (anio - 1) * 12 + (m - 1) - 1;
-  return `${String(Math.floor(total / 12) + 1).padStart(4, '0')}-${String((total % 12) + 1).padStart(2, '0')}`;
-}
-
-function finDe(mes: string): string {
-  const [anio = 1970, m = 1] = mes.split('-').map(Number);
-  const total = (anio - 1) * 12 + m;
-  const siguiente = `${String(Math.floor(total / 12) + 1).padStart(4, '0')}-${String((total % 12) + 1).padStart(2, '0')}`;
-  return `${siguiente}-01T00:00:00.000-05:00`;
 }
