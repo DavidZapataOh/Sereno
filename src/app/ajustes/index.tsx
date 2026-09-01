@@ -11,6 +11,8 @@ import { CURRENT_OWNER } from '@/infrastructure/session/current-owner';
 import { AppText } from '@/ui/components/app-text';
 import { Card } from '@/ui/components/card';
 import { NavRow } from '@/ui/components/nav-row';
+import { syncExchange } from '@/application/crypto/sync-exchange';
+import { ExchangeCard } from '@/ui/crypto/exchange-card';
 import { ServerSyncCard } from '@/ui/sync/server-sync-card';
 import { useTheme } from '@/ui/theme/use-theme';
 
@@ -37,6 +39,14 @@ export default function AjustesScreen() {
   const salud = useQuery({
     queryKey: ['server-health', CURRENT_OWNER],
     queryFn: () => deps.servidor.salud(),
+    staleTime: 60 * 1000,
+    retry: false,
+  });
+  // Se pregunta aquí y no se guarda: lo que importa es el estado ahora mismo,
+  // que es lo que uno viene a mirar cuando no ve su saldo.
+  const binance = useQuery({
+    queryKey: ['exchange-status', CURRENT_OWNER],
+    queryFn: () => syncExchange(deps, { owner: CURRENT_OWNER }),
     staleTime: 60 * 1000,
     retry: false,
   });
@@ -91,6 +101,11 @@ export default function AjustesScreen() {
             onTraer={() => {
               traer.mutate();
             }}
+          />
+          <ExchangeCard
+            resumen={binance.data}
+            leidoEn={binance.data === undefined ? null : deps.clock()}
+            now={deps.clock()}
           />
         </View>
 

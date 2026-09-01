@@ -9,6 +9,7 @@ import { recordSnapshot } from '@/application/overview/record-snapshot';
 import { refreshRates } from '@/application/rates/refresh-rates';
 import { pullFromServer } from '@/application/sync/pull-from-server';
 import { useAppDeps } from '@/infrastructure/composition/use-app-deps';
+import { observability } from '@/infrastructure/observability';
 import { CURRENT_OWNER } from '@/infrastructure/session/current-owner';
 import { IconButton } from '@/ui/components/icon-button';
 import { useTheme } from '@/ui/theme/use-theme';
@@ -82,6 +83,15 @@ function useAutoCrypto(): void {
       // responde, las wallets ya quedaron leídas. Un fallo de uno no puede
       // dejar al otro sin sincronizar.
       const exchange = await syncExchange(deps, { owner: CURRENT_OWNER });
+      // Nada de esto se traga en silencio. Cuando el error de Binance se
+      // descartaba aquí, las claves no estaban en Railway y no había forma de
+      // enterarse sin consultar el servidor a mano.
+      if (exchange.estado !== 'ok') {
+        observability.log('warn', 'Binance no se pudo leer', { estado: exchange.estado });
+      }
+      for (const cadena of wallets.fallidas) {
+        observability.log('warn', 'cadena no leída', { cadena });
+      }
       // La marca del día se toma **después** de leer todo, no antes: si no,
       // guardaría el patrimonio de ayer con fecha de hoy.
       await recordSnapshot(deps, { owner: CURRENT_OWNER });

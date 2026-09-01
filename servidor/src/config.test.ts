@@ -137,3 +137,34 @@ describe('configuración', () => {
     }
   });
 });
+
+describe('Binance en la configuración', () => {
+  const base = (extra: Record<string, string>) => ({ ...completo, ...extra });
+
+  /**
+   * El fallo real: pegar la clave en el panel de Railway arrastra un salto de
+   * línea con una facilidad pasmosa, y con él Binance devuelve 401 sin decir
+   * que sobra un carácter invisible.
+   */
+  it('recorta espacios y saltos de línea de las claves', () => {
+    const config = leerConfig(
+      base({ BINANCE_API_KEY: '  clave-larga\n', BINANCE_API_SECRET: 'secreto-largo  ' }),
+    );
+
+    expect(config.binance).toEqual({ clave: 'clave-larga', secreto: 'secreto-largo' });
+  });
+
+  it('una variable en blanco no se toma por una clave', () => {
+    expect(() => leerConfig(base({ BINANCE_API_KEY: '   ', BINANCE_API_SECRET: 'x' }))).toThrow(
+      /vac/i,
+    );
+  });
+
+  it('sin claves, Binance queda en null y el resto sigue', () => {
+    expect(leerConfig(base({})).binance).toBeNull();
+  });
+
+  it('a medias no vale: media credencial falla en la primera petición', () => {
+    expect(() => leerConfig(base({ BINANCE_API_KEY: 'solo-la-clave' }))).toThrow(/a medias/i);
+  });
+});

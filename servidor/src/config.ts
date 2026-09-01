@@ -81,8 +81,14 @@ function gmailDesde(v: z.infer<typeof esquema>): Config['gmail'] {
  * igual y todo lo demás sigue funcionando.
  */
 function binanceDesde(v: z.infer<typeof esquema>): Config['binance'] {
-  const clave = v.BINANCE_API_KEY;
-  const secreto = v.BINANCE_API_SECRET;
+  // Recortadas. Pegar una clave en el panel de Railway arrastra espacios o un
+  // salto de línea con una facilidad pasmosa, y con ellos Binance devuelve 401
+  // sin decir que sobra un carácter invisible.
+  const clave = v.BINANCE_API_KEY?.trim();
+  const secreto = v.BINANCE_API_SECRET?.trim();
+  if (clave === '' || secreto === '') {
+    throw new Error('BINANCE_API_KEY o BINANCE_API_SECRET están vacías: quítalas o ponles valor');
+  }
   if (clave === undefined || secreto === undefined) {
     if (clave !== undefined || secreto !== undefined) {
       // El mensaje NO repite el valor: estos errores acaban en los registros

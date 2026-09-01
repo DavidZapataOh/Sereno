@@ -35,7 +35,7 @@ describe('syncExchange', () => {
     const resumen = await syncExchange(d, { owner });
 
     expect((await d.accounts.balanceOf(USDC)).amount).toBe(85_761n);
-    expect(resumen).toEqual({ leidos: 1, ajustes: 1, error: null });
+    expect(resumen).toEqual({ estado: 'ok', leidos: 1, ajustes: 1, error: null });
   });
 
   it('una lectura igual no asienta nada', async () => {
@@ -66,11 +66,29 @@ describe('syncExchange', () => {
     expect(resumen.ajustes).toBe(0);
   });
 
-  it('sin servidor configurado tampoco revienta: lo cuenta', async () => {
+  /**
+   * «Sin claves en el servidor» **no** es «no tienes nada», y no es un fallo:
+   * es un estado que el usuario puede arreglar. Se distingue para que la
+   * pantalla pueda decirle qué hacer en vez de callarse.
+   */
+  it('sin claves configuradas lo dice, y no como error', async () => {
+    const d = await deps();
+    d.servidor.sinBinance();
+
+    const resumen = await syncExchange(d, { owner });
+
+    expect(resumen.estado).toBe('sin-configurar');
+    expect(resumen.error).toBeNull();
+  });
+
+  it('un fallo se distingue de una falta de claves', async () => {
     const d = await deps();
     d.servidor.fallarSaldos();
 
-    await expect(syncExchange(d, { owner })).resolves.toMatchObject({ leidos: 0, ajustes: 0 });
+    const resumen = await syncExchange(d, { owner });
+
+    expect(resumen.estado).toBe('error');
+    expect(resumen.error).not.toBeNull();
   });
 
   it('guarda cuándo se leyó, en la fecha del asiento', async () => {
