@@ -101,6 +101,15 @@ sin que nadie lo notara.
 
 `npm run verify` corre el mismo conjunto que CI, por separado.
 
+### Los tipos de rutas de expo-router se generan, y se quedan viejos
+
+`.expo/types/router.d.ts` lo escribe Metro y está en `.gitignore`. Al añadir una pantalla,
+**el typecheck local falla con un `router.push` que CI acepta sin rechistar**: allá el
+archivo no existe y `Href` cae a un tipo permisivo.
+
+No se edita a mano —se regenera— y no se comitea. Si el typecheck local se queja de una
+ruta que sí existe, basta con borrarlo: Metro lo vuelve a escribir al arrancar.
+
 ### Un plan no se cierra porque `verify` pase
 
 `verify` demuestra que el código **que existe** funciona. No dice nada del código que

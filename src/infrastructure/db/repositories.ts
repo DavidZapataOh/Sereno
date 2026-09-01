@@ -2,6 +2,7 @@ import type { CardRepository } from '@/domain/cards/card-repository';
 import type { WalletRepository } from '@/domain/crypto/wallet-repository';
 import type { DebtRepository } from '@/domain/debt/debt-repository';
 import type { SnapshotRepository } from '@/domain/overview/snapshot-repository';
+import type { SinkingRepository } from '@/domain/sinking/sinking-repository';
 import type { BatchRepository } from '@/domain/categorization/batch';
 import type { CategoryRepository } from '@/domain/categorization/category';
 import type { ClassificationRepository } from '@/domain/categorization/classification';
@@ -30,6 +31,7 @@ import { createDrizzleRuleRepository } from './drizzle-rule-repository';
 import { createDrizzleTransactionRepository } from './drizzle-transaction-repository';
 import { createDrizzleTransferRepository } from './drizzle-transfer-repository';
 import { createDrizzleDebtRepository } from './drizzle-debt-repository';
+import { createDrizzleSinkingRepository } from './drizzle-sinking-repository';
 import { createDrizzleSnapshotRepository } from './drizzle-snapshot-repository';
 import { createDrizzleWalletRepository } from './drizzle-wallet-repository';
 
@@ -50,6 +52,7 @@ export interface Repositories {
   wallets: WalletRepository;
   snapshots: SnapshotRepository;
   debts: DebtRepository;
+  fondos: SinkingRepository;
 }
 
 /** Todos los repositorios sobre una misma base. Las rutas lo llaman una vez. */
@@ -71,5 +74,6 @@ export function createRepositories(db: Database): Repositories {
     wallets: createDrizzleWalletRepository(db),
     snapshots: createDrizzleSnapshotRepository(db),
     debts: createDrizzleDebtRepository(db),
+    fondos: createDrizzleSinkingRepository(db),
   };
 }

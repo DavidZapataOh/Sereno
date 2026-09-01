@@ -19,6 +19,7 @@ import { registerAdjustment } from '../ledger/register-adjustment';
 import type { RescheduleDeps } from '../alerts/reschedule-reminders';
 import type { CalendarDeps } from '../calendar/payment-calendar';
 import type { SnapshotDeps } from '../overview/record-snapshot';
+import type { FundDeps } from '../sinking/manage-funds';
 import type { SyncExchangeDeps } from '../crypto/sync-exchange';
 import type { SyncWalletsDeps } from '../crypto/sync-wallets';
 import type { RefreshRatesDeps } from '../rates/refresh-rates';
@@ -39,6 +40,7 @@ export type AppDeps = IngestDeps &
   SnapshotDeps &
   CalendarDeps &
   RescheduleDeps &
+  FundDeps &
   RefreshRatesDeps;
 
 export interface SyncSummary extends IngestSummary {

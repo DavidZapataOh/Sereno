@@ -125,6 +125,14 @@ export const SCREEN_MAP: readonly Screen[] = [
     fase: 10,
   },
   {
+    id: 'fondos',
+    titulo: 'Fondos',
+    ruta: '/metas/fondos',
+    padre: 'metas',
+    pregunta: '¿Cuánto llevo apartado para lo que llega una vez al año?',
+    fase: 10,
+  },
+  {
     id: 'patrimonio',
     titulo: 'Patrimonio',
     ruta: '/patrimonio',
