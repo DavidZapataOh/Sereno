@@ -113,15 +113,46 @@ describe('clienteBinance', () => {
     await expect(cliente(doble({}, 401)).permisos()).rejects.toThrow(/401/);
   });
 
-  it('el mensaje del estado no inventa una causa que no conoce', async () => {
-    await expect(cliente(doble({}, 418)).permisos()).rejects.toThrow(/sin explicar por qué/);
+  /**
+   * El que de verdad importaba, y que el primer arreglo dejó pasar.
+   *
+   * Binance responde **451 con `code: 0`** cuando la petición sale de un país
+   * restringido —lo que ocurre desde Railway, cuyos servidores están en
+   * Estados Unidos—. Cero no es menor que cero, así que el cuerpo pasaba la
+   * reja de los códigos negativos; y como sí traía un número, pasaba también
+   * la reja del estado tal como la escribí la primera vez. Resultado: se
+   * devolvía como si fueran los permisos, y `enableReading` salía indefinido.
+   */
+  it('un 451 por región restringida no se cuela como respuesta buena', async () => {
+    const restringido = {
+      code: 0,
+      msg: 'Service unavailable from a restricted location according to b. Eligibility',
+    };
+
+    await expect(cliente(doble(restringido, 451)).permisos()).rejects.toThrow(/451/);
+    await expect(cliente(doble(restringido, 451)).permisos()).rejects.toThrow(/restricted/);
   });
 
-  it('si el cuerpo sí explica el error, gana el mensaje de Binance', async () => {
-    // Es más útil «Invalid API-key» que «respondió 401».
+  it('el estado manda aunque el cuerpo traiga un código no negativo', async () => {
+    await expect(cliente(doble({ code: 0 }, 403)).permisos()).rejects.toThrow(/403/);
+  });
+
+  it('sin mensaje en el cuerpo, el error dice al menos el estado', async () => {
+    await expect(cliente(doble({}, 418)).permisos()).rejects.toThrow(/418/);
+  });
+
+  it('el error conserva estado, código y mensaje: cada uno dice algo distinto', async () => {
+    // -2014 es «formato de clave inválido» y -2015 es «clave, IP o permisos»:
+    // perder el código sería perder la diferencia.
+    const error = cliente(doble({ code: -2015, msg: 'Invalid API-key' }, 401)).permisos();
+
+    await expect(error).rejects.toThrow(/401/);
     await expect(
       cliente(doble({ code: -2015, msg: 'Invalid API-key' }, 401)).permisos(),
     ).rejects.toThrow(/-2015/);
+    await expect(
+      cliente(doble({ code: -2015, msg: 'Invalid API-key' }, 401)).permisos(),
+    ).rejects.toThrow(/Invalid API-key/);
   });
 
   it('una respuesta que no es JSON lanza', async () => {

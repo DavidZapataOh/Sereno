@@ -42,6 +42,7 @@ async function arrancar(): Promise<void> {
   // igual de bien, y nadie lo notaría hasta que se filtrara.
   let saldosBinance;
   let motivoSinBinance: 'sin-claves' | 'clave-rechazada' = 'sin-claves';
+  let detalleSinBinance: string | undefined;
   if (config.binance !== null) {
     const cliente = crearClienteBinance(config.binance);
     try {
@@ -61,6 +62,7 @@ async function arrancar(): Promise<void> {
       //
       // Un fallo de una integración no puede llevarse por delante las otras.
       motivoSinBinance = 'clave-rechazada';
+      detalleSinBinance = error instanceof Error ? error.message : String(error);
       observabilidad.captureError(error, { operacion: 'verificar-binance' });
       observabilidad.log(
         'error',
@@ -76,6 +78,7 @@ async function arrancar(): Promise<void> {
     observabilidad,
     saldosBinance,
     motivoSinBinance,
+    detalleSinBinance,
   });
   serve({ fetch: app.fetch, port: config.puerto });
 

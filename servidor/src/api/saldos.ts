@@ -36,6 +36,7 @@ export function montarSaldos(
   observabilidad: Observabilidad,
   saldosBinance?: SaldosBinance,
   motivo: MotivoSinBinance = 'sin-claves',
+  detalle?: string,
 ): void {
   app.get('/saldos', async (c) => {
     if (saldosBinance === undefined) {
@@ -46,8 +47,12 @@ export function montarSaldos(
           error:
             motivo === 'sin-claves'
               ? 'Binance no está configurado'
-              : 'Binance está configurado pero la clave fue rechazada: revísala',
+              : // El detalle real, no un consejo genérico. «Revisa la clave»
+                // sería un mal consejo si lo que pasa es que Binance bloquea
+                // la región desde la que sale la petición.
+                `Binance no se pudo usar${detalle === undefined ? '' : `: ${detalle}`}`,
           motivo,
+          detalle,
         },
         503,
       );

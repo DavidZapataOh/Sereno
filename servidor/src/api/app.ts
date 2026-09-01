@@ -17,6 +17,8 @@ export interface Dependencias {
   saldosBinance?: SaldosBinance;
   /** Por qué no hay saldos. Sin claves, o con una clave que fue rechazada. */
   motivoSinBinance?: MotivoSinBinance;
+  /** Lo que dijo Binance, tal cual. Nunca lleva la clave ni la firma. */
+  detalleSinBinance?: string;
 }
 
 /**
@@ -65,7 +67,13 @@ export function crearApp(deps: Dependencias) {
 
   montarMovimientos(app, deps.repos);
   montarRevision(app, deps.repos, deps.observabilidad);
-  montarSaldos(app, deps.observabilidad, deps.saldosBinance, deps.motivoSinBinance);
+  montarSaldos(
+    app,
+    deps.observabilidad,
+    deps.saldosBinance,
+    deps.motivoSinBinance,
+    deps.detalleSinBinance,
+  );
 
   app.notFound((c) => c.json({ error: 'No existe' }, 404));
 

@@ -70,6 +70,8 @@ describe('saldos de Binance', () => {
       token: TOKEN,
       observabilidad: sinRuido,
       motivoSinBinance: 'clave-rechazada',
+      detalleSinBinance:
+        'Binance respondió 451 (0): Service unavailable from a restricted location',
     });
 
     const res = await app.request('/saldos', con);
@@ -77,7 +79,27 @@ describe('saldos de Binance', () => {
     expect(res.status).toBe(503);
     const cuerpo = (await res.json()) as { error: string; motivo: string };
     expect(cuerpo.motivo).toBe('clave-rechazada');
-    expect(cuerpo.error).toMatch(/revísala/);
+  });
+
+  /**
+   * El detalle real y no un consejo genérico: «revisa la clave» sería un mal
+   * consejo cuando lo que pasa es que Binance bloquea la región desde la que
+   * sale la petición, y mandaría a mirar donde no es —otra vez—.
+   */
+  it('el motivo llega tal cual dice Binance', async () => {
+    const app = crearApp({
+      repos,
+      token: TOKEN,
+      observabilidad: sinRuido,
+      motivoSinBinance: 'clave-rechazada',
+      detalleSinBinance:
+        'Binance respondió 451 (0): Service unavailable from a restricted location',
+    });
+
+    const cuerpo = (await (await app.request('/saldos', con)).json()) as { error: string };
+
+    expect(cuerpo.error).toMatch(/451/);
+    expect(cuerpo.error).toMatch(/restricted location/);
   });
 
   /**
