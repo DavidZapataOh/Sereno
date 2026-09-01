@@ -108,6 +108,13 @@ export default function HoyScreen() {
       </Card>
       <Card style={{ padding: 0 }}>
         <NavRow
+          title="Avisos"
+          subtitle="Cobros que se salen de tu patrón"
+          onPress={() => {
+            router.push('/anomalias');
+          }}
+        />
+        <NavRow
           title="Medidas"
           subtitle="Si estás mejorando, no solo cuánto gastaste"
           onPress={() => {
