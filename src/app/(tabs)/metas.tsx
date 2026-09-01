@@ -23,6 +23,13 @@ export default function MetasScreen() {
       />
       <Card style={{ padding: 0 }}>
         <NavRow
+          title="Presupuesto"
+          subtitle="A qué le asignaste tu plata este mes"
+          onPress={() => {
+            router.push('/metas/presupuesto');
+          }}
+        />
+        <NavRow
           title="Fondos"
           subtitle="Para lo que llega una vez al año"
           onPress={() => {

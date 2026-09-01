@@ -24,6 +24,7 @@ import m0019 from './0019_renombrar_chain_a_red.sql';
 import m0020 from './0020_sad_human_torch.sql';
 import m0021 from './0021_gigantic_nightmare.sql';
 import m0022 from './0022_quiet_steve_rogers.sql';
+import m0023 from './0023_bright_princess_powerful.sql';
 
   export default {
     journal,
@@ -50,7 +51,8 @@ m0018,
 m0019,
 m0020,
 m0021,
-m0022
+m0022,
+m0023
     }
   }
   
