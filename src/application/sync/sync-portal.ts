@@ -16,6 +16,7 @@ import { detectTransfers } from '../ingest/detect-transfers';
 import { ingestCaptures } from '../ingest/ingest-captures';
 import type { IngestDeps, IngestSummary } from '../ingest/types';
 import { registerAdjustment } from '../ledger/register-adjustment';
+import type { CalendarDeps } from '../calendar/payment-calendar';
 import type { SnapshotDeps } from '../overview/record-snapshot';
 import type { SyncExchangeDeps } from '../crypto/sync-exchange';
 import type { SyncWalletsDeps } from '../crypto/sync-wallets';
@@ -35,6 +36,7 @@ export type AppDeps = IngestDeps &
   SyncWalletsDeps &
   SyncExchangeDeps &
   SnapshotDeps &
+  CalendarDeps &
   RefreshRatesDeps;
 
 export interface SyncSummary extends IngestSummary {

@@ -2,7 +2,7 @@ import type { CardRepository } from '@/domain/cards/card-repository';
 import type { Debt } from '@/domain/debt/debt';
 import type { DebtRepository } from '@/domain/debt/debt-repository';
 import type { AccountRepository } from '@/domain/ledger/account-repository';
-import type { OwnerId } from '@/domain/ledger/ids';
+import type { AccountId, OwnerId } from '@/domain/ledger/ids';
 import type { Money } from '@/domain/money/money';
 
 export interface ListDebtsDeps {
@@ -14,7 +14,7 @@ export interface ListDebtsDeps {
 export interface DebtSummary {
   /** Los términos declarados, o `null` si la cuenta es un pasivo sin declarar. */
   terminos: Debt | null;
-  accountId: string;
+  accountId: AccountId;
   nombre: string;
   /** Del ledger, siempre. Nunca de algo guardado. */
   saldo: Money;
