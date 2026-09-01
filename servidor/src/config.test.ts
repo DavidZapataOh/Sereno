@@ -168,3 +168,33 @@ describe('Binance en la configuración', () => {
     expect(() => leerConfig(base({ BINANCE_API_KEY: 'solo-la-clave' }))).toThrow(/a medias/i);
   });
 });
+
+describe('el asistente en la configuración', () => {
+  const base = (extra: Record<string, string>) => ({ ...completo, ...extra });
+
+  /** Igual que Binance en el sprint 08: sin clave, la app funciona igual. */
+  it('sin clave, el asistente queda en null y el resto sigue', () => {
+    expect(leerConfig(base({})).anthropic).toBeNull();
+    expect(leerConfig(base({})).token).toBe(completo.SERENO_TOKEN);
+  });
+
+  it('recorta espacios y saltos de línea', () => {
+    expect(leerConfig(base({ ANTHROPIC_API_KEY: '  sk-de-prueba\n' })).anthropic).toEqual({
+      clave: 'sk-de-prueba',
+    });
+  });
+
+  it('una variable en blanco no se toma por una clave', () => {
+    expect(() => leerConfig(base({ ANTHROPIC_API_KEY: '   ' }))).toThrow(/vac/i);
+  });
+
+  it('si la configuración falla, el error no repite la clave', () => {
+    const clave = 'sk-ant-secretisima';
+    try {
+      leerConfig({ ...base({ ANTHROPIC_API_KEY: clave }), SERENO_TOKEN: 'corto' });
+      expect.unreachable();
+    } catch (error) {
+      expect(String(error)).not.toContain(clave);
+    }
+  });
+});

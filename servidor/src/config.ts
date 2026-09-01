@@ -33,6 +33,9 @@ const esquema = z.object({
   BINANCE_API_KEY: z.string().optional(),
   BINANCE_API_SECRET: z.string().optional(),
 
+  // El asistente, opcional. Sin ella la app funciona igual y lo dice.
+  ANTHROPIC_API_KEY: z.string().optional(),
+
   SERENO_GOOGLE_ID: z.string().optional(),
   SERENO_GOOGLE_SECRET: z.string().optional(),
   SERENO_GMAIL_REFRESH_TOKEN: z.string().optional(),
@@ -54,6 +57,8 @@ export interface Config {
   };
   gmail: { clienteId: string; clienteSecreto: string; tokenRefresco: string } | null;
   binance: { clave: string; secreto: string } | null;
+  /** La clave del asistente. Vive aquí y nunca en el teléfono. */
+  anthropic: { clave: string } | null;
 }
 
 /**
@@ -102,6 +107,20 @@ function binanceDesde(v: z.infer<typeof esquema>): Config['binance'] {
   return { clave, secreto };
 }
 
+/**
+ * La clave del asistente, si está.
+ *
+ * Recortada, como la de Binance: pegarla en el panel de Railway arrastra
+ * espacios con una facilidad pasmosa. Una cadena vacía es un error explícito y
+ * no un `null` silencioso: quien la puso creía estar configurando algo.
+ */
+function anthropicDesde(v: z.infer<typeof esquema>): Config['anthropic'] {
+  const clave = v.ANTHROPIC_API_KEY?.trim();
+  if (clave === undefined) return null;
+  if (clave === '') throw new Error('ANTHROPIC_API_KEY está vacía: quítala o ponle valor');
+  return { clave };
+}
+
 export function leerConfig(entorno: Record<string, string | undefined>): Config {
   const resultado = esquema.safeParse(entorno);
   if (!resultado.success) {
@@ -127,5 +146,6 @@ export function leerConfig(entorno: Record<string, string | undefined>): Config 
     },
     gmail: gmailDesde(v),
     binance: binanceDesde(v),
+    anthropic: anthropicDesde(v),
   };
 }
