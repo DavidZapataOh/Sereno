@@ -5,6 +5,7 @@ import { categoryAccountId } from '@/domain/categorization/taxonomy';
 import type { AccountRepository } from '@/domain/ledger/account-repository';
 import type { OwnerId } from '@/domain/ledger/ids';
 import { subtract, sum, zero, type Money } from '@/domain/money/money';
+import { finDeMes, mesAnterior } from '@/domain/time/month';
 
 export interface BudgetDeps {
   accounts: AccountRepository;
@@ -110,8 +111,8 @@ async function gastoDelMes(
   const id = categoryAccountId(categoria);
   if ((await deps.accounts.findById(id)) === null) return zero(moneda);
 
-  const alCierre = await deps.accounts.balanceOf(id, { hasta: finDe(mes) });
-  const alInicio = await deps.accounts.balanceOf(id, { hasta: finDe(mesAnterior(mes)) });
+  const alCierre = await deps.accounts.balanceOf(id, { hasta: finDeMes(mes) });
+  const alInicio = await deps.accounts.balanceOf(id, { hasta: finDeMes(mesAnterior(mes)) });
   return subtract(alCierre, alInicio);
 }
 
@@ -147,18 +148,4 @@ async function historicoDe(
     });
   }
   return salida;
-}
-
-function mesAnterior(mes: string): string {
-  const [anio = 1970, m = 1] = mes.split('-').map(Number);
-  const total = (anio - 1) * 12 + (m - 1) - 1;
-  return `${String(Math.floor(total / 12) + 1).padStart(4, '0')}-${String((total % 12) + 1).padStart(2, '0')}`;
-}
-
-/** El último instante de un mes, para cortar el saldo. */
-function finDe(mes: string): string {
-  const [anio = 1970, m = 1] = mes.split('-').map(Number);
-  const total = (anio - 1) * 12 + m;
-  const siguiente = `${String(Math.floor(total / 12) + 1).padStart(4, '0')}-${String((total % 12) + 1).padStart(2, '0')}`;
-  return `${siguiente}-01T00:00:00.000-05:00`;
 }

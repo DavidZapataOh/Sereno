@@ -37,7 +37,7 @@ export function convertir(monto: Money, tasa: Rate): Money {
  * decimales— y llegan a 256 pesos en vez de 274. Componer mantiene todas las
  * cifras hasta el final.
  */
-export function componer(a: Rate, b: Rate): Rate {
+function componer(a: Rate, b: Rate): Rate {
   if (a.hacia !== b.desde) {
     throw new Error(`No se pueden componer ${a.desde}→${a.hacia} con ${b.desde}→${b.hacia}`);
   }

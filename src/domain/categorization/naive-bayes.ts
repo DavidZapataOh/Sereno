@@ -21,7 +21,7 @@ export interface Prediction {
 }
 
 /** El comercio vale por tres palabras: es el rasgo que más dice. */
-export const MERCHANT_WEIGHT = 3;
+const MERCHANT_WEIGHT = 3;
 /** Por debajo, mejor «sin clasificar» que un error con cara de certeza. */
 export const CONFIDENCE_THRESHOLD = 60;
 /** El comercio tiene que haberse confirmado al menos dos veces. */

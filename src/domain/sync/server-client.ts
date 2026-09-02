@@ -4,7 +4,7 @@ import type { ResumenPublicable } from '@/domain/assistant/publishable-summary';
 import { normalizedTransactionSchema } from '@/domain/capture/normalized-transaction';
 
 /** Un movimiento tal como lo entrega el servidor: el del dominio, con su id y su lugar en la fila. */
-export const serverMovementSchema = normalizedTransactionSchema.extend({
+const serverMovementSchema = normalizedTransactionSchema.extend({
   id: z.string().min(1),
   secuencia: z.number().int().nonnegative(),
 });
@@ -42,7 +42,7 @@ export type ServerHealth = z.infer<typeof serverHealthSchema>;
  * La cantidad viaja como **texto**: un entero de escala cripto no cabe en un
  * `number` de JSON sin perder dígitos, y perderlos aquí es perder plata.
  */
-export const exchangeBalanceSchema = z.object({
+const exchangeBalanceSchema = z.object({
   activo: z.string().min(1),
   cantidad: z.string().regex(/^\d+$/, 'La cantidad viene como entero en texto'),
 });

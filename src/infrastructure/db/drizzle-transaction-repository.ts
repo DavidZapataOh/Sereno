@@ -9,7 +9,7 @@ import type {
   TransactionRepository,
 } from '@/domain/ledger/transaction-repository';
 
-import { mesDe } from '@/domain/ledger/balance-checkpoint';
+import { mesDe } from '@/domain/time/month';
 
 import type { Database } from './database';
 import { toMoney } from './mappers';

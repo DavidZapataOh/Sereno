@@ -1,6 +1,6 @@
 import { and, eq, lt } from 'drizzle-orm';
 
-import { limiteDe } from '@/domain/ledger/balance-checkpoint';
+import { finDeMes } from '@/domain/time/month';
 import { sum, type Money } from '@/domain/money/money';
 
 import type { Database } from './database';
@@ -54,7 +54,7 @@ export function checkCheckpoints(db: Database): ReporteDeCortes {
         .from(postings)
         .innerJoin(transactions, eq(postings.transactionId, transactions.id))
         .where(
-          and(eq(postings.accountId, corte.accountId), lt(transactions.fecha, limiteDe(corte.mes))),
+          and(eq(postings.accountId, corte.accountId), lt(transactions.fecha, finDeMes(corte.mes))),
         )
         .all()
         .map((fila) => toMoney(fila.amount, fila.currency)),

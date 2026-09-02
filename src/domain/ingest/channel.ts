@@ -14,12 +14,6 @@
  */
 export type Channel = 'web' | 'correo' | 'notificacion';
 
-export const CANALES: Record<Channel, { nombre: string }> = {
-  web: { nombre: 'Portal del banco' },
-  correo: { nombre: 'Correo' },
-  notificacion: { nombre: 'Notificación' },
-};
-
 /** Fuente y canal juntos: es la unidad de identidad de la deduplicación. */
 export function via(fuente: string, canal: Channel): string {
   return `${fuente}:${canal}`;

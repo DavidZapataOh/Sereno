@@ -1,4 +1,4 @@
-import { mesAntesDe, mesDe } from '@/domain/ledger/balance-checkpoint';
+import { mesAnterior, mesDe } from '@/domain/time/month';
 import type { CheckpointRepository } from '@/domain/ledger/checkpoint-repository';
 import { calendarDay } from '@/domain/time/colombia';
 
@@ -23,5 +23,5 @@ export interface RefreshCheckpointsDeps {
  */
 export function refreshCheckpoints(deps: RefreshCheckpointsDeps): Promise<number> {
   const hoy = calendarDay(deps.clock());
-  return deps.cortes.reconstruir(mesAntesDe(mesDe(hoy)), deps.clock());
+  return deps.cortes.reconstruir(mesAnterior(mesDe(hoy)), deps.clock());
 }

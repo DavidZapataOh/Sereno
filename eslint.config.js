@@ -55,6 +55,20 @@ module.exports = defineConfig([
       ],
       'no-console': 'error',
       '@typescript-eslint/consistent-type-imports': 'error',
+
+      // Trinquete de complejidad. **Fijado en lo que el código mide hoy**, no
+      // en un ideal: poner `complexity: 8` sobre un código que tiene funciones
+      // de 19 produce cuarenta errores que se apagan con `eslint-disable`, y
+      // una regla apagada es peor que ninguna.
+      //
+      // Medido el 2026-09-01: la función más enrevesada es 19
+      // (`payment-calendar`, `extraccion`, el parser de RappiCard), el anidado
+      // más profundo es 4, y la función de producción más larga son 205 líneas
+      // (`ajustes/reglas.tsx`). A partir de aquí no puede empeorar; bajarlo es
+      // trabajo del sprint que lo haga.
+      complexity: ['error', 20],
+      'max-depth': ['error', 4],
+      'max-lines-per-function': ['error', { max: 210, skipBlankLines: true, skipComments: true }],
     },
   },
 
@@ -65,6 +79,10 @@ module.exports = defineConfig([
       '@typescript-eslint/no-unsafe-assignment': 'off',
       '@typescript-eslint/no-unsafe-member-access': 'off',
       '@typescript-eslint/no-non-null-assertion': 'off',
+      // Un `describe` es una función para ESLint, pero no es una función:
+      // partirlo por longitud rompería la agrupación de las pruebas, que es
+      // justo lo que las hace legibles. El trinquete se aplica al código.
+      'max-lines-per-function': 'off',
     },
   },
 

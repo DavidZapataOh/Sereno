@@ -48,7 +48,7 @@ export function cobroRepetido(cobros: readonly CobroConFecha[]): Anomaly[] {
 }
 
 /** Cuántos meses sin aparecer para considerarlo dormido. */
-export const MESES_DORMIDO = 6;
+const MESES_DORMIDO = 6;
 
 /**
  * Un comercio que llevaba medio año sin aparecer y de pronto cobra.

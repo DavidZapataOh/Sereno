@@ -10,7 +10,7 @@ const SOLO_DIA = /^\d{4}-\d{2}-\d{2}$/;
  * 23:00 del día 30 llega como `2026-08-31T04:00:00Z` y caería en el ciclo
  * siguiente. Es el mismo error que costó un hallazgo en el sprint 04.
  */
-export function diaDe(valor: string): string {
+function diaDe(valor: string): string {
   return SOLO_DIA.test(valor) ? valor : calendarDay(valor);
 }
 
