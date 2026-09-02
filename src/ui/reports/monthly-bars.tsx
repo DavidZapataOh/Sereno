@@ -69,7 +69,7 @@ export function MonthlyBars({ categoria, meses }: Props) {
                   ? ALTURA / 2
                   : Number(((m.total.amount - minimo) * 100n) / rango) * (ALTURA / 100),
               ),
-              backgroundColor: theme.palette.accent,
+              backgroundColor: theme.palette.accentFill,
               borderRadius: 2,
             }}
           />

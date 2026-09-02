@@ -127,7 +127,7 @@ export default function WalletsRoute() {
           />
         </Card>
 
-        {wallets.isPending && <LoadingState />}
+        {wallets.isPending && <LoadingState filas={6} />}
         {wallets.isError && (
           <ErrorState
             description={TEXTO.noSePudoLeer}

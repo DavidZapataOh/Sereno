@@ -42,7 +42,7 @@ export default function CalendarioRoute() {
     <>
       <Stack.Screen options={{ title: TEXTO.titulo }} />
       <ScrollView contentContainerStyle={{ padding: theme.spacing.lg, gap: theme.spacing.lg }}>
-        {datos.isPending && <LoadingState />}
+        {datos.isPending && <LoadingState filas={6} />}
         {datos.isError && (
           <ErrorState
             description={TEXTO.error}

@@ -105,7 +105,7 @@ export default function RevisarRoute() {
   if (pendientes.isPending) {
     return (
       <View style={fondo}>
-        <LoadingState />
+        <LoadingState filas={6} />
       </View>
     );
   }

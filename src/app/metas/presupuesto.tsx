@@ -76,7 +76,7 @@ export default function PresupuestoRoute() {
     <>
       <Stack.Screen options={{ title: TEXTO_PRESUPUESTO.titulo }} />
       <ScrollView contentContainerStyle={{ padding: theme.spacing.lg, gap: theme.spacing.lg }}>
-        {datos.isPending && <LoadingState />}
+        {datos.isPending && <LoadingState filas={5} />}
         {datos.isError && (
           <ErrorState
             description={TEXTO_PRESUPUESTO.error}

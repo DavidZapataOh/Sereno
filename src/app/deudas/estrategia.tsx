@@ -56,7 +56,7 @@ export default function EstrategiaRoute() {
           />
         </Card>
 
-        {datos.isPending && <LoadingState />}
+        {datos.isPending && <LoadingState filas={4} />}
         {datos.isError && (
           <ErrorState
             description={TEXTO.error}

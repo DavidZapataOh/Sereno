@@ -36,7 +36,7 @@ export default function CategoriasRoute() {
   if (gasto.isPending) {
     return (
       <View style={fondo}>
-        <LoadingState />
+        <LoadingState filas={8} />
       </View>
     );
   }

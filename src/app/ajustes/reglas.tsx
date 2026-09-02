@@ -97,7 +97,7 @@ export default function ReglasRoute() {
   if (reglas.isPending) {
     return (
       <View style={fondo}>
-        <LoadingState />
+        <LoadingState filas={5} />
       </View>
     );
   }

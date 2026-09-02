@@ -9,7 +9,7 @@ import { useAppDeps } from '@/infrastructure/composition/use-app-deps';
 import { CURRENT_OWNER } from '@/infrastructure/session/current-owner';
 import { AppText } from '@/ui/components/app-text';
 import { Card } from '@/ui/components/card';
-import { NavRow } from '@/ui/components/nav-row';
+import { DestinationGrid } from '@/ui/overview/destination-grid';
 import { ErrorState, LoadingState } from '@/ui/components/states';
 import { DebtHeader } from '@/ui/debt/debt-header';
 import { DebtRow } from '@/ui/debt/debt-row';
@@ -65,7 +65,7 @@ export default function DeudasScreen() {
 
   return (
     <ScrollView contentContainerStyle={{ padding: theme.spacing.lg, gap: theme.spacing.lg }}>
-      {resumen.isPending && <LoadingState />}
+      {resumen.isPending && <LoadingState filas={4} />}
       {resumen.isError && (
         <ErrorState
           description={TEXTO.error}
@@ -108,22 +108,26 @@ export default function DeudasScreen() {
         </>
       )}
 
-      <Card style={{ padding: 0 }}>
-        <NavRow
-          title="Estrategia"
-          subtitle="Cuál es el camino más corto para salir"
-          onPress={() => {
-            router.push('/deudas/estrategia');
-          }}
-        />
-        <NavRow
-          title="Calendario"
-          subtitle="Qué tienes que pagar y cuándo"
-          onPress={() => {
-            router.push('/deudas/calendario');
-          }}
-        />
-      </Card>
+      {/* Los destinos, en la misma rejilla que en Hoy: una app se siente de
+          una sola mano cuando lo mismo se hace igual en todas partes. */}
+      <DestinationGrid
+        destinos={[
+          {
+            titulo: 'Estrategia',
+            icono: 'stairs-down',
+            onPress: () => {
+              router.push('/deudas/estrategia');
+            },
+          },
+          {
+            titulo: 'Calendario',
+            icono: 'calendar-month-outline',
+            onPress: () => {
+              router.push('/deudas/calendario');
+            },
+          },
+        ]}
+      />
     </ScrollView>
   );
 }

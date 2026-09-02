@@ -66,7 +66,7 @@ export default function TarjetasRoute() {
     <>
       <Stack.Screen options={{ title: 'Tarjetas' }} />
       <ScrollView contentContainerStyle={{ padding: theme.spacing.lg, gap: theme.spacing.lg }}>
-        {tarjetas.isPending && <LoadingState />}
+        {tarjetas.isPending && <LoadingState filas={3} />}
         {tarjetas.isError && (
           <ErrorState
             description="No se pudieron leer las tarjetas."
