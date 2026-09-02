@@ -82,6 +82,16 @@ if ! ./scripts/comprobar-plan.sh; then
   exit 1
 fi
 
+# Nadie había medido nunca cuánto pesa lo que se instala en el teléfono, y es
+# de las cosas que se degradan sin que nadie lo note. Va aquí y no en `verify`
+# porque exportar tarda un minuto: en cada guardado sería insoportable, y una
+# vez por integración es justo cuando se decide qué entra.
+paso "Comprobando el tamaño del paquete"
+if ! ./scripts/comprobar-bundle.sh; then
+  rojo "El paquete creció por encima del tope (arriba)."
+  exit 1
+fi
+
 paso "Subiendo $rama"
 git push -u origin "$rama"
 

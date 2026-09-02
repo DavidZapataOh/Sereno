@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 
 import { observability } from '../observability';
 
+import { marcar } from '../boot/boot-marks';
+
 import { applyMigrations, openDatabase } from './client';
 import type { Database } from './database';
 import { estadoDeMigraciones } from './migration-state';
@@ -25,6 +27,7 @@ export function useDatabaseBoot(): DatabaseBoot {
   useEffect(() => {
     let vigente = true;
     const { db, sqlite } = openDatabase();
+    marcar('base');
 
     // Antes de migrar, y siempre: si una migración se va a descartar en
     // silencio —marca fuera de orden—, esta es la única línea que lo dice.
@@ -34,6 +37,7 @@ export function useDatabaseBoot(): DatabaseBoot {
 
     applyMigrations(db)
       .then(() => {
+        marcar('migraciones');
         if (vigente) setBoot({ estado: 'listo', db });
       })
       .catch((error: unknown) => {

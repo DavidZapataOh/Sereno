@@ -4,6 +4,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import { useEffect, type ReactNode } from 'react';
 import { View } from 'react-native';
 
+import { marcar } from '@/infrastructure/boot/boot-marks';
 import { useCheckpointRefresh } from '@/infrastructure/composition/use-checkpoint-refresh';
 import { DatabaseProvider } from '@/infrastructure/db/database-provider';
 import { useDatabaseBoot } from '@/infrastructure/db/use-database-boot';
@@ -25,8 +26,34 @@ void SplashScreen.preventAutoHideAsync();
  * refresque sola es exactamente el problema que esto resuelve.
  */
 const queryClient = new QueryClient({
-  defaultOptions: { queries: { staleTime: 30_000 } },
+  defaultOptions: {
+    queries: {
+      staleTime: 30_000,
+      // Cuánto se guarda lo que ya nadie mira. Estaba en el valor por
+      // defecto de la librería, que es una decisión que nadie tomó: con
+      // veinte pantallas visitadas, la caché se queda con todo lo consultado
+      // —listas de movimientos incluidas— hasta que se cierra la app.
+      //
+      // Cinco minutos: volver a una pantalla recién visitada sigue siendo
+      // instantáneo, y una tarde de uso no deja el historial entero en memoria.
+      gcTime: 5 * 60_000,
+    },
+  },
 });
+
+/**
+ * Anota que la primera pantalla ya se pinta.
+ *
+ * Es la última fase del arranque: a partir de aquí el usuario ve algo. Va como
+ * componente porque el momento que interesa es el del montaje, no el de la
+ * decisión de montar.
+ */
+function PrimeraPantalla(): null {
+  useEffect(() => {
+    marcar('primera-pantalla');
+  }, []);
+  return null;
+}
 
 /** Pone al día los cortes de saldo sin pintar nada. */
 function CheckpointRefresh(): null {
@@ -87,6 +114,7 @@ function AppBoot() {
         {/* Los cortes de saldo se ponen al día en segundo plano: no retrasan
             la primera pantalla, y si fallan la app calcula igual. */}
         <CheckpointRefresh />
+        <PrimeraPantalla />
         <Stack screenOptions={{ headerShadowVisible: false }}>
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         </Stack>
@@ -103,7 +131,10 @@ export default function RootLayout() {
   // consola. `useAppFonts` devuelve `true` también si la carga falla, así que
   // esto siempre acaba ejecutándose.
   useEffect(() => {
-    if (fuentesListas) void SplashScreen.hideAsync();
+    if (fuentesListas) {
+      marcar('fuentes');
+      void SplashScreen.hideAsync();
+    }
   }, [fuentesListas]);
 
   if (!fuentesListas) return null;
