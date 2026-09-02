@@ -13,6 +13,7 @@ import {
 } from '@/domain/metrics/behavior';
 import { add, zero, type Money } from '@/domain/money/money';
 import { calendarDay } from '@/domain/time/colombia';
+import { mesesAntes } from '@/domain/time/month';
 
 export interface BehaviorDeps {
   accounts: AccountRepository;
@@ -136,10 +137,4 @@ async function sumaDe(
     if (saldo.currency === moneda) total = add(total, saldo);
   }
   return total;
-}
-
-function mesesAntes(dia: string, n: number): string {
-  const [anio = 1970, m = 1, d = 1] = dia.split('-').map(Number);
-  const total = (anio - 1) * 12 + (m - 1) - n;
-  return `${String(Math.floor(total / 12) + 1).padStart(4, '0')}-${String((total % 12) + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
 }

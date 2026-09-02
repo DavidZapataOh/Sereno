@@ -1,7 +1,8 @@
 import { and, desc, eq, gte, isNull, lte } from 'drizzle-orm';
 
 import type { Account } from '@/domain/ledger/account';
-import { limiteDe, mesUtilizableHasta } from '@/domain/ledger/balance-checkpoint';
+import { mesUtilizableHasta } from '@/domain/ledger/balance-checkpoint';
+import { finDeMes } from '@/domain/time/month';
 import type { AccountRepository } from '@/domain/ledger/account-repository';
 import type { AccountId, OwnerId } from '@/domain/ledger/ids';
 import { sum, type Money } from '@/domain/money/money';
@@ -100,7 +101,7 @@ export function createDrizzleAccountRepository(db: Database): AccountRepository 
         // las fechas del repositorio: es lo que garantiza que el corte y los
         // apuntes que se suman aparte partan el mismo conjunto sin solaparse
         // ni dejar hueco.
-        const desde = corte === undefined ? undefined : limiteDe(corte.mes);
+        const desde = corte === undefined ? undefined : finDeMes(corte.mes);
 
         // Con `hasta`, se une con la transacción para filtrar por su fecha. El
         // plan de ejecución sigue entrando por `idx_postings_account`.

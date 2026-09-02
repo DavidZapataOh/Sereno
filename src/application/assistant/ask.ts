@@ -2,6 +2,7 @@ import { resumenPublicable, type ResumenPublicable } from '@/domain/assistant/pu
 import type { OwnerId } from '@/domain/ledger/ids';
 import type { AssistantStatus, ServerClient } from '@/domain/sync/server-client';
 import { calendarDay } from '@/domain/time/colombia';
+import { diasAntes } from '@/domain/time/month';
 
 import { observedIncome, type ObservedIncomeDeps } from '../income/observed-income';
 import { behaviorMetrics, type BehaviorDeps } from '../metrics/behavior-metrics';
@@ -92,12 +93,6 @@ async function patrimonioDeHace(
   });
   const ultima = serie.at(-1);
   return ultima === undefined ? null : Number(ultima.patrimonio.amount);
-}
-
-function diasAntes(dia: string, dias: number): string {
-  const fecha = new Date(`${dia}T12:00:00.000Z`);
-  fecha.setUTCDate(fecha.getUTCDate() - dias);
-  return fecha.toISOString().slice(0, 10);
 }
 
 /**

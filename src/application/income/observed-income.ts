@@ -1,6 +1,7 @@
 import { categoryAccountId, DEFAULT_CATEGORIES } from '@/domain/categorization/taxonomy';
 import type { AccountRepository } from '@/domain/ledger/account-repository';
 import { subtract, sum, zero, type Money } from '@/domain/money/money';
+import { finDeMes, mesAnterior } from '@/domain/time/month';
 
 export interface ObservedIncomeDeps {
   accounts: AccountRepository;
@@ -39,8 +40,8 @@ export async function observedIncome(
     for (const slug of slugs) {
       const id = categoryAccountId(slug);
       if ((await deps.accounts.findById(id)) === null) continue;
-      const cierre = await deps.accounts.balanceOf(id, { hasta: finDe(cursor) });
-      const inicio = await deps.accounts.balanceOf(id, { hasta: finDe(mesAnterior(cursor)) });
+      const cierre = await deps.accounts.balanceOf(id, { hasta: finDeMes(cursor) });
+      const inicio = await deps.accounts.balanceOf(id, { hasta: finDeMes(mesAnterior(cursor)) });
       // El ingreso llega como crédito: negativo sobre la cuenta de ingreso.
       delMes = { amount: delMes.amount + subtract(inicio, cierre).amount, currency: input.moneda };
     }
@@ -56,17 +57,4 @@ export async function observedIncome(
     },
     meses: meses.length,
   };
-}
-
-function mesAnterior(mes: string): string {
-  const [anio = 1970, m = 1] = mes.split('-').map(Number);
-  const total = (anio - 1) * 12 + (m - 1) - 1;
-  return `${String(Math.floor(total / 12) + 1).padStart(4, '0')}-${String((total % 12) + 1).padStart(2, '0')}`;
-}
-
-function finDe(mes: string): string {
-  const [anio = 1970, m = 1] = mes.split('-').map(Number);
-  const total = (anio - 1) * 12 + m;
-  const siguiente = `${String(Math.floor(total / 12) + 1).padStart(4, '0')}-${String((total % 12) + 1).padStart(2, '0')}`;
-  return `${siguiente}-01T00:00:00.000-05:00`;
 }

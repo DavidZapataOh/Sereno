@@ -1,5 +1,7 @@
-import type { AccountId } from './ids';
 import type { Money } from '@/domain/money/money';
+import { finDeMes, mesAnterior, mesDe } from '@/domain/time/month';
+
+import type { AccountId } from './ids';
 
 /**
  * Cuánto valía una cuenta al cerrar un mes.
@@ -28,40 +30,6 @@ export function balanceCheckpoint(input: BalanceCheckpoint): BalanceCheckpoint {
   return input;
 }
 
-/** El mes al que pertenece una fecha del ledger. */
-export function mesDe(fecha: string): string {
-  return fecha.slice(0, 7);
-}
-
-/**
- * La frontera de un corte: el primer instante del mes siguiente.
- *
- * **Se compara como texto**, igual que hace el resto del repositorio con
- * `transactions.fecha`. Es lo que hace que el corte y el cálculo desde cero
- * partan exactamente el mismo conjunto de apuntes: lo que queda por debajo de
- * esta cadena está en el corte, lo que queda por encima se suma aparte. Si se
- * comparara de otra forma —convirtiendo a fecha, por ejemplo— un apunte podría
- * caer en los dos lados o en ninguno, y el saldo mentiría sin fallar.
- */
-export function limiteDe(mes: string): string {
-  if (!MES.test(mes)) throw new Error(`Un mes se escribe AAAA-MM, no "${mes}"`);
-  const [anio = 1970, m = 1] = mes.split('-').map(Number);
-  const siguiente =
-    m === 12
-      ? `${String(anio + 1).padStart(4, '0')}-01`
-      : `${String(anio).padStart(4, '0')}-${String(m + 1).padStart(2, '0')}`;
-  return `${siguiente}-01T00:00:00.000-05:00`;
-}
-
-/** El mes anterior a uno dado. */
-export function mesAntesDe(mes: string): string {
-  if (!MES.test(mes)) throw new Error(`Un mes se escribe AAAA-MM, no "${mes}"`);
-  const [anio = 1970, m = 1] = mes.split('-').map(Number);
-  return m === 1
-    ? `${String(anio - 1).padStart(4, '0')}-12`
-    : `${String(anio).padStart(4, '0')}-${String(m - 1).padStart(2, '0')}`;
-}
-
 /**
  * El último mes cuyo corte sirve para un saldo pedido «hasta» una fecha.
  *
@@ -71,10 +39,5 @@ export function mesAntesDe(mes: string): string {
  */
 export function mesUtilizableHasta(hasta: string): string {
   const mes = mesDe(hasta);
-  return limiteDe(mes) <= hasta ? mes : mesAntesDe(mes);
-}
-
-/** El mes siguiente a uno dado. */
-export function mesDespuesDe(mes: string): string {
-  return limiteDe(mes).slice(0, 7);
+  return finDeMes(mes) <= hasta ? mes : mesAnterior(mes);
 }

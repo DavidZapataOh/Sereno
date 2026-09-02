@@ -1,5 +1,7 @@
-import { readdirSync, readFileSync, statSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
+
+import { archivosDeCodigo } from '@/test/source-files';
 
 const RAIZ = join(__dirname, '..');
 
@@ -21,28 +23,16 @@ const RAIZ = join(__dirname, '..');
  */
 const PELIGROSOS = ['expo-notifications'];
 
-function archivosFuente(dir: string, acc: string[] = []): string[] {
-  for (const entrada of readdirSync(dir)) {
-    const ruta = join(dir, entrada);
-    if (statSync(ruta).isDirectory()) {
-      archivosFuente(ruta, acc);
-    } else if (/\.tsx?$/.test(entrada) && !/\.test\.tsx?$/.test(entrada)) {
-      acc.push(ruta);
-    }
-  }
-  return acc;
-}
-
 describe('módulos nativos que revientan al importarse', () => {
   it.each(PELIGROSOS)('«%s» no se importa en la cabecera de ningún archivo', (modulo) => {
     const culpables: string[] = [];
 
-    for (const ruta of archivosFuente(RAIZ)) {
+    for (const ruta of archivosDeCodigo(RAIZ)) {
       const contenido = readFileSync(ruta, 'utf8');
       // Un `import ... from 'modulo'` estático. El `require` dentro de una
       // función está permitido: es justamente el arreglo.
       const estatico = new RegExp(`^\\s*import[^;]*from\\s+['"]${modulo}['"]`, 'm');
-      if (estatico.test(contenido)) culpables.push(ruta.replace(RAIZ, 'src'));
+      if (estatico.test(contenido)) culpables.push(ruta);
     }
 
     expect(culpables).toEqual([]);

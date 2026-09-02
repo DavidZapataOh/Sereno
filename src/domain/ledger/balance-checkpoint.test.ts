@@ -1,7 +1,9 @@
 import { accountId } from './ids';
 import { money } from '@/domain/money/money';
 
-import { balanceCheckpoint, limiteDe, mesAntesDe, mesDe, mesDespuesDe } from './balance-checkpoint';
+import { finDeMes as limiteDe, mesDe } from '@/domain/time/month';
+
+import { balanceCheckpoint, mesUtilizableHasta } from './balance-checkpoint';
 
 describe('balanceCheckpoint', () => {
   const base = {
@@ -51,21 +53,20 @@ describe('limiteDe', () => {
   });
 });
 
-describe('mesAntesDe y mesDespuesDe', () => {
-  it('son inversas', () => {
-    for (const mes of ['2026-01', '2026-08', '2026-12']) {
-      expect(mesAntesDe(mesDespuesDe(mes))).toBe(mes);
-      expect(mesDespuesDe(mesAntesDe(mes))).toBe(mes);
-    }
+describe('mesUtilizableHasta', () => {
+  /**
+   * Un corte vale hasta la frontera de su mes: si «hasta» cae dentro del mes,
+   * ese mes todavía no ha cerrado y hay que quedarse en el anterior.
+   */
+  it('dentro del mes, sirve el corte del mes anterior', () => {
+    expect(mesUtilizableHasta('2026-08-15T10:00:00.000-05:00')).toBe('2026-07');
   });
 
-  it('cruzan el año por los dos lados', () => {
-    expect(mesAntesDe('2026-01')).toBe('2025-12');
-    expect(mesDespuesDe('2026-12')).toBe('2027-01');
+  it('justo en la frontera, el mes ya cerró y su corte sirve entero', () => {
+    expect(mesUtilizableHasta('2026-09-01T00:00:00.000-05:00')).toBe('2026-08');
   });
 
-  it('rechazan un mes mal escrito en vez de devolver algo raro', () => {
-    expect(() => mesAntesDe('2026-13')).toThrow(/AAAA-MM/);
-    expect(() => mesDespuesDe('nada')).toThrow(/AAAA-MM/);
+  it('cruza el año hacia atrás', () => {
+    expect(mesUtilizableHasta('2026-01-05T10:00:00.000-05:00')).toBe('2025-12');
   });
 });

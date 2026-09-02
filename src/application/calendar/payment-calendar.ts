@@ -5,6 +5,7 @@ import type { DebtRepository } from '@/domain/debt/debt-repository';
 import type { OwnerId } from '@/domain/ledger/ids';
 import type { TransactionRepository } from '@/domain/ledger/transaction-repository';
 import { calendarDay } from '@/domain/time/colombia';
+import { mesesAntes } from '@/domain/time/month';
 
 import { listSubscriptions, type SubscriptionsDeps } from '../subscriptions/list-subscriptions';
 import type { ListDebtsDeps } from '../debt/list-debts';
@@ -132,13 +133,6 @@ export async function paymentCalendar(
     const porFecha = a.vence.localeCompare(b.vence);
     return porFecha === 0 ? a.id.localeCompare(b.id) : porFecha;
   });
-}
-
-/** La misma fecha, `n` meses atrás. Para no perder el ciclo que abrió antes. */
-function mesesAntes(fecha: string, n: number): string {
-  const [anio = 1970, mes = 1, dia = 1] = fecha.split('-').map(Number);
-  const total = (anio - 1) * 12 + (mes - 1) - n;
-  return `${String(Math.floor(total / 12) + 1).padStart(4, '0')}-${String((total % 12) + 1).padStart(2, '0')}-${String(dia).padStart(2, '0')}`;
 }
 
 /** Los días `dia` de cada mes entre dos fechas, ambas incluidas. */

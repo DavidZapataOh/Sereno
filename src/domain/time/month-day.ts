@@ -8,7 +8,7 @@
  * Vive aquí y no en `cards/` porque lo usan las tarjetas (sprint 07) y las
  * deudas (sprint 09): la misma regla escrita dos veces se corrige una sola.
  */
-export const DIA_MAXIMO = 28;
+const DIA_MAXIMO = 28;
 
 export function validarDiaDelMes(dia: number, nombre: string): void {
   if (!Number.isInteger(dia) || dia < 1 || dia > DIA_MAXIMO) {

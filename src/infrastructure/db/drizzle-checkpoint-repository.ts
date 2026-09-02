@@ -2,11 +2,10 @@ import { and, asc, desc, eq, gte, lt, lte } from 'drizzle-orm';
 
 import {
   balanceCheckpoint,
-  limiteDe,
-  mesDespuesDe,
   mesUtilizableHasta,
   type BalanceCheckpoint,
 } from '@/domain/ledger/balance-checkpoint';
+import { finDeMes, mesSiguiente } from '@/domain/time/month';
 import { accountId as comoCuenta } from '@/domain/ledger/ids';
 import type { CheckpointRepository } from '@/domain/ledger/checkpoint-repository';
 
@@ -93,7 +92,7 @@ export function createDrizzleCheckpointRepository(db: Database): CheckpointRepos
 
     reconstruir: (hastaMes, calculadoEn) =>
       asPromise(() => {
-        const limiteGlobal = limiteDe(hastaMes);
+        const limiteGlobal = finDeMes(hastaMes);
         let escritos = 0;
 
         for (const cuenta of db.select().from(accounts).all()) {
@@ -108,7 +107,7 @@ export function createDrizzleCheckpointRepository(db: Database): CheckpointRepos
 
           if (ultimo !== undefined && ultimo.mes >= hastaMes) continue;
 
-          const desde = ultimo === undefined ? undefined : limiteDe(ultimo.mes);
+          const desde = ultimo === undefined ? undefined : finDeMes(ultimo.mes);
           const condiciones = [
             eq(postings.accountId, cuenta.id),
             lt(transactions.fecha, limiteGlobal),
@@ -141,13 +140,13 @@ export function createDrizzleCheckpointRepository(db: Database): CheckpointRepos
           let mes =
             ultimo === undefined
               ? mesInicial(filas[0]?.fecha ?? limiteGlobal)
-              : mesDespuesDe(ultimo.mes);
+              : mesSiguiente(ultimo.mes);
           const nuevos: BalanceCheckpoint[] = [];
 
           for (const fila of filas) {
-            while (fila.fecha >= limiteDe(mes)) {
+            while (fila.fecha >= finDeMes(mes)) {
               nuevos.push(balanceCheckpoint({ accountId: id, mes, saldo: acumulado, calculadoEn }));
-              mes = mesDespuesDe(mes);
+              mes = mesSiguiente(mes);
             }
             acumulado = add(acumulado, toMoney(fila.amount, fila.currency));
           }
@@ -157,7 +156,7 @@ export function createDrizzleCheckpointRepository(db: Database): CheckpointRepos
           // apuntes por un mes tranquilo.
           while (mes <= hastaMes) {
             nuevos.push(balanceCheckpoint({ accountId: id, mes, saldo: acumulado, calculadoEn }));
-            mes = mesDespuesDe(mes);
+            mes = mesSiguiente(mes);
           }
 
           guardarCortes(db, nuevos);
@@ -202,6 +201,6 @@ function guardarCortes(db: Database, cortes: readonly BalanceCheckpoint[]): void
 /** El mes al que pertenece el primer apunte, según la frontera de texto. */
 function mesInicial(fecha: string): string {
   let mes = fecha.slice(0, 7);
-  while (fecha >= limiteDe(mes)) mes = mesDespuesDe(mes);
+  while (fecha >= finDeMes(mes)) mes = mesSiguiente(mes);
   return mes;
 }

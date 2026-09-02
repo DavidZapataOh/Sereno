@@ -151,6 +151,35 @@ se lee, a las tres semanas, igual que uno que miente.
 Activar la protección de rama es pendiente conocido; con un solo desarrollador añade
 fricción sin añadir garantías, porque nadie más puede empujar.
 
+### El reloj mide la máquina; las filas miden el diseño
+
+Todo presupuesto de rendimiento que dependa del volumen de datos se cuenta en **filas
+leídas**, no en milisegundos. `verify` corre noventa archivos de prueba en paralelo: una
+medida de reloj tomada en una máquina en calma no vale para ese sitio.
+
+Pasó dos veces el 2026-09-01. La primera, midiendo lo que cuesta abrir la pantalla de
+inicio: en filas se ve que lee el historial una vez por cuenta, y en el reloj no se ve
+nada. La segunda, a las dos horas y con la lección ya escrita: los cortes de saldo
+llevaban tope de milisegundos —501 medidos, tope de 2 500— y **la fusión falló con 3 289**.
+
+Y **un tope que falla no se sube**: o se arregla el código, o se cambia lo que se mide y se
+dice por qué en `progress.md`. Subirlo es lo mismo que borrar la prueba, solo que sin que
+se note.
+
+El reloj sigue valiendo para lo que no crece con los datos —aplicar migraciones, por
+ejemplo—, y ahí los topes pueden ser holgados.
+
+### Una guarda que nunca se vio fallar no se sabe si funciona
+
+Cada regla mecánica —las de `scripts/comprobar-*.sh` y las pruebas que leen el código
+fuente en vez de ejecutarlo— **se rompe a propósito una vez**, se comprueba que falla con
+el mensaje que debe, y se restaura. Se anota en el `progress.md` del sprint.
+
+La primera versión de `comprobar-plan.sh` daba verde sobre el fallo real que la motivó, y
+solo se supo porque se rompió a propósito. Y la primera versión de la guarda de fugas
+marcaba dos falsos positivos: una guarda con falsos positivos se apaga en la primera
+semana, así que **la regla se acota hasta que solo señale lo que de verdad importa**.
+
 ### Las rutas de `src/app/` no se prueban; la pantalla vive en `src/ui/`
 
 No hay ni una prueba de ruta en el proyecto, y no es un descuido: probar una ruta exige

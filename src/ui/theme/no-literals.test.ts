@@ -1,5 +1,7 @@
-import { readdirSync, readFileSync, statSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
+
+import { archivosDeCodigo } from '@/test/source-files';
 
 const RAIZ = join(__dirname, '..', '..');
 
@@ -22,18 +24,6 @@ const PATRONES: readonly RegExp[] = [
   /\b(?:color|backgroundColor|borderColor|tintColor|shadowColor)\s*:\s*['"](?:white|black|red|green|blue|gray|grey|transparent)['"]/g,
 ];
 
-function archivosFuente(dir: string, acc: string[] = []): string[] {
-  for (const entrada of readdirSync(dir)) {
-    const ruta = join(dir, entrada);
-    if (statSync(ruta).isDirectory()) {
-      archivosFuente(ruta, acc);
-    } else if (/\.tsx?$/.test(entrada)) {
-      acc.push(ruta);
-    }
-  }
-  return acc;
-}
-
 /**
  * Prohíbe los colores escritos a mano.
  *
@@ -45,8 +35,8 @@ describe('valores literales de color', () => {
   it('ningún archivo fuera de la paleta contiene un color literal', () => {
     const infractores: string[] = [];
 
-    for (const ruta of archivosFuente(RAIZ)) {
-      const relativa = ruta.slice(RAIZ.length + 1).replace(/\\/g, '/');
+    for (const ruta of archivosDeCodigo(RAIZ, { conPruebas: true })) {
+      const relativa = ruta.replace(/\\/g, '/').replace(/^src\//, '');
       if (PERMITIDOS.some((permitido) => relativa.endsWith(permitido))) continue;
 
       const contenido = readFileSync(ruta, 'utf8');
@@ -62,7 +52,9 @@ describe('valores literales de color', () => {
   it('la lista de permitidos solo contiene archivos que existen', () => {
     // Un permitido que ya no existe es una excepción que nadie recuerda por qué
     // está ahí, y acabaría cubriendo un archivo nuevo con el mismo sufijo.
-    const existentes = archivosFuente(RAIZ).map((ruta) => ruta.slice(RAIZ.length + 1));
+    const existentes = archivosDeCodigo(RAIZ, { conPruebas: true }).map((ruta) =>
+      ruta.replace(/^src\//, ''),
+    );
     PERMITIDOS.forEach((permitido) => {
       expect(existentes.some((ruta) => ruta.endsWith(permitido))).toBe(true);
     });
