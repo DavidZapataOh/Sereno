@@ -76,7 +76,9 @@ async function arrancar(): Promise<void> {
   // El asistente, si hay clave. Sin ella el servidor arranca igual y la ruta
   // dice qué falta: es una función accesoria, no puede tumbar nada.
   const asistente =
-    config.anthropic === null ? undefined : crearClienteAsistente(config.anthropic.clave);
+    config.anthropic === null
+      ? undefined
+      : crearClienteAsistente(config.anthropic.clave, config.anthropic.espacio);
   if (asistente === undefined) {
     observabilidad.log('info', 'sin ANTHROPIC_API_KEY: el asistente queda apagado', {});
   }

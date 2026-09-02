@@ -8,6 +8,7 @@ import {
   explicacionDe,
   MODELO,
   motivoDeError,
+  opcionesDeCliente,
 } from './cliente';
 import { cifrasDe, sinLaLineaDeCifras, SISTEMA } from './prompt';
 
@@ -27,7 +28,7 @@ const RESPUESTA = 'Te alcanza si mantienes el ritmo.\nCIFRAS: saldoTotal, tasaDe
 describe('clienteAsistente', () => {
   it('manda el modelo declarado y esfuerzo bajo', async () => {
     const { sdk, create } = sdkDoble(RESPUESTA);
-    await crearClienteAsistente('x', sdk).preguntar({ saldoTotal: 1 }, '¿me alcanza?');
+    await crearClienteAsistente('x', undefined, sdk).preguntar({ saldoTotal: 1 }, '¿me alcanza?');
 
     const peticion = create.mock.calls[0]?.[0];
     expect(peticion?.['model']).toBe(MODELO);
@@ -40,14 +41,14 @@ describe('clienteAsistente', () => {
    */
   it('no manda budget_tokens', async () => {
     const { sdk, create } = sdkDoble(RESPUESTA);
-    await crearClienteAsistente('x', sdk).preguntar({}, 'hola');
+    await crearClienteAsistente('x', undefined, sdk).preguntar({}, 'hola');
 
     expect(JSON.stringify(create.mock.calls[0]?.[0])).not.toContain('budget_tokens');
   });
 
   it('usa pensamiento adaptativo', async () => {
     const { sdk, create } = sdkDoble(RESPUESTA);
-    await crearClienteAsistente('x', sdk).preguntar({}, 'hola');
+    await crearClienteAsistente('x', undefined, sdk).preguntar({}, 'hola');
 
     expect(create.mock.calls[0]?.[0]?.['thinking']).toEqual({
       type: 'adaptive',
@@ -63,14 +64,14 @@ describe('clienteAsistente', () => {
   it('devuelve qué cifras dijo haber usado', async () => {
     const { sdk } = sdkDoble(RESPUESTA);
 
-    const r = await crearClienteAsistente('x', sdk).preguntar({}, 'hola');
+    const r = await crearClienteAsistente('x', undefined, sdk).preguntar({}, 'hola');
     expect(r.cifrasUsadas).toEqual(['saldoTotal', 'tasaDeAhorroPct']);
   });
 
   it('la línea de cifras no se enseña dentro de la respuesta', async () => {
     const { sdk } = sdkDoble(RESPUESTA);
 
-    const r = await crearClienteAsistente('x', sdk).preguntar({}, 'hola');
+    const r = await crearClienteAsistente('x', undefined, sdk).preguntar({}, 'hola');
     expect(r.respuesta).not.toMatch(/CIFRAS:/);
     expect(r.respuesta).toBe('Te alcanza si mantienes el ritmo.');
   });
@@ -78,14 +79,14 @@ describe('clienteAsistente', () => {
   it('devuelve cuántos tokens costó, para poder enseñarlo', async () => {
     const { sdk } = sdkDoble(RESPUESTA);
 
-    const r = await crearClienteAsistente('x', sdk).preguntar({}, 'hola');
+    const r = await crearClienteAsistente('x', undefined, sdk).preguntar({}, 'hola');
     expect(r.tokens).toEqual({ entrada: 400, salida: 120 });
   });
 
   it('una respuesta sin línea de cifras no revienta', async () => {
     const { sdk } = sdkDoble('No lo sé con estas cifras.');
 
-    const r = await crearClienteAsistente('x', sdk).preguntar({}, 'hola');
+    const r = await crearClienteAsistente('x', undefined, sdk).preguntar({}, 'hola');
     expect(r.cifrasUsadas).toEqual([]);
     expect(r.respuesta).toBe('No lo sé con estas cifras.');
   });
@@ -97,12 +98,14 @@ describe('clienteAsistente', () => {
     );
     const sdk = { messages: { create } } as never;
 
-    await expect(crearClienteAsistente('x', sdk).preguntar({}, 'hola')).rejects.toThrow();
+    await expect(
+      crearClienteAsistente('x', undefined, sdk).preguntar({}, 'hola'),
+    ).rejects.toThrow();
   });
 
   it('la clave no aparece en la petición que se serializa', async () => {
     const { sdk, create } = sdkDoble(RESPUESTA);
-    await crearClienteAsistente('clave-secreta-de-prueba', sdk).preguntar({}, 'hola');
+    await crearClienteAsistente('clave-secreta-de-prueba', undefined, sdk).preguntar({}, 'hola');
 
     expect(JSON.stringify(create.mock.calls[0]?.[0])).not.toContain('clave-secreta');
   });
@@ -204,5 +207,23 @@ describe('detalleDeError', () => {
 
   it('lo que no es de la API no trae detalle: no hay nada que citar', () => {
     expect(detalleDeError(new Error('se cayó la red'))).toBeUndefined();
+  });
+});
+
+describe('opcionesDeCliente', () => {
+  /**
+   * La API devolvió 400 en la primera consulta real, con la clave ya puesta:
+   * «anthropic-workspace-id is required when authenticating with an
+   * identity-linked API key».
+   */
+  it('manda el espacio de trabajo como cabecera cuando lo hay', () => {
+    expect(opcionesDeCliente('sk-x', 'wrkspc_1').defaultHeaders).toEqual({
+      'anthropic-workspace-id': 'wrkspc_1',
+    });
+  });
+
+  /** Una clave normal no lo necesita: mandar la cabecera vacía sería otro 400. */
+  it('sin espacio no manda ninguna cabecera', () => {
+    expect(opcionesDeCliente('sk-x').defaultHeaders).toBeUndefined();
   });
 });
