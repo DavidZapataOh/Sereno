@@ -20,7 +20,8 @@ import { PendingGroupRow } from '@/ui/categories/pending-group-row';
 import { AppText } from '@/ui/components/app-text';
 import { Button } from '@/ui/components/button';
 import { Card } from '@/ui/components/card';
-import { EmptyState, ErrorState, LoadingState } from '@/ui/components/states';
+import { ErrorState, LoadingState } from '@/ui/components/states';
+import { DoneForToday } from '@/ui/review/done-for-today';
 import { useTheme } from '@/ui/theme/use-theme';
 
 /** ¿Qué movimientos necesitan que yo diga en qué se fueron? */
@@ -29,6 +30,9 @@ export default function RevisarRoute() {
   const theme = useTheme();
   const queryClient = useQueryClient();
   const [grupo, setGrupo] = useState<PendingGroup | null>(null);
+  // Cuántos se han clasificado **en esta sesión**. Es lo que hace que el cierre
+  // diga algo: sin esto, entrar a una cola vacía felicitaría por no hacer nada.
+  const [clasificadosAqui, setClasificadosAqui] = useState(0);
 
   const pendientes = useQuery({
     queryKey: ['pending', CURRENT_OWNER],
@@ -51,8 +55,9 @@ export default function RevisarRoute() {
         categoria: entrada.categoria,
         siempre: entrada.siempre,
       }),
-    onSuccess: () => {
+    onSuccess: (_resultado, entrada) => {
       setGrupo(null);
+      setClasificadosAqui((llevados) => llevados + entrada.grupo.transacciones.length);
       void queryClient.invalidateQueries();
     },
     onError: (error) => {
@@ -158,10 +163,9 @@ export default function RevisarRoute() {
         )}
         ListHeaderComponent={cabecera}
         ListEmptyComponent={
-          <EmptyState
-            title="Todo está clasificado"
-            description="Cuando importes movimientos nuevos y Sereno no sepa en qué se fueron, aparecerán aquí."
-          />
+          // El final de la única tarea repetitiva de la app. Antes se acababa
+          // y ya; ahora se cierra diciendo qué queda ordenado por ello.
+          <DoneForToday recienClasificados={clasificadosAqui} />
         }
         contentContainerStyle={pendientes.data.length === 0 ? { flex: 1 } : undefined}
       />

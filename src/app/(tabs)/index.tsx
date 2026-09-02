@@ -3,6 +3,9 @@ import { router } from 'expo-router';
 import { ScrollView, View, type ViewStyle } from 'react-native';
 
 import { listPending } from '@/application/categorization/review';
+import { behaviorMetrics } from '@/application/metrics/behavior-metrics';
+import { listMovements } from '@/application/movements/movements';
+import { espejoDe } from '@/domain/insights/mirror';
 import { adjustToReconcile } from '@/application/ledger/adjust-to-reconcile';
 import { getOverview } from '@/application/overview/get-overview';
 import { useAppDeps } from '@/infrastructure/composition/use-app-deps';
@@ -15,6 +18,9 @@ import { DestinationGrid } from '@/ui/overview/destination-grid';
 import { DriftCard } from '@/ui/overview/drift-card';
 import { NetWorthHero } from '@/ui/overview/net-worth-hero';
 import { NextActionCard } from '@/ui/overview/next-action-card';
+import { MirrorCard } from '@/ui/insights/mirror-card';
+import { ArrivalCard } from '@/ui/sync/arrival-card';
+import { useArrivalStore } from '@/ui/sync/arrival-store';
 import { useTheme } from '@/ui/theme/use-theme';
 
 /** ¿Cuánto tengo en total y qué se paga pronto? */
@@ -32,6 +38,20 @@ export default function HoyScreen() {
     queryKey: ['pending', CURRENT_OWNER],
     queryFn: () => listPending(deps, { owner: CURRENT_OWNER }),
   });
+  // Lo que entró esta mañana, para poder enseñarlo de uno en uno.
+  const llegada = useArrivalStore((estado) => estado.llegada);
+  const cerrarLlegada = useArrivalStore((estado) => estado.cerrar);
+  const ultimos = useQuery({
+    enabled: llegada !== null,
+    queryKey: ['movements-ultimos', CURRENT_OWNER, llegada?.cuando],
+    queryFn: () => listMovements(deps, { owner: CURRENT_OWNER, limit: 3 }),
+  });
+  // Una frase sobre él, si el dato la sostiene. Si no, no hay tarjeta.
+  const medidas = useQuery({
+    queryKey: ['metricas', CURRENT_OWNER],
+    queryFn: () => behaviorMetrics(deps, { owner: CURRENT_OWNER }),
+  });
+  const espejo = espejoDe(medidas.data?.metricas ?? []);
   // «Asumir la diferencia»: un ajuste con motivo que cierra la conciliación.
   const asumir = useMutation({
     mutationFn: (reconciliationId: string) =>
@@ -97,6 +117,15 @@ export default function HoyScreen() {
         now={deps.clock()}
       />
 
+      {/* El momento de la mañana, si de verdad llegó algo. */}
+      {llegada !== null && (
+        <ArrivalCard
+          nuevos={llegada.nuevos}
+          ultimos={ultimos.data?.items ?? []}
+          onCerrar={cerrarLlegada}
+        />
+      )}
+
       {/* Una sola acción principal: lo que toca hoy. */}
       <NextActionCard
         pendientes={pendientes.data?.length ?? 0}
@@ -124,6 +153,15 @@ export default function HoyScreen() {
           />
         ))}
       </Card>
+      {espejo !== null && (
+        <MirrorCard
+          espejo={espejo}
+          onVer={() => {
+            router.push('/metricas');
+          }}
+        />
+      )}
+
       <DestinationGrid
         destinos={[
           {
