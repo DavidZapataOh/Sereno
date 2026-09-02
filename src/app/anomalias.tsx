@@ -45,7 +45,7 @@ export default function AnomaliasRoute() {
           {TEXTO.explicacion}
         </AppText>
 
-        {datos.isPending && <LoadingState />}
+        {datos.isPending && <LoadingState filas={4} />}
         {datos.isError && (
           <ErrorState
             description={TEXTO.error}

@@ -88,7 +88,7 @@ export function CategoryBars({ filas }: Props) {
               style={{
                 flex: Math.max(2, Number((fila.total.amount * 100n) / mayor)),
                 borderRadius: 4,
-                backgroundColor: theme.palette.accent,
+                backgroundColor: theme.palette.accentFill,
               }}
             />
             <View style={{ flex: Math.max(0, 100 - Number((fila.total.amount * 100n) / mayor)) }} />

@@ -27,7 +27,7 @@ export default function SuscripcionesRoute() {
     <>
       <Stack.Screen options={{ title: 'Suscripciones' }} />
       <ScrollView contentContainerStyle={{ padding: theme.spacing.lg, gap: theme.spacing.lg }}>
-        {datos.isPending && <LoadingState />}
+        {datos.isPending && <LoadingState filas={6} />}
         {datos.isError && (
           <ErrorState
             description="No se pudieron calcular las suscripciones."

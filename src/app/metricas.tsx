@@ -35,7 +35,7 @@ export default function MetricasRoute() {
           {TEXTO_METRICAS.explicacion}
         </AppText>
 
-        {datos.isPending && <LoadingState />}
+        {datos.isPending && <LoadingState filas={4} />}
         {datos.isError && (
           <ErrorState
             description={TEXTO.error}

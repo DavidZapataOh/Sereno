@@ -24,7 +24,7 @@ export default function CuentasScreen() {
   if (consulta.isPending) {
     return (
       <View style={fondo}>
-        <LoadingState />
+        <LoadingState filas={6} />
       </View>
     );
   }

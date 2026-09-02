@@ -108,7 +108,7 @@ export default function CuentaRoute() {
   if (cuenta.isPending || saldo.isPending || movimientos.isPending) {
     return (
       <View style={fondo}>
-        <LoadingState />
+        <LoadingState filas={8} />
       </View>
     );
   }

@@ -89,7 +89,7 @@ export function NetWorthChart({ serie }: Props) {
             style={{
               flex: 1,
               height: Math.max(2, alto(s.patrimonio.amount)),
-              backgroundColor: theme.palette.accent,
+              backgroundColor: theme.palette.accentFill,
               borderRadius: 2,
             }}
           />

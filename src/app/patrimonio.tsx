@@ -47,7 +47,7 @@ export default function PatrimonioRoute() {
     <>
       <Stack.Screen options={{ title: TEXTO.titulo }} />
       <ScrollView contentContainerStyle={{ padding: theme.spacing.lg, gap: theme.spacing.lg }}>
-        {datos.isPending && <LoadingState />}
+        {datos.isPending && <LoadingState filas={3} />}
         {datos.isError && (
           <ErrorState
             description={TEXTO.error}

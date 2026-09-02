@@ -66,7 +66,7 @@ export default function RecordatoriosRoute() {
           {TEXTO_RECORDATORIOS.explicacion}
         </AppText>
 
-        {estado.isPending && <LoadingState />}
+        {estado.isPending && <LoadingState filas={4} />}
 
         {estado.data !== undefined && (
           <Card style={{ gap: theme.spacing.sm }}>

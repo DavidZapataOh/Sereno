@@ -45,7 +45,7 @@ export default function InformesRoute() {
     <>
       <Stack.Screen options={{ title: TEXTO.titulo }} />
       <ScrollView contentContainerStyle={{ padding: theme.spacing.lg, gap: theme.spacing.lg }}>
-        {categorias.isPending && <LoadingState />}
+        {categorias.isPending && <LoadingState filas={5} />}
         {categorias.isError && (
           <ErrorState
             description={TEXTO.error}

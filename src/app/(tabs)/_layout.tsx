@@ -14,6 +14,7 @@ import { observability } from '@/infrastructure/observability';
 import { CURRENT_OWNER } from '@/infrastructure/session/current-owner';
 import { IconButton } from '@/ui/components/icon-button';
 import { TabPill } from '@/ui/navigation/tab-pill';
+import { useArrivalStore } from '@/ui/sync/arrival-store';
 import { useTheme } from '@/ui/theme/use-theme';
 
 type IconName = ComponentProps<typeof MaterialCommunityIcons>['name'];
@@ -48,6 +49,7 @@ const PESTANAS: { name: string; title: string; icon: IconName; iconActive: IconN
 function useAutoPull(): void {
   const deps = useAppDeps();
   const queryClient = useQueryClient();
+  const anunciar = useArrivalStore((estado) => estado.anunciar);
   const consulta = useQuery({
     queryKey: ['auto-pull', CURRENT_OWNER],
     queryFn: () => pullFromServer(deps, { owner: CURRENT_OWNER }),
@@ -58,8 +60,13 @@ function useAutoPull(): void {
   const nuevos = consulta.data?.nuevos ?? 0;
   useEffect(() => {
     // Solo si entró algo: invalidar sin motivo redibuja la app entera.
-    if (nuevos > 0) void queryClient.invalidateQueries();
-  }, [nuevos, queryClient]);
+    if (nuevos > 0) {
+      void queryClient.invalidateQueries();
+      // Y se anuncia: es el momento de la mañana, y hasta ahora la lista
+      // crecía en silencio.
+      anunciar(nuevos, deps.clock());
+    }
+  }, [anunciar, deps, nuevos, queryClient]);
 }
 
 /**

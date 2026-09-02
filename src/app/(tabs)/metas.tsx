@@ -7,8 +7,7 @@ import { requiredIncome } from '@/application/income/required-income';
 import { useAppDeps } from '@/infrastructure/composition/use-app-deps';
 import { CURRENT_OWNER } from '@/infrastructure/session/current-owner';
 import { AppText } from '@/ui/components/app-text';
-import { Card } from '@/ui/components/card';
-import { NavRow } from '@/ui/components/nav-row';
+import { DestinationGrid } from '@/ui/overview/destination-grid';
 import { EmptyState, LoadingState } from '@/ui/components/states';
 import { GoalRow, TEXTO_META } from '@/ui/goals/goal-row';
 import { RequiredIncomeCard } from '@/ui/income/required-income-card';
@@ -37,7 +36,7 @@ export default function MetasScreen() {
 
   return (
     <ScrollView contentContainerStyle={{ padding: theme.spacing.lg, gap: theme.spacing.lg }}>
-      {metas.isPending && <LoadingState />}
+      {metas.isPending && <LoadingState filas={4} />}
 
       {/* Lo primero: cuánto hay que ganar. Es la pregunta que trae aquí. */}
       {ingreso.data !== undefined && <RequiredIncomeCard resumen={ingreso.data} />}
@@ -60,29 +59,31 @@ export default function MetasScreen() {
           </AppText>
         </View>
       )}
-      <Card style={{ padding: 0 }}>
-        <NavRow
-          title="Proyección"
-          subtitle="Si el saldo va a alcanzar los próximos meses"
-          onPress={() => {
-            router.push('/metas/proyeccion');
-          }}
-        />
-        <NavRow
-          title="Presupuesto"
-          subtitle="A qué le asignaste tu plata este mes"
-          onPress={() => {
-            router.push('/metas/presupuesto');
-          }}
-        />
-        <NavRow
-          title="Fondos"
-          subtitle="Para lo que llega una vez al año"
-          onPress={() => {
-            router.push('/metas/fondos');
-          }}
-        />
-      </Card>
+      <DestinationGrid
+        destinos={[
+          {
+            titulo: 'Proyección',
+            icono: 'chart-timeline-variant',
+            onPress: () => {
+              router.push('/metas/proyeccion');
+            },
+          },
+          {
+            titulo: 'Presupuesto',
+            icono: 'wallet-outline',
+            onPress: () => {
+              router.push('/metas/presupuesto');
+            },
+          },
+          {
+            titulo: 'Fondos',
+            icono: 'piggy-bank-outline',
+            onPress: () => {
+              router.push('/metas/fondos');
+            },
+          },
+        ]}
+      />
     </ScrollView>
   );
 }
