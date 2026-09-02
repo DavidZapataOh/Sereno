@@ -6,6 +6,7 @@ import { useTheme } from '@/ui/theme/use-theme';
 
 export type TextColorKey = Extract<
   keyof Palette,
+  | 'textStrong'
   | 'textPrimary'
   | 'textSecondary'
   | 'textMuted'
@@ -13,6 +14,13 @@ export type TextColorKey = Extract<
   | 'ingreso'
   | 'gasto'
   | 'deuda'
+  // Las tintas de los rellenos suaves: van encima de un fondo de color, y su
+  // contraste está auditado en pares en `palette.test.ts`.
+  | 'onAccentSoft'
+  | 'onIngresoSoft'
+  | 'onGastoSoft'
+  | 'onDeudaSoft'
+  | 'onPeligroSoft'
   | 'peligro'
 >;
 

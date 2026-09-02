@@ -1,6 +1,6 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import type { ComponentProps } from 'react';
-import { Pressable, type PressableStateCallbackType } from 'react-native';
+import { PressableScale } from '@/ui/motion/pressable-scale';
 
 import { useTheme } from '@/ui/theme/use-theme';
 
@@ -18,26 +18,26 @@ interface Props {
 export function IconButton({ icon, label, onPress, testID }: Props) {
   const theme = useTheme();
   return (
-    <Pressable
+    <PressableScale
       testID={testID}
       onPress={onPress}
       accessibilityRole="button"
       accessibilityLabel={label}
       hitSlop={theme.spacing.sm}
-      style={({ pressed }: PressableStateCallbackType) => ({
+      style={{
         minWidth: theme.touchTargetMin,
         minHeight: theme.touchTargetMin,
         alignItems: 'center',
         justifyContent: 'center',
         borderRadius: theme.radius.completo,
-        backgroundColor: pressed ? theme.palette.surfacePressed : undefined,
-      })}
+      }}
+      pressedStyle={{ backgroundColor: theme.palette.surfacePressed }}
     >
       <MaterialCommunityIcons
         name={icon}
         size={theme.spacing.xl}
         color={theme.palette.textPrimary}
       />
-    </Pressable>
+    </PressableScale>
   );
 }

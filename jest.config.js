@@ -1,5 +1,9 @@
 module.exports = {
   preset: 'jest-expo',
+  // El doble de gestos lo trae la propia librería, y hace falta **antes** que
+  // el entorno de pruebas: sin él, cualquier componente con un gesto revienta
+  // al importarse.
+  setupFiles: ['<rootDir>/node_modules/react-native-gesture-handler/jestSetup.js'],
   setupFilesAfterEnv: ['<rootDir>/jest.setup.ts'],
   transformIgnorePatterns: [
     'node_modules/(?!((jest-)?react-native|@react-native(-community)?)|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|@unimodules/.*|unimodules|sentry-expo|native-base|react-native-svg|react-native-webview)',

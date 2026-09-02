@@ -1,5 +1,7 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { Pressable, View, type PressableStateCallbackType } from 'react-native';
+import { View } from 'react-native';
+
+import { PressableScale } from '@/ui/motion/pressable-scale';
 
 import { useTheme } from '@/ui/theme/use-theme';
 
@@ -23,21 +25,22 @@ export function NavRow({ title, subtitle, onPress, testID }: Props) {
   const etiqueta = subtitle === undefined ? title : `${title}. ${subtitle}`;
 
   return (
-    <Pressable
+    <PressableScale
       testID={testID}
       onPress={onPress}
       accessible
       accessibilityRole="button"
       accessibilityLabel={etiqueta}
-      style={({ pressed }: PressableStateCallbackType) => ({
+      style={{
         minHeight: theme.touchTargetMin,
         flexDirection: 'row',
         alignItems: 'center',
         gap: theme.spacing.md,
         paddingVertical: theme.spacing.sm,
         paddingHorizontal: theme.spacing.lg,
-        backgroundColor: pressed ? theme.palette.surfacePressed : undefined,
-      })}
+        borderRadius: theme.radius.medio,
+      }}
+      pressedStyle={{ backgroundColor: theme.palette.surfacePressed }}
     >
       <View style={{ flex: 1 }}>
         <AppText numberOfLines={1}>{title}</AppText>
@@ -52,6 +55,6 @@ export function NavRow({ title, subtitle, onPress, testID }: Props) {
         size={theme.spacing.xl}
         color={theme.palette.textMuted}
       />
-    </Pressable>
+    </PressableScale>
   );
 }

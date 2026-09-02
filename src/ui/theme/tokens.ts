@@ -17,11 +17,51 @@ export const SPACING = {
  */
 export const TOUCH_TARGET_MIN = 48;
 
+/**
+ * Radios, proporcionales al tamaño de lo que redondean.
+ *
+ * Una tarjeta grande con el mismo radio que un chip se ve barata: el ojo lee la
+ * proporción, no el número. De ahí que haya cinco escalones y no tres.
+ *
+ * React Native no sabe dibujar el *squircle* de Apple —la curva continua—, pero
+ * el efecto que produce se consigue igual con radios más generosos de lo que
+ * pide el instinto.
+ */
 export const RADIUS = {
-  pequeno: 8,
-  medio: 12,
+  pequeno: 10,
+  medio: 14,
   grande: 20,
+  enorme: 28,
   completo: 9999,
+} as const;
+
+/**
+ * Sombras. Una sola forma, suave y ancha.
+ *
+ * **No sustituyen al borde**: lo acompañan donde algo de verdad flota encima
+ * del contenido —una hoja inferior, un botón que sigue al desplazamiento—. Una
+ * app llena de sombras es una app sin jerarquía, porque si todo flota nada
+ * flota.
+ */
+export const SHADOW = {
+  ninguna: {
+    shadowOpacity: 0,
+    shadowRadius: 0,
+    shadowOffset: { width: 0, height: 0 },
+    elevation: 0,
+  },
+  suave: {
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 3,
+  },
+  flotante: {
+    shadowOpacity: 0.16,
+    shadowRadius: 24,
+    shadowOffset: { width: 0, height: 10 },
+    elevation: 10,
+  },
 } as const;
 
 /**

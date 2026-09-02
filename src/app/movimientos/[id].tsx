@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Stack, useLocalSearchParams } from 'expo-router';
+import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { View, type ViewStyle } from 'react-native';
 
@@ -12,6 +12,7 @@ import { useAppDeps } from '@/infrastructure/composition/use-app-deps';
 import { observability } from '@/infrastructure/observability';
 import { CURRENT_OWNER } from '@/infrastructure/session/current-owner';
 import { CategoryPicker } from '@/ui/categories/category-picker';
+import { BottomSheet } from '@/ui/components/bottom-sheet';
 import { EmptyState, ErrorState, LoadingState } from '@/ui/components/states';
 import { MovementDetail } from '@/ui/movements/movement-detail';
 import { useTheme } from '@/ui/theme/use-theme';
@@ -93,20 +94,40 @@ export default function MovimientoRoute() {
 
   return (
     <>
-      <Stack.Screen options={{ title: 'Movimiento' }} />
-      <MovementDetail
-        detalle={consulta.data}
-        busy={resolver.isPending}
-        onConfirmTransfer={() => {
-          resolver.mutate('confirmar');
-        }}
-        onUndoTransfer={() => {
-          resolver.mutate('deshacer');
-        }}
-        onChangeCategory={() => {
-          setEligiendo(true);
+      {/*
+        El detalle **se abre encima de la lista**, no la reemplaza.
+        `transparentModal` es lo que deja ver lo que había detrás; el resto —el
+        deslizamiento, el fondo atenuado, el arrastre para cerrar— lo pone la
+        propia hoja. Es un toque menos y ninguna pérdida de contexto.
+      */}
+      <Stack.Screen
+        options={{
+          title: 'Movimiento',
+          presentation: 'transparentModal',
+          headerShown: false,
+          animation: 'none',
         }}
       />
+      <BottomSheet
+        accessibilityLabel="Detalle del movimiento"
+        onClose={() => {
+          router.back();
+        }}
+      >
+        <MovementDetail
+          detalle={consulta.data}
+          busy={resolver.isPending}
+          onConfirmTransfer={() => {
+            resolver.mutate('confirmar');
+          }}
+          onUndoTransfer={() => {
+            resolver.mutate('deshacer');
+          }}
+          onChangeCategory={() => {
+            setEligiendo(true);
+          }}
+        />
+      </BottomSheet>
       <CategoryPicker
         visible={eligiendo}
         categories={categorias.data ?? []}

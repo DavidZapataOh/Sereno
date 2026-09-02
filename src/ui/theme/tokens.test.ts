@@ -22,7 +22,9 @@ describe('TOUCH_TARGET_MIN', () => {
 
 describe('RADIUS', () => {
   it('define los radios esperados', () => {
-    expect(Object.keys(RADIUS).sort()).toEqual(['completo', 'grande', 'medio', 'pequeno'].sort());
+    expect(Object.keys(RADIUS).sort()).toEqual(
+      ['completo', 'enorme', 'grande', 'medio', 'pequeno'].sort(),
+    );
   });
 
   it('el radio completo es suficiente para un círculo', () => {
@@ -32,6 +34,7 @@ describe('RADIUS', () => {
   it('los radios crecen en el orden declarado', () => {
     expect(RADIUS.pequeno).toBeLessThan(RADIUS.medio);
     expect(RADIUS.medio).toBeLessThan(RADIUS.grande);
+    expect(RADIUS.grande).toBeLessThan(RADIUS.enorme);
   });
 });
 

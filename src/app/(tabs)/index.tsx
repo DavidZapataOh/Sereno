@@ -2,17 +2,19 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { router } from 'expo-router';
 import { ScrollView, View, type ViewStyle } from 'react-native';
 
+import { listPending } from '@/application/categorization/review';
 import { adjustToReconcile } from '@/application/ledger/adjust-to-reconcile';
 import { getOverview } from '@/application/overview/get-overview';
 import { useAppDeps } from '@/infrastructure/composition/use-app-deps';
 import { observability } from '@/infrastructure/observability';
 import { CURRENT_OWNER } from '@/infrastructure/session/current-owner';
 import { Card } from '@/ui/components/card';
-import { NavRow } from '@/ui/components/nav-row';
 import { EmptyState, ErrorState, LoadingState } from '@/ui/components/states';
 import { AccountRow } from '@/ui/overview/account-row';
+import { DestinationGrid } from '@/ui/overview/destination-grid';
 import { DriftCard } from '@/ui/overview/drift-card';
-import { OverviewHeader } from '@/ui/overview/overview-header';
+import { NetWorthHero } from '@/ui/overview/net-worth-hero';
+import { NextActionCard } from '@/ui/overview/next-action-card';
 import { useTheme } from '@/ui/theme/use-theme';
 
 /** ¿Cuánto tengo en total y qué se paga pronto? */
@@ -23,6 +25,12 @@ export default function HoyScreen() {
   const consulta = useQuery({
     queryKey: ['overview', CURRENT_OWNER],
     queryFn: () => getOverview(deps, CURRENT_OWNER),
+  });
+  // Lo que hay que hacer hoy. Va aparte del resumen porque es otra pregunta, y
+  // porque si falla no puede dejar la pantalla sin patrimonio.
+  const pendientes = useQuery({
+    queryKey: ['pending', CURRENT_OWNER],
+    queryFn: () => listPending(deps, { owner: CURRENT_OWNER }),
   });
   // «Asumir la diferencia»: un ajuste con motivo que cierra la conciliación.
   const asumir = useMutation({
@@ -40,7 +48,9 @@ export default function HoyScreen() {
   if (consulta.isPending) {
     return (
       <View style={fondo}>
-        <LoadingState />
+        {/* Esqueleto con la forma de lo que viene: la espera dice qué va a
+            aparecer en vez de decir solo «espera». */}
+        <LoadingState filas={4} />
       </View>
     );
   }
@@ -79,12 +89,20 @@ export default function HoyScreen() {
       style={fondo}
       contentContainerStyle={{ padding: theme.spacing.lg, gap: theme.spacing.lg }}
     >
-      <OverviewHeader
+      <NetWorthHero
         patrimonio={o.patrimonio}
         sinValorar={o.sinValorar.map((c) => c.saldo)}
         tasaMasVieja={o.tasasUsadas.map((t) => t.momento).sort()[0] ?? null}
         ultimaSincronizacion={o.ultimaSincronizacion?.terminadoEn ?? null}
         now={deps.clock()}
+      />
+
+      {/* Una sola acción principal: lo que toca hoy. */}
+      <NextActionCard
+        pendientes={pendientes.data?.length ?? 0}
+        onClasificar={() => {
+          router.push('/categorias/revisar');
+        }}
       />
       {o.conciliacion !== null && (
         <DriftCard
@@ -106,50 +124,52 @@ export default function HoyScreen() {
           />
         ))}
       </Card>
-      <Card style={{ padding: 0 }}>
-        <NavRow
-          title="Preguntar"
-          subtitle="Hazle una pregunta a tus propios números"
-          onPress={() => {
-            router.push('/asistente');
-          }}
-        />
-        <NavRow
-          title="Informes"
-          subtitle="En qué se te va la plata"
-          onPress={() => {
-            router.push('/informes');
-          }}
-        />
-        <NavRow
-          title="Avisos"
-          subtitle="Cobros que se salen de tu patrón"
-          onPress={() => {
-            router.push('/anomalias');
-          }}
-        />
-        <NavRow
-          title="Medidas"
-          subtitle="Si estás mejorando, no solo cuánto gastaste"
-          onPress={() => {
-            router.push('/metricas');
-          }}
-        />
-        <NavRow
-          title="Patrimonio"
-          subtitle="Cómo se ha movido con el tiempo"
-          onPress={() => {
-            router.push('/patrimonio');
-          }}
-        />
-        <NavRow
-          title="Suscripciones"
-          subtitle="Lo que se te cobra solo cada mes"
-          onPress={() => {
-            router.push('/suscripciones');
-          }}
-        />
-      </Card>
+      <DestinationGrid
+        destinos={[
+          {
+            titulo: 'Preguntar',
+            icono: 'chat-question-outline',
+            onPress: () => {
+              router.push('/asistente');
+            },
+          },
+          {
+            titulo: 'Informes',
+            icono: 'chart-box-outline',
+            onPress: () => {
+              router.push('/informes');
+            },
+          },
+          {
+            titulo: 'Avisos',
+            icono: 'bell-outline',
+            onPress: () => {
+              router.push('/anomalias');
+            },
+          },
+          {
+            titulo: 'Medidas',
+            icono: 'speedometer',
+            onPress: () => {
+              router.push('/metricas');
+            },
+          },
+          {
+            titulo: 'Patrimonio',
+            icono: 'chart-line',
+            onPress: () => {
+              router.push('/patrimonio');
+            },
+          },
+          {
+            titulo: 'Suscripciones',
+            icono: 'autorenew',
+            onPress: () => {
+              router.push('/suscripciones');
+            },
+          },
+        ]}
+      />
     </ScrollView>
   );
 }

@@ -19,9 +19,19 @@ import { archivosDeCodigo } from '@/test/source-files';
  *   quien lo sufre no sabe que el problema es el tamaño.
  */
 describe('todo lo que se pulsa es accesible', () => {
+  /**
+   * El archivo que **define** el pulsable animado.
+   *
+   * Es la única excepción legítima: ahí dentro el rol, la etiqueta y el alto
+   * los pone quien lo usa, no él. Cualquier otro archivo que aparezca en esta
+   * lista es una regla que se está apagando.
+   */
+  const PERMITIDOS = ['src/ui/motion/pressable-scale.tsx'];
+
   /** Cada `<Pressable ...>` con lo que lo acompaña, archivo por archivo. */
   const pulsables = archivosDeCodigo()
     .filter((ruta) => ruta.startsWith('src/ui/') || ruta.startsWith('src/app/'))
+    .filter((ruta) => !PERMITIDOS.includes(ruta))
     .flatMap((ruta) => {
       const codigo = readFileSync(ruta, 'utf8');
       return codigo
@@ -36,6 +46,13 @@ describe('todo lo que se pulsa es accesible', () => {
 
   it('hay pulsables que revisar', () => {
     expect(pulsables.length).toBeGreaterThan(5);
+  });
+
+  it('la lista de permitidos solo contiene archivos que existen', () => {
+    const existentes = archivosDeCodigo();
+    for (const permitido of PERMITIDOS) {
+      expect(existentes).toContain(permitido);
+    }
   });
 
   it('todos declaran su rol', () => {

@@ -1,4 +1,7 @@
-import { Pressable, View, type PressableStateCallbackType } from 'react-native';
+import type { ReactNode } from 'react';
+import { View } from 'react-native';
+
+import { PressableScale } from '@/ui/motion/pressable-scale';
 
 import type { CurrencyCode } from '@/domain/money/currency';
 import { currencyName, formatAmount, type MoneyDirection } from '@/domain/money/format';
@@ -10,6 +13,14 @@ import { Money } from './money';
 interface Props {
   title: string;
   subtitle?: string;
+  /**
+   * Lo que va delante del texto: un avatar, un icono.
+   *
+   * Se queda fuera del anuncio del lector de pantalla a propósito —lo declara
+   * quien lo pinta—: repetir «M» antes del nombre del comercio no aporta nada
+   * a quien no ve la pantalla.
+   */
+  leading?: ReactNode;
   amount: bigint | number;
   currency?: CurrencyCode;
   direction: MoneyDirection;
@@ -33,6 +44,7 @@ const VERBO: Record<MoneyDirection, string> = {
 export function ListRow({
   title,
   subtitle,
+  leading,
   amount,
   currency = 'COP',
   direction,
@@ -60,6 +72,7 @@ export function ListRow({
         paddingHorizontal: theme.spacing.lg,
       }}
     >
+      {leading}
       <View style={{ flex: 1 }}>
         <AppText
           level="cuerpo"
@@ -87,18 +100,16 @@ export function ListRow({
   }
 
   return (
-    <Pressable
+    <PressableScale
       testID={testID}
       onPress={onPress}
       accessible
       accessibilityRole="button"
       accessibilityLabel={etiqueta}
-      style={({ pressed }: PressableStateCallbackType) => ({
-        minHeight: theme.touchTargetMin,
-        backgroundColor: pressed ? theme.palette.surfacePressed : undefined,
-      })}
+      style={{ minHeight: theme.touchTargetMin, borderRadius: theme.radius.medio }}
+      pressedStyle={{ backgroundColor: theme.palette.surfacePressed }}
     >
       {contenido}
-    </Pressable>
+    </PressableScale>
   );
 }

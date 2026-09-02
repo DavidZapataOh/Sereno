@@ -13,6 +13,7 @@ import { useAppDeps } from '@/infrastructure/composition/use-app-deps';
 import { observability } from '@/infrastructure/observability';
 import { CURRENT_OWNER } from '@/infrastructure/session/current-owner';
 import { IconButton } from '@/ui/components/icon-button';
+import { TabPill } from '@/ui/navigation/tab-pill';
 import { useTheme } from '@/ui/theme/use-theme';
 
 type IconName = ComponentProps<typeof MaterialCommunityIcons>['name'];
@@ -126,6 +127,10 @@ export default function TabsLayout() {
       screenOptions={{
         tabBarActiveTintColor: theme.palette.accent,
         tabBarInactiveTintColor: theme.palette.textMuted,
+        // Las transiciones entre pestañas se deslizan: no se cambia de
+        // pantalla, se navega. Es lo que construye el mapa mental de dónde
+        // está cada cosa.
+        animation: 'shift',
         tabBarStyle: {
           backgroundColor: theme.palette.surface,
           borderTopColor: theme.palette.border,
@@ -146,11 +151,13 @@ export default function TabsLayout() {
           options={{
             title: pestana.title,
             tabBarIcon: ({ focused, color, size }) => (
-              <MaterialCommunityIcons
-                name={focused ? pestana.iconActive : pestana.icon}
-                size={size}
-                color={color}
-              />
+              <TabPill activa={focused}>
+                <MaterialCommunityIcons
+                  name={focused ? pestana.iconActive : pestana.icon}
+                  size={size}
+                  color={color}
+                />
+              </TabPill>
             ),
             // Los ajustes cuelgan de «Hoy»: se visitan una vez al mes y no
             // merecen un cuarto de la barra.

@@ -1,5 +1,6 @@
 import { fireEvent } from '@testing-library/react-native';
 
+import { HapticsProvider } from '@/ui/motion/haptics';
 import { renderWithProviders } from '@/test/render';
 import { LIGHT_PALETTE } from '@/ui/theme/palette';
 import { TOUCH_TARGET_MIN } from '@/ui/theme/tokens';
@@ -73,12 +74,46 @@ describe('Button', () => {
     expect(getByRole('button')).toBeBusy();
   });
 
-  it('el primario usa el acento y su texto auditado encima', async () => {
+  /**
+   * El primario es neutro de máximo contraste, no del color de marca: así se ve
+   * desde el otro lado de la pantalla y el ámbar queda libre para acentuar.
+   */
+  it('el primario usa la acción principal y su texto auditado encima', async () => {
     const { getByRole, getByText } = await renderWithProviders(
       <Button label="Guardar" onPress={nada} />,
     );
-    expect(getByRole('button')).toHaveStyle({ backgroundColor: LIGHT_PALETTE.accent });
-    expect(getByText('Guardar')).toHaveStyle({ color: LIGHT_PALETTE.onAccent });
+    expect(getByRole('button')).toHaveStyle({ backgroundColor: LIGHT_PALETTE.actionFill });
+    expect(getByText('Guardar')).toHaveStyle({ color: LIGHT_PALETTE.onActionFill });
+  });
+
+  it('el de acento usa el ámbar de relleno, con su tinta auditada', async () => {
+    const { getByRole, getByText } = await renderWithProviders(
+      <Button label="Sincronizar" onPress={nada} variant="acento" />,
+    );
+    expect(getByRole('button')).toHaveStyle({ backgroundColor: LIGHT_PALETTE.accentFill });
+    expect(getByText('Sincronizar')).toHaveStyle({ color: LIGHT_PALETTE.onAccentFill });
+  });
+
+  /** Si vibra todo, no significa nada: solo lo que cambió datos. */
+  it('solo vibra si se le pide', async () => {
+    const sentir = jest.fn();
+    const { getByRole } = await renderWithProviders(
+      <HapticsProvider value={{ sentir }}>
+        <Button label="Guardar" onPress={nada} vibra />
+      </HapticsProvider>,
+    );
+
+    await fireEvent.press(getByRole('button'));
+    expect(sentir).toHaveBeenCalledWith('confirmar');
+
+    sentir.mockClear();
+    const otra = await renderWithProviders(
+      <HapticsProvider value={{ sentir }}>
+        <Button label="Ver" onPress={nada} />
+      </HapticsProvider>,
+    );
+    await fireEvent.press(otra.getAllByRole('button')[1] ?? otra.getByRole('button'));
+    expect(sentir).not.toHaveBeenCalled();
   });
 
   it('el destructivo usa peligro, no gasto: borrar no es gastar', async () => {

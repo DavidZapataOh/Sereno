@@ -3,12 +3,14 @@ import { router } from 'expo-router';
 import { FlatList, View, type ViewStyle } from 'react-native';
 
 import { listPending } from '@/application/categorization/review';
-import { listMovements } from '@/application/movements/movements';
+import { listMovements, type MovementView } from '@/application/movements/movements';
+import { agruparPorDia } from '@/domain/movements/group-by-day';
 import { useAppDeps } from '@/infrastructure/composition/use-app-deps';
 import { CURRENT_OWNER } from '@/infrastructure/session/current-owner';
 import { Card } from '@/ui/components/card';
 import { NavRow } from '@/ui/components/nav-row';
 import { EmptyState, ErrorState, LoadingState } from '@/ui/components/states';
+import { DaySection } from '@/ui/movements/day-section';
 import { MovementRow } from '@/ui/movements/movement-row';
 import { useLastSyncStore } from '@/ui/sync/last-sync-store';
 import { SyncSummaryCard } from '@/ui/sync/sync-summary-card';
@@ -35,7 +37,7 @@ export default function MovimientosScreen() {
   if (consulta.isPending) {
     return (
       <View style={fondo}>
-        <LoadingState />
+        <LoadingState filas={8} />
       </View>
     );
   }
@@ -53,19 +55,34 @@ export default function MovimientosScreen() {
   }
   const items = consulta.data.pages.flatMap((p) => p.items);
 
+  // La lista se aplana con las cabeceras dentro: una sola `FlatList` sigue
+  // virtualizando —lo que exige el sprint 12— y las secciones no cuestan un
+  // componente por día.
+  type Fila =
+    | { tipo: 'dia'; dia: string; titulo: string; gastado: bigint }
+    | { tipo: 'movimiento'; movimiento: MovementView };
+  const filas: Fila[] = agruparPorDia(items, deps.clock()).flatMap((grupo) => [
+    { tipo: 'dia' as const, dia: grupo.dia, titulo: grupo.titulo, gastado: grupo.gastado },
+    ...grupo.movimientos.map((movimiento) => ({ tipo: 'movimiento' as const, movimiento })),
+  ]);
+
   return (
     <FlatList
       style={fondo}
-      data={items}
-      keyExtractor={(m) => m.id}
-      renderItem={({ item }) => (
-        <MovementRow
-          movement={item}
-          onPress={() => {
-            router.push({ pathname: '/movimientos/[id]', params: { id: item.id } });
-          }}
-        />
-      )}
+      data={filas}
+      keyExtractor={(fila) => (fila.tipo === 'dia' ? `dia-${fila.dia}` : fila.movimiento.id)}
+      renderItem={({ item }) =>
+        item.tipo === 'dia' ? (
+          <DaySection titulo={item.titulo} total={item.gastado} />
+        ) : (
+          <MovementRow
+            movement={item.movimiento}
+            onPress={() => {
+              router.push({ pathname: '/movimientos/[id]', params: { id: item.movimiento.id } });
+            }}
+          />
+        )
+      }
       onEndReached={() => {
         if (consulta.hasNextPage && !consulta.isFetchingNextPage) void consulta.fetchNextPage();
       }}

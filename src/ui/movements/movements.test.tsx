@@ -95,12 +95,17 @@ const transferencia: MovementView = {
 };
 
 describe('MovementRow', () => {
-  it('muestra el comercio legible, fecha corta, cuenta, categoría y monto con signo', async () => {
+  /**
+   * **La fecha ya no va en la fila**: la pone la cabecera del día desde el
+   * sprint 14. Repetirla en cada renglón ocupaba el hueco de lo que sí
+   * distingue un movimiento de otro.
+   */
+  it('muestra el comercio legible, cuenta, categoría y monto con signo', async () => {
     const { getByText } = await renderWithProviders(
       <MovementRow movement={compra} onPress={() => undefined} />,
     );
     expect(getByText('Éxito')).toBeOnTheScreen();
-    expect(getByText('28 ago · Bancolombia · Por clasificar')).toBeOnTheScreen();
+    expect(getByText('Bancolombia · Por clasificar')).toBeOnTheScreen();
     expect(getByText('−$ 45.000')).toBeOnTheScreen();
   });
 
@@ -108,7 +113,16 @@ describe('MovementRow', () => {
     const { getByText } = await renderWithProviders(
       <MovementRow movement={clasificada} onPress={() => undefined} />,
     );
-    expect(getByText('28 ago · Bancolombia · Mercado')).toBeOnTheScreen();
+    expect(getByText('Bancolombia · Mercado')).toBeOnTheScreen();
+  });
+
+  it('enseña la inicial del comercio, sin repetírsela al lector', async () => {
+    const { getAllByText, queryByLabelText } = await renderWithProviders(
+      <MovementRow movement={compra} onPress={() => undefined} />,
+    );
+
+    expect(getAllByText('É', { includeHiddenElements: true }).length).toBeGreaterThan(0);
+    expect(queryByLabelText('É')).toBeNull();
   });
 
   it('una transferencia muestra origen → destino y monto neutro', async () => {
