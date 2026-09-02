@@ -1,13 +1,14 @@
-import { and, eq, isNull, lte } from 'drizzle-orm';
+import { and, desc, eq, gte, isNull, lte } from 'drizzle-orm';
 
 import type { Account } from '@/domain/ledger/account';
+import { limiteDe, mesUtilizableHasta } from '@/domain/ledger/balance-checkpoint';
 import type { AccountRepository } from '@/domain/ledger/account-repository';
 import type { AccountId, OwnerId } from '@/domain/ledger/ids';
 import { sum, type Money } from '@/domain/money/money';
 
 import type { Database } from './database';
 import { fromAccount, toAccount, toMoney } from './mappers';
-import { accounts, postings, transactions } from './schema';
+import { accounts, balanceCheckpoints, postings, transactions } from './schema';
 
 class AccountNotFoundError extends Error {
   constructor(id: AccountId) {
@@ -73,26 +74,58 @@ export function createDrizzleAccountRepository(db: Database): AccountRepository 
         const cuenta = buscar(id);
         if (cuenta === null) throw new AccountNotFoundError(id);
 
+        // **Se parte del corte más reciente que sirva** (ADR 0006). Antes esto
+        // sumaba el historial entero en cada llamada, y la pantalla de inicio
+        // llama una vez por cuenta: abrir la app costaba el historial por cada
+        // cuenta, y crecía cada mes sin techo.
+        //
+        // El corte es un caché: si no hay ninguno —o si se borran todos— este
+        // camino calcula exactamente lo mismo, solo que leyendo más.
+        const [corte] = db
+          .select()
+          .from(balanceCheckpoints)
+          .where(
+            options?.hasta === undefined
+              ? eq(balanceCheckpoints.accountId, id)
+              : and(
+                  eq(balanceCheckpoints.accountId, id),
+                  lte(balanceCheckpoints.mes, mesUtilizableHasta(options.hasta)),
+                ),
+          )
+          .orderBy(desc(balanceCheckpoints.mes))
+          .limit(1)
+          .all();
+
+        // La frontera del corte se compara como texto, igual que el resto de
+        // las fechas del repositorio: es lo que garantiza que el corte y los
+        // apuntes que se suman aparte partan el mismo conjunto sin solaparse
+        // ni dejar hueco.
+        const desde = corte === undefined ? undefined : limiteDe(corte.mes);
+
         // Con `hasta`, se une con la transacción para filtrar por su fecha. El
         // plan de ejecución sigue entrando por `idx_postings_account`.
+        const condiciones = [eq(postings.accountId, id)];
+        if (desde !== undefined) condiciones.push(gte(transactions.fecha, desde));
+        if (options?.hasta !== undefined) condiciones.push(lte(transactions.fecha, options.hasta));
+
         const apuntes = db
           .select({ amount: postings.amount, currency: postings.currency })
           .from(postings)
           .innerJoin(transactions, eq(postings.transactionId, transactions.id))
-          .where(
-            options?.hasta === undefined
-              ? eq(postings.accountId, id)
-              : and(eq(postings.accountId, id), lte(transactions.fecha, options.hasta)),
-          )
+          .where(and(...condiciones))
           .all();
 
         // `sum` usa `add`, que rechaza mezclar monedas: si un apunte llegó con
         // una moneda distinta a la de la cuenta, salta aquí en vez de producir
         // un saldo que no significa nada.
-        return sum(
+        const desdeElCorte = sum(
           apuntes.map((apunte) => toMoney(apunte.amount, apunte.currency)),
           cuenta.currency,
         );
+
+        return corte === undefined
+          ? desdeElCorte
+          : sum([toMoney(corte.amount, corte.currency), desdeElCorte], cuenta.currency);
       }),
 
     archive: (id, fecha) =>

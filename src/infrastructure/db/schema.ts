@@ -488,3 +488,35 @@ export const dismissed_anomalies = sqliteTable(
     index('idx_dismissed_owner').on(tabla.ownerId),
   ],
 );
+
+/**
+ * Cortes de saldo por cuenta y mes. **Caché, no fuente de verdad** (ADR 0006).
+ *
+ * `balanceOf` sumaba todos los apuntes de la cuenta en cada llamada, y la
+ * pantalla de inicio lo llama una vez por cuenta: abrir la app costaba el
+ * historial entero multiplicado por el número de cuentas, y crecía cada mes
+ * sin techo.
+ *
+ * Un corte dice cuánto valía la cuenta al cerrar un mes. El saldo pasa a ser
+ * «el corte más reciente + los apuntes posteriores»: trabajo acotado.
+ *
+ * **Se puede borrar entera y ninguna cifra de la app cambia.** Esa es la
+ * propiedad que la hace segura, y hay una prueba que la comprueba.
+ */
+export const balanceCheckpoints = sqliteTable(
+  'balance_checkpoints',
+  {
+    accountId: text('account_id')
+      .notNull()
+      .references(() => accounts.id, { onDelete: 'cascade' }),
+    /** `AAAA-MM`. El corte vale para el instante en que ese mes termina. */
+    mes: text('mes').notNull(),
+    amount: text('amount').notNull(),
+    currency: text('currency').notNull(),
+    calculadoEn: text('calculado_en').notNull(),
+  },
+  (tabla) => [
+    primaryKey({ columns: [tabla.accountId, tabla.mes] }),
+    index('idx_checkpoints_cuenta_mes').on(tabla.accountId, tabla.mes),
+  ],
+);

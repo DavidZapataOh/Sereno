@@ -87,6 +87,7 @@
     "db:generate": "drizzle-kit generate",
     "db:check": "drizzle-kit check",
     "verificar-ledger": "tsx scripts/verificar-ledger.ts",
+    "verificar-saldos": "tsx scripts/verificar-saldos.ts",
     "cobertura-comercios": "tsx scripts/cobertura-comercios.ts",
     "comprobar-plan": "bash scripts/comprobar-plan.sh",
     "integrar": "bash scripts/integrar.sh",

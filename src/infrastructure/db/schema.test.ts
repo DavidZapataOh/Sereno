@@ -42,7 +42,7 @@ describe('esquema y migraciones', () => {
       .run();
   };
 
-  it('aplica las migraciones y crea las veintiuna tablas', () => {
+  it('aplica las migraciones y crea las veintidós tablas', () => {
     const tablas = cliente.db
       .all<{ name: string }>(sql`SELECT name FROM sqlite_master WHERE type = 'table' ORDER BY name`)
       .map((fila) => fila.name)
@@ -50,6 +50,7 @@ describe('esquema y migraciones', () => {
 
     expect(tablas).toEqual([
       'accounts',
+      'balance_checkpoints',
       'budget_envelopes',
       'categories',
       'classification_batches',
@@ -73,7 +74,7 @@ describe('esquema y migraciones', () => {
     ]);
   });
 
-  it('crea los veinticinco índices declarados', () => {
+  it('crea los veintiséis índices declarados', () => {
     const indices = cliente.db
       .all<{ name: string }>(
         sql`SELECT name FROM sqlite_master WHERE type = 'index' AND name LIKE 'idx_%' ORDER BY name`,
@@ -85,6 +86,7 @@ describe('esquema y migraciones', () => {
       'idx_batches_owner_creado',
       'idx_budget_owner_mes',
       'idx_categories_owner',
+      'idx_checkpoints_cuenta_mes',
       'idx_classifications_owner_origen',
       'idx_credit_cards_owner',
       'idx_debts_owner',
