@@ -1,4 +1,6 @@
-import { Pressable, View, type PressableStateCallbackType } from 'react-native';
+import { View } from 'react-native';
+
+import { PressableScale } from '@/ui/motion/pressable-scale';
 
 import type { CurrencyCode } from '@/domain/money/currency';
 import { currencyName, formatAmount, type MoneyDirection } from '@/domain/money/format';
@@ -87,18 +89,16 @@ export function ListRow({
   }
 
   return (
-    <Pressable
+    <PressableScale
       testID={testID}
       onPress={onPress}
       accessible
       accessibilityRole="button"
       accessibilityLabel={etiqueta}
-      style={({ pressed }: PressableStateCallbackType) => ({
-        minHeight: theme.touchTargetMin,
-        backgroundColor: pressed ? theme.palette.surfacePressed : undefined,
-      })}
+      style={{ minHeight: theme.touchTargetMin, borderRadius: theme.radius.medio }}
+      pressedStyle={{ backgroundColor: theme.palette.surfacePressed }}
     >
       {contenido}
-    </Pressable>
+    </PressableScale>
   );
 }

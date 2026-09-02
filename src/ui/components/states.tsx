@@ -5,6 +5,7 @@ import { useTheme } from '@/ui/theme/use-theme';
 
 import { AppText } from './app-text';
 import { Button } from './button';
+import { SkeletonRow } from './skeleton';
 
 function Contenedor({ children }: { children: ReactNode }) {
   const theme = useTheme();
@@ -23,8 +24,37 @@ function Contenedor({ children }: { children: ReactNode }) {
   );
 }
 
-export function LoadingState() {
+interface LoadingProps {
+  /**
+   * Cuántas filas de esqueleto dibujar.
+   *
+   * **Un esqueleto con la forma de lo que viene** convierte la espera en
+   * información: la pantalla ya se ve como lo que va a ser. Una rueda girando
+   * solo dice «espera», que es lo que el usuario ya sabía.
+   *
+   * Sin filas, se cae a la rueda: hay sitios donde lo que carga no es una
+   * lista y fingir una forma sería mentir sobre lo que viene.
+   */
+  filas?: number;
+}
+
+export function LoadingState({ filas }: LoadingProps = {}) {
   const theme = useTheme();
+
+  if (filas !== undefined && filas > 0) {
+    return (
+      <View
+        accessibilityRole="progressbar"
+        accessibilityLabel="Cargando"
+        style={{ padding: theme.spacing.lg }}
+      >
+        {Array.from({ length: filas }, (_, i) => (
+          <SkeletonRow key={i} />
+        ))}
+      </View>
+    );
+  }
+
   return (
     <Contenedor>
       <ActivityIndicator

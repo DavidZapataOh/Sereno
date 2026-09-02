@@ -5,12 +5,14 @@ import { useEffect, type ReactNode } from 'react';
 import { View } from 'react-native';
 
 import { marcar } from '@/infrastructure/boot/boot-marks';
+import { createExpoHaptics } from '@/infrastructure/haptics/expo-haptics';
 import { useCheckpointRefresh } from '@/infrastructure/composition/use-checkpoint-refresh';
 import { DatabaseProvider } from '@/infrastructure/db/database-provider';
 import { useDatabaseBoot } from '@/infrastructure/db/use-database-boot';
 import { observability } from '@/infrastructure/observability';
 import { ErrorState, LoadingState } from '@/ui/components/states';
 import { ErrorBoundary } from '@/ui/error-boundary';
+import { HapticsProvider } from '@/ui/motion/haptics';
 import { toNavigationTheme } from '@/ui/theme/theme';
 import { ThemeProvider } from '@/ui/theme/theme-provider';
 import { useAppFonts } from '@/ui/theme/typography';
@@ -25,6 +27,9 @@ void SplashScreen.preventAutoHideAsync();
  * conciliación a la vez: invalidar todo en un punto y que cada pantalla se
  * refresque sola es exactamente el problema que esto resuelve.
  */
+/** La háptica del sistema, cableada una vez. La interfaz solo ve el puerto. */
+const haptics = createExpoHaptics();
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -142,9 +147,11 @@ export default function RootLayout() {
   return (
     <ErrorBoundary onError={reportarError}>
       <ThemeProvider>
-        <NavigationTheme>
-          <AppBoot />
-        </NavigationTheme>
+        <HapticsProvider value={haptics}>
+          <NavigationTheme>
+            <AppBoot />
+          </NavigationTheme>
+        </HapticsProvider>
       </ThemeProvider>
     </ErrorBoundary>
   );
