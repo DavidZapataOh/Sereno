@@ -5,6 +5,7 @@ import { Hono } from 'hono';
 import type { Repositorios } from '../db/repositorios';
 import type { Observabilidad } from '../observabilidad';
 
+import { montarAsistente, type Preguntar } from './asistente';
 import { montarMovimientos } from './movimientos';
 import { montarRevision } from './revision';
 import { montarSaldos, type MotivoSinBinance, type SaldosBinance } from './saldos';
@@ -19,6 +20,10 @@ export interface Dependencias {
   motivoSinBinance?: MotivoSinBinance;
   /** Lo que dijo Binance, tal cual. Nunca lleva la clave ni la firma. */
   detalleSinBinance?: string;
+  /** El asistente. Ausente si no hay clave: la ruta lo dice en vez de fingir. */
+  preguntar?: Preguntar;
+  /** El reloj, para poder probar el tope diario sin esperar a mañana. */
+  ahora?: () => Date;
 }
 
 /**
@@ -74,6 +79,8 @@ export function crearApp(deps: Dependencias) {
     deps.motivoSinBinance,
     deps.detalleSinBinance,
   );
+
+  montarAsistente(app, deps.observabilidad, deps.preguntar, deps.ahora);
 
   app.notFound((c) => c.json({ error: 'No existe' }, 404));
 

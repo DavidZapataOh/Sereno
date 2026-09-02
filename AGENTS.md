@@ -141,9 +141,23 @@ Si algo queda a medias, se marca **⚠️ Parcial** diciendo qué falta y por qu
 que miente es peor que el código que falta, porque el código ausente se nota y el registro
 no.
 
+**Y la tabla «Estado por plan» se actualiza al terminar cada plan, no al cerrar el
+sprint.** Los sprints 10 y 11 llegaron a `main` con la tabla entera en «No iniciado»: el
+guion no dijo nada porque solo miraba las filas ✅. Desde el 2026-09-01 también falla si un
+plan tiene pasos recorridos y su fila sigue diciendo «No iniciado». Un registro que calla
+se lee, a las tres semanas, igual que uno que miente.
+
 **`main` no está protegida en GitHub.** La disciplina la impone el guion, no el servidor.
 Activar la protección de rama es pendiente conocido; con un solo desarrollador añade
 fricción sin añadir garantías, porque nadie más puede empujar.
+
+### Las rutas de `src/app/` no se prueban; la pantalla vive en `src/ui/`
+
+No hay ni una prueba de ruta en el proyecto, y no es un descuido: probar una ruta exige
+doblar `useAppDeps` y la base de datos. **Lo que hay que probar se extrae a un componente
+de `src/ui/` que recibe todo por props**, y la ruta se queda con el cableado —traer las
+dependencias, llamar al caso de uso, pasar el resultado—. Así se probaron el panel del
+asistente, las gráficas de informes y las tarjetas de anomalías.
 
 ### Node: hay dos en esta máquina
 
