@@ -1,5 +1,6 @@
 import { DARK_PALETTE, LIGHT_PALETTE, type Palette } from './palette';
-import { DURATION, ELEVATION, RADIUS, SPACING, TOUCH_TARGET_MIN } from './tokens';
+import { DURACION, ESCALA_PRESION, RESORTE } from './motion';
+import { DURATION, ELEVATION, RADIUS, SHADOW, SPACING, TOUCH_TARGET_MIN } from './tokens';
 import { FONT_FAMILY, TYPE_SCALE } from './typography';
 
 export type ColorScheme = 'light' | 'dark';
@@ -10,8 +11,11 @@ export interface Theme {
   type: typeof TYPE_SCALE;
   spacing: typeof SPACING;
   radius: typeof RADIUS;
+  shadow: typeof SHADOW;
   elevation: typeof ELEVATION;
   duration: typeof DURATION;
+  /** Movimiento: duraciones, muelles y cuánto se hunde algo al pulsarlo. */
+  motion: { duracion: typeof DURACION; resorte: typeof RESORTE; escalaPresion: number };
   touchTargetMin: typeof TOUCH_TARGET_MIN;
 }
 
@@ -22,8 +26,10 @@ export function buildTheme(scheme: ColorScheme): Theme {
     type: TYPE_SCALE,
     spacing: SPACING,
     radius: RADIUS,
+    shadow: SHADOW,
     elevation: ELEVATION,
     duration: DURATION,
+    motion: { duracion: DURACION, resorte: RESORTE, escalaPresion: ESCALA_PRESION },
     touchTargetMin: TOUCH_TARGET_MIN,
   };
 }

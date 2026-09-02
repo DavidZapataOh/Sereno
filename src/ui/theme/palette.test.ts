@@ -1,5 +1,12 @@
 import { contrastRatio, relativeLuminance } from './contrast';
-import { DARK_PALETTE, LIGHT_PALETTE, SURFACE_KEYS, TEXT_KEYS, type Palette } from './palette';
+import {
+  DARK_PALETTE,
+  LIGHT_PALETTE,
+  SOFT_PAIRS,
+  SURFACE_KEYS,
+  TEXT_KEYS,
+  type Palette,
+} from './palette';
 
 const TEMAS: [string, Palette][] = [
   ['claro', LIGHT_PALETTE],
@@ -19,9 +26,47 @@ describe.each(TEMAS)('paleta %s — contraste de interfaz', (_nombre, palette) =
     expect(contrastRatio(palette.borderStrong, palette[fondo])).toBeGreaterThanOrEqual(3);
   });
 
-  it('el acento como relleno se distingue del fondo (3:1)', () => {
+  it('la acción principal se distingue del fondo (3:1)', () => {
     // Un botón principal que se funde con el fondo no parece un botón.
-    expect(contrastRatio(palette.accent, palette.background)).toBeGreaterThanOrEqual(3);
+    expect(contrastRatio(palette.actionFill, palette.background)).toBeGreaterThanOrEqual(3);
+  });
+
+  it('el relleno de acento se distingue de toda superficie (3:1)', () => {
+    for (const fondo of SURFACE_KEYS) {
+      expect(contrastRatio(palette.accentFill, palette[fondo])).toBeGreaterThanOrEqual(3);
+    }
+  });
+});
+
+describe.each(TEMAS)('paleta %s — rellenos suaves', (_nombre, palette) => {
+  /**
+   * Un fondo de color sin su tinta declarada es la forma más fácil de romper el
+   * contraste sin que nadie lo note: se ve bien donde se probó y falla en la
+   * pantalla siguiente.
+   */
+  it.each(SOFT_PAIRS)('%s tiene tinta legible encima', (fondo, tinta) => {
+    expect(contrastRatio(palette[tinta], palette[fondo])).toBeGreaterThanOrEqual(4.5);
+  });
+
+  it('los rellenos suaves son suaves: no compiten con las superficies', () => {
+    // Si un relleno «suave» contrasta como una superficie distinta, deja de ser
+    // un matiz y se convierte en otra capa, que es lo que se quería evitar.
+    for (const [fondo] of SOFT_PAIRS) {
+      expect(contrastRatio(palette[fondo], palette.surface)).toBeLessThan(4.5);
+    }
+  });
+});
+
+describe.each(TEMAS)('paleta %s — la acción principal', (_nombre, palette) => {
+  it('su texto pasa AA en reposo y pulsada', () => {
+    expect(contrastRatio(palette.onActionFill, palette.actionFill)).toBeGreaterThanOrEqual(4.5);
+    expect(contrastRatio(palette.onActionFill, palette.actionFillPressed)).toBeGreaterThanOrEqual(
+      4.5,
+    );
+  });
+
+  it('pulsada se distingue de en reposo', () => {
+    expect(palette.actionFillPressed).not.toBe(palette.actionFill);
   });
 });
 
@@ -46,6 +91,13 @@ describe.each(TEMAS)('paleta %s — daltonismo', (_nombre, palette) => {
 });
 
 describe.each(TEMAS)('paleta %s — texto sobre relleno', (_nombre, palette) => {
+  it('onAccentFill alcanza AA sobre accentFill, en reposo y pulsado', () => {
+    expect(contrastRatio(palette.onAccentFill, palette.accentFill)).toBeGreaterThanOrEqual(4.5);
+    expect(contrastRatio(palette.onAccentFill, palette.accentFillPressed)).toBeGreaterThanOrEqual(
+      4.5,
+    );
+  });
+
   it('onAccent alcanza AA sobre accent', () => {
     expect(contrastRatio(palette.onAccent, palette.accent)).toBeGreaterThanOrEqual(4.5);
   });
@@ -101,6 +153,35 @@ describe('coherencia entre temas', () => {
   it('el tema oscuro no es el claro invertido: el texto principal no es blanco puro', () => {
     // Sobre fondo oscuro, el blanco puro cansa. Se reserva para lo importante.
     expect(DARK_PALETTE.textPrimary).not.toBe('#FFFFFF');
+  });
+
+  it('el blanco puro existe solo como textStrong o como superficie clara', () => {
+    // Es la regla de la fatiga visual: el máximo contraste manda una cosa por
+    // pantalla, no diez.
+    const blancos = (palette: typeof LIGHT_PALETTE): string[] =>
+      Object.entries(palette)
+        .filter(([, valor]) => valor === '#FFFFFF')
+        .map(([clave]) => clave);
+
+    expect(blancos(DARK_PALETTE)).toEqual(['textStrong']);
+    expect(blancos(LIGHT_PALETTE).sort()).toEqual([
+      'onAccent',
+      'onAccentFill',
+      'onActionFill',
+      'onGasto',
+      'onPeligro',
+      'surface',
+    ]);
+  });
+
+  /** El fondo tiene que quedar por debajo de la superficie: es lo que hace que una tarjeta exista. */
+  it('en claro el fondo es más oscuro que la superficie, y en oscuro al revés', () => {
+    expect(relativeLuminance(LIGHT_PALETTE.background)).toBeLessThan(
+      relativeLuminance(LIGHT_PALETTE.surface),
+    );
+    expect(relativeLuminance(DARK_PALETTE.background)).toBeLessThan(
+      relativeLuminance(DARK_PALETTE.surface),
+    );
   });
 
   it('el tema claro no usa negro puro para el texto', () => {
