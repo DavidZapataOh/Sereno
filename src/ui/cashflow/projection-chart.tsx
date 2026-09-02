@@ -1,6 +1,7 @@
 import { View } from 'react-native';
 
 import type { MesProyectado } from '@/domain/cashflow/projection';
+import { formatCOP } from '@/domain/money/format';
 import { AppText } from '@/ui/components/app-text';
 import { Money } from '@/ui/components/money';
 import { useTheme } from '@/ui/theme/use-theme';
@@ -13,6 +14,11 @@ export const TEXTO_PROYECCION = {
   comprometido: 'Con fecha y monto conocidos',
   estimado: 'Estimado',
   sinRojo: 'Con lo que se sabe, el saldo aguanta',
+  /** Lo que oye quien no ve la gráfica: la respuesta, no la forma. */
+  anuncio: (meses: number, ultimo: string, mesEnRojo: string | null) =>
+    mesEnRojo === null
+      ? `En ${String(meses)} meses el saldo aguanta y termina en ${ultimo} pesos`
+      : `En ${String(meses)} meses el saldo no alcanzaría en ${mesEnRojo}`,
 };
 
 const ALTURA = 120;
@@ -50,9 +56,14 @@ export function ProjectionChart({ meses, primerMesEnRojo }: Props) {
   return (
     <View style={{ gap: theme.spacing.sm }}>
       <View
+        // altura-fija: el lienzo de la gráfica es un dibujo, no texto.
         style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 2, height: ALTURA }}
-        accessibilityRole="image"
-        accessibilityLabel={`Saldo proyectado de ${String(meses.length)} meses`}
+        accessibilityRole="summary"
+        accessibilityLabel={TEXTO_PROYECCION.anuncio(
+          meses.length,
+          formatCOP(meses.at(-1)?.saldoFinal.amount ?? 0n),
+          primerMesEnRojo,
+        )}
       >
         {meses.map((m) => (
           <View
