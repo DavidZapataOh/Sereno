@@ -21,6 +21,13 @@ module.exports = {
   useAnimatedStyle: (fabrica: () => unknown) => fabrica(),
   useSharedValue: (inicial: unknown) => ({ value: inicial }),
   useAnimatedProps: (fabrica: () => unknown) => fabrica(),
+  // Lo usa `gesture-handler` por dentro para enganchar los gestos: sin esto,
+  // cualquier componente con `GestureDetector` revienta al renderizarse.
+  useEvent: () => () => undefined,
+  useHandler: () => ({ context: {}, doDependenciesDiffer: false, useWeb: false }),
+  useComposedEventHandler: () => () => undefined,
+  setGestureState: () => undefined,
+  isSharedValue: () => false,
   useDerivedValue: (fabrica: () => unknown) => ({ value: fabrica() }),
   withSpring: identidad,
   withTiming: identidad,
@@ -32,6 +39,7 @@ module.exports = {
     (...args: A) =>
       fn(...args),
   cancelAnimation: () => undefined,
+  scheduleOnRN: <A extends unknown[]>(fn: (...args: A) => unknown, ...args: A) => fn(...args),
   interpolate: (valor: number) => valor,
   Extrapolation: { CLAMP: 'clamp' },
   Easing: {
