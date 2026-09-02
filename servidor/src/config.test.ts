@@ -181,11 +181,27 @@ describe('el asistente en la configuración', () => {
   it('recorta espacios y saltos de línea', () => {
     expect(leerConfig(base({ ANTHROPIC_API_KEY: '  sk-de-prueba\n' })).anthropic).toEqual({
       clave: 'sk-de-prueba',
+      espacio: undefined,
     });
   });
 
   it('una variable en blanco no se toma por una clave', () => {
     expect(() => leerConfig(base({ ANTHROPIC_API_KEY: '   ' }))).toThrow(/vac/i);
+  });
+
+  /**
+   * Una clave ligada a una identidad exige decir en qué espacio actúa: la API
+   * devuelve 400 sin la cabecera. Fue lo que pasó en la primera consulta real.
+   */
+  it('lleva el espacio de trabajo cuando está configurado', () => {
+    expect(
+      leerConfig(base({ ANTHROPIC_API_KEY: 'sk-x', ANTHROPIC_WORKSPACE_ID: ' wrkspc_1 ' }))
+        .anthropic,
+    ).toEqual({ clave: 'sk-x', espacio: 'wrkspc_1' });
+  });
+
+  it('sin espacio de trabajo la clave sigue valiendo: no todas lo necesitan', () => {
+    expect(leerConfig(base({ ANTHROPIC_API_KEY: 'sk-x' })).anthropic?.espacio).toBeUndefined();
   });
 
   it('si la configuración falla, el error no repite la clave', () => {

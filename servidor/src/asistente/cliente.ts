@@ -34,8 +34,25 @@ export type ClienteAsistente = ReturnType<typeof crearClienteAsistente>;
  * eliminado en este modelo y mandarlo devuelve un 400. Se comprobó contra la
  * referencia antes de escribirlo, no de memoria.
  */
-export function crearClienteAsistente(clave: string, sdk?: Anthropic) {
-  const cliente = sdk ?? new Anthropic({ apiKey: clave });
+/**
+ * Con qué se construye el cliente.
+ *
+ * **Una clave ligada a una identidad exige decir en qué espacio actúa.** La API
+ * responde 400 sin esa cabecera —«anthropic-workspace-id is required when
+ * authenticating with an identity-linked API key»— y es exactamente lo que
+ * pasó en la primera consulta real, con la clave ya puesta en Railway. Una
+ * clave normal no la necesita, así que solo va si está configurada.
+ */
+export function opcionesDeCliente(
+  clave: string,
+  espacio?: string,
+): { apiKey: string; defaultHeaders?: Record<string, string> } {
+  if (espacio === undefined) return { apiKey: clave };
+  return { apiKey: clave, defaultHeaders: { 'anthropic-workspace-id': espacio } };
+}
+
+export function crearClienteAsistente(clave: string, espacio?: string, sdk?: Anthropic) {
+  const cliente = sdk ?? new Anthropic(opcionesDeCliente(clave, espacio));
 
   return {
     preguntar: async (resumen: unknown, pregunta: string): Promise<RespuestaAsistente> => {

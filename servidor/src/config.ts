@@ -35,6 +35,8 @@ const esquema = z.object({
 
   // El asistente, opcional. Sin ella la app funciona igual y lo dice.
   ANTHROPIC_API_KEY: z.string().optional(),
+  // Solo hace falta si la clave está ligada a una identidad. Ver `cliente.ts`.
+  ANTHROPIC_WORKSPACE_ID: z.string().optional(),
 
   SERENO_GOOGLE_ID: z.string().optional(),
   SERENO_GOOGLE_SECRET: z.string().optional(),
@@ -57,8 +59,13 @@ export interface Config {
   };
   gmail: { clienteId: string; clienteSecreto: string; tokenRefresco: string } | null;
   binance: { clave: string; secreto: string } | null;
-  /** La clave del asistente. Vive aquí y nunca en el teléfono. */
-  anthropic: { clave: string } | null;
+  /**
+   * La clave del asistente. Vive aquí y nunca en el teléfono.
+   *
+   * `espacio` solo si la clave está ligada a una identidad: entonces la API
+   * exige saber en qué espacio de trabajo actúa la petición.
+   */
+  anthropic: { clave: string; espacio: string | undefined } | null;
 }
 
 /**
@@ -118,7 +125,9 @@ function anthropicDesde(v: z.infer<typeof esquema>): Config['anthropic'] {
   const clave = v.ANTHROPIC_API_KEY?.trim();
   if (clave === undefined) return null;
   if (clave === '') throw new Error('ANTHROPIC_API_KEY está vacía: quítala o ponle valor');
-  return { clave };
+  const espacio = v.ANTHROPIC_WORKSPACE_ID?.trim();
+  if (espacio === '') throw new Error('ANTHROPIC_WORKSPACE_ID está vacía: quítala o ponle valor');
+  return { clave, espacio };
 }
 
 export function leerConfig(entorno: Record<string, string | undefined>): Config {
