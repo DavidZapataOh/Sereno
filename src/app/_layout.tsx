@@ -120,7 +120,10 @@ function AppBoot() {
             la primera pantalla, y si fallan la app calcula igual. */}
         <CheckpointRefresh />
         <PrimeraPantalla />
-        <Stack screenOptions={{ headerShadowVisible: false }}>
+        {/* Una sola transición en todo el árbol: el cerebro construye un mapa
+            del sitio, y para eso las pantallas tienen que entrar siempre por
+            el mismo lado. */}
+        <Stack screenOptions={{ headerShadowVisible: false, animation: 'slide_from_right' }}>
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         </Stack>
       </QueryClientProvider>

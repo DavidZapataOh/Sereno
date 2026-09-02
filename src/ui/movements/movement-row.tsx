@@ -1,6 +1,7 @@
 import type { MovementView } from '@/application/movements/movements';
-import { formatShortDate } from '@/domain/time/format';
 import { ListRow } from '@/ui/components/list-row';
+
+import { MerchantAvatar } from './merchant-avatar';
 
 interface Props {
   movement: MovementView;
@@ -8,15 +9,25 @@ interface Props {
 }
 
 export function MovementRow({ movement: m, onPress }: Props) {
+  const titulo = m.esTransferencia ? m.descripcion : m.comercio.nombre;
+
+  // **La fecha ya no va aquí**: la pone la cabecera del día. Repetirla en cada
+  // fila era ruido en el sitio donde menos cabe, y ocupaba el hueco de lo que
+  // sí distingue un movimiento de otro: de qué cuenta salió y en qué categoría
+  // quedó.
   const subtitle = m.esTransferencia
     ? `${m.cuenta.nombre} → ${m.contraparte?.nombre ?? ''}`
-    : [formatShortDate(m.fecha), m.cuenta.nombre, m.categoria?.nombre ?? 'Por clasificar'].join(
-        ' · ',
-      );
+    : [m.cuenta.nombre, m.categoria?.nombre ?? 'Por clasificar'].join(' · ');
 
   return (
     <ListRow
-      title={m.esTransferencia ? m.descripcion : m.comercio.nombre}
+      leading={
+        <MerchantAvatar
+          nombre={titulo}
+          sinClasificar={!m.esTransferencia && m.categoria === null}
+        />
+      }
+      title={titulo}
       subtitle={subtitle}
       amount={m.monto.amount}
       currency={m.monto.currency}
