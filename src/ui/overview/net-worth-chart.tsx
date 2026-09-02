@@ -2,6 +2,7 @@ import { View } from 'react-native';
 
 import { hayHueco, type Snapshot } from '@/domain/overview/snapshot';
 import { formatShortDate } from '@/domain/time/format';
+import { formatCOP } from '@/domain/money/format';
 import { AppText } from '@/ui/components/app-text';
 import { Money } from '@/ui/components/money';
 import { useTheme } from '@/ui/theme/use-theme';
@@ -13,6 +14,9 @@ export const TEXTO_EVOLUCION = {
   hueco: 'Días sin marca, porque la app no se abrió',
   minimo: 'Menor',
   maximo: 'Mayor',
+  /** Lo que oye quien no ve la gráfica: la respuesta, no la forma. */
+  anuncio: (dias: number, primero: string, ultimo: string) =>
+    `Tu patrimonio pasó de ${primero} a ${ultimo} pesos en ${String(dias)} días`,
 };
 
 const ALTURA = 120;
@@ -68,10 +72,15 @@ export function NetWorthChart({ serie }: Props) {
           flexDirection: 'row',
           alignItems: 'flex-end',
           gap: 2,
+          // altura-fija: el lienzo de la gráfica es un dibujo, no texto.
           height: ALTURA,
         }}
-        accessibilityRole="image"
-        accessibilityLabel={`Evolución del patrimonio en ${String(serie.length)} días`}
+        accessibilityRole="summary"
+        accessibilityLabel={TEXTO_EVOLUCION.anuncio(
+          serie.length,
+          formatCOP(serie[0]?.patrimonio.amount ?? 0n),
+          formatCOP(serie.at(-1)?.patrimonio.amount ?? 0n),
+        )}
       >
         {serie.map((s) => (
           <View

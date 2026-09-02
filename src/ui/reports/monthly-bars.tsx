@@ -1,6 +1,7 @@
 import { View } from 'react-native';
 
 import type { GastoDeMes } from '@/application/reports/spending-report';
+import { formatCOP } from '@/domain/money/format';
 import { AppText } from '@/ui/components/app-text';
 import { Money } from '@/ui/components/money';
 import { useTheme } from '@/ui/theme/use-theme';
@@ -41,9 +42,20 @@ export function MonthlyBars({ categoria, meses }: Props) {
   const rango = maximo - minimo;
 
   return (
-    <View style={{ gap: theme.spacing.sm }}>
+    <View
+      style={{ gap: theme.spacing.sm }}
+      accessibilityRole="summary"
+      accessibilityLabel={TEXTO_INFORMES.anuncioEvolucion(
+        categoria,
+        formatCOP(meses[0]?.total.amount ?? 0n),
+        formatCOP(meses.at(-1)?.total.amount ?? 0n),
+        meses.length,
+      )}
+    >
       <AppText level="subtitulo">{TEXTO_INFORMES.evolucion(categoria)}</AppText>
 
+      {/* altura-fija: el lienzo de la gráfica es un dibujo, no texto. Las
+          cifras que lo acompañan sí crecen con la letra del sistema. */}
       <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 2, height: ALTURA }}>
         {meses.map((m) => (
           <View

@@ -62,6 +62,10 @@ export default function InformesRoute() {
                 key={fila.categoria}
                 accessibilityRole="button"
                 accessibilityLabel={`Ver la evolución de ${fila.categoria}`}
+                // La fila se ve alta porque lleva barra y monto, pero eso es
+                // casualidad del contenido: declarada, la zona que responde al
+                // dedo no depende de cuánto texto tenga la categoría.
+                style={{ minHeight: theme.touchTargetMin, justifyContent: 'center' }}
                 onPress={() => {
                   setElegida(fila.categoria);
                 }}

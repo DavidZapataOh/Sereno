@@ -1,6 +1,7 @@
 import { View } from 'react-native';
 
 import type { GastoDeCategoria } from '@/application/reports/spending-report';
+import { formatCOP } from '@/domain/money/format';
 import { AppText } from '@/ui/components/app-text';
 import { Money } from '@/ui/components/money';
 import { useTheme } from '@/ui/theme/use-theme';
@@ -13,6 +14,14 @@ export const TEXTO_INFORMES = {
   minimo: 'El mes más bajo',
   maximo: 'El mes más alto',
   sinHistoria: 'Hace falta más de un mes para ver una tendencia',
+  /**
+   * Lo que oye quien no ve la gráfica. **Dice la respuesta, no la forma.**
+   * «Gráfica de barras de quince categorías» no le sirve a nadie.
+   */
+  anuncioCategorias: (categoria: string, monto: string, porcentaje: number) =>
+    `En lo que más se te va este mes es ${categoria}: ${monto} pesos, el ${String(porcentaje)} por ciento`,
+  anuncioEvolucion: (categoria: string, primero: string, ultimo: string, meses: number) =>
+    `En ${categoria} gastabas ${primero} pesos y ahora ${ultimo}, en ${String(meses)} meses`,
 };
 
 interface Props {
@@ -37,8 +46,22 @@ export function CategoryBars({ filas }: Props) {
 
   const mayor = filas[0]?.total.amount ?? 1n;
 
+  const mayorFila = filas[0];
+
   return (
-    <View style={{ gap: theme.spacing.sm }}>
+    <View
+      style={{ gap: theme.spacing.sm }}
+      accessibilityRole="summary"
+      accessibilityLabel={
+        mayorFila === undefined
+          ? TEXTO_INFORMES.vacio
+          : TEXTO_INFORMES.anuncioCategorias(
+              mayorFila.categoria,
+              formatCOP(mayorFila.total.amount),
+              mayorFila.porcentaje,
+            )
+      }
+    >
       <AppText level="subtitulo">{TEXTO_INFORMES.enQueSeVa}</AppText>
 
       {filas.map((fila) => (
@@ -57,6 +80,8 @@ export function CategoryBars({ filas }: Props) {
           {/* El ancho va como fracción de una fila flexible: React Native
               tipa el porcentaje como plantilla y una cadena construida no
               encaja. Con `flex` se lee igual y no hay que forzar el tipo. */}
+          {/* altura-fija: la barra es un dibujo de 8 px; el nombre y el monto
+              van encima, en texto que sí escala. */}
           <View style={{ flexDirection: 'row', height: 8 }}>
             <View
               testID={`barra-${fila.categoria}`}
