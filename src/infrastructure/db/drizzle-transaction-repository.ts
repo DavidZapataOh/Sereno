@@ -9,11 +9,41 @@ import type {
   TransactionRepository,
 } from '@/domain/ledger/transaction-repository';
 
+import { mesDe } from '@/domain/ledger/balance-checkpoint';
+
 import type { Database } from './database';
 import { toMoney } from './mappers';
-import { postings, transactions } from './schema';
+import { balanceCheckpoints, postings, transactions } from './schema';
 
 const LIMITE_POR_DEFECTO = 50;
+
+/**
+ * Borra los cortes que un cambio deja mintiendo.
+ *
+ * Se borran **desde el mes afectado en adelante**, y de cada cuenta tocada. No
+ * se ajustan: ajustar un corte es hacer aritmética sobre un caché, y basta una
+ * cuenta mal hecha para que el saldo quede mal para siempre sin fallar nunca.
+ *
+ * Un movimiento con fecha vieja no es un caso raro: la ingesta trae correo con
+ * retraso todos los días.
+ */
+function invalidarCortes(
+  tx: { delete: Database['delete'] },
+  tocados: readonly { accountId: string; fecha: string }[],
+): void {
+  const desdeCuenta = new Map<string, string>();
+  for (const { accountId, fecha } of tocados) {
+    const mes = mesDe(fecha);
+    const actual = desdeCuenta.get(accountId);
+    if (actual === undefined || mes < actual) desdeCuenta.set(accountId, mes);
+  }
+
+  for (const [cuenta, mes] of desdeCuenta) {
+    tx.delete(balanceCheckpoints)
+      .where(and(eq(balanceCheckpoints.accountId, cuenta), gte(balanceCheckpoints.mes, mes)))
+      .run();
+  }
+}
 
 class TransactionNotFoundError extends Error {
   constructor(id: TransactionId) {
@@ -161,6 +191,18 @@ export function createDrizzleTransactionRepository(db: Database): TransactionRep
         // Todo dentro de una sola transacción de base de datos: si un apunte
         // falla, no queda ni la cabecera ni los apuntes que ya habían entrado.
         db.transaction((tx) => {
+          // **Lo que había antes también cuenta para invalidar** (ADR 0006).
+          // Guardar es un reemplazo: si la transacción cambió de cuenta o de
+          // fecha, los cortes de la cuenta vieja y del mes viejo se quedarían
+          // mintiendo, y un saldo que miente sin fallar es lo peor que puede
+          // pasar aquí.
+          const anterior = tx
+            .select({ accountId: postings.accountId, fecha: transactions.fecha })
+            .from(postings)
+            .innerJoin(transactions, eq(postings.transactionId, transactions.id))
+            .where(eq(postings.transactionId, transaction.id))
+            .all();
+
           tx.delete(transactions).where(eq(transactions.id, transaction.id)).run();
           tx.insert(transactions)
             .values({
@@ -184,6 +226,14 @@ export function createDrizzleTransactionRepository(db: Database): TransactionRep
               })),
             )
             .run();
+
+          invalidarCortes(tx, [
+            ...anterior.map((fila) => ({ accountId: fila.accountId, fecha: fila.fecha })),
+            ...transaction.postings.map((posting) => ({
+              accountId: posting.accountId,
+              fecha: transaction.fecha,
+            })),
+          ]);
         });
       }),
 
@@ -264,8 +314,20 @@ export function createDrizzleTransactionRepository(db: Database): TransactionRep
           .all();
         if (fila === undefined) throw new TransactionNotFoundError(id);
 
-        // Los apuntes caen por la clave foránea en cascada del esquema.
-        db.delete(transactions).where(eq(transactions.id, id)).run();
+        db.transaction((tx) => {
+          // Se leen antes de borrar: después ya no hay a quién preguntarle qué
+          // cuentas y qué mes hay que invalidar.
+          const afectados = tx
+            .select({ accountId: postings.accountId, fecha: transactions.fecha })
+            .from(postings)
+            .innerJoin(transactions, eq(postings.transactionId, transactions.id))
+            .where(eq(postings.transactionId, id))
+            .all();
+
+          // Los apuntes caen por la clave foránea en cascada del esquema.
+          tx.delete(transactions).where(eq(transactions.id, id)).run();
+          invalidarCortes(tx, afectados);
+        });
       }),
   };
 }

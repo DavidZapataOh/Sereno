@@ -4,6 +4,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import { useEffect, type ReactNode } from 'react';
 import { View } from 'react-native';
 
+import { useCheckpointRefresh } from '@/infrastructure/composition/use-checkpoint-refresh';
 import { DatabaseProvider } from '@/infrastructure/db/database-provider';
 import { useDatabaseBoot } from '@/infrastructure/db/use-database-boot';
 import { observability } from '@/infrastructure/observability';
@@ -26,6 +27,12 @@ void SplashScreen.preventAutoHideAsync();
 const queryClient = new QueryClient({
   defaultOptions: { queries: { staleTime: 30_000 } },
 });
+
+/** Pone al día los cortes de saldo sin pintar nada. */
+function CheckpointRefresh(): null {
+  useCheckpointRefresh();
+  return null;
+}
 
 /** La composición raíz es donde se cablea la infraestructura con la interfaz. */
 function reportarError(error: Error, componentStack: string | null): void {
@@ -77,6 +84,9 @@ function AppBoot() {
   return (
     <DatabaseProvider db={boot.db}>
       <QueryClientProvider client={queryClient}>
+        {/* Los cortes de saldo se ponen al día en segundo plano: no retrasan
+            la primera pantalla, y si fallan la app calcula igual. */}
+        <CheckpointRefresh />
         <Stack screenOptions={{ headerShadowVisible: false }}>
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         </Stack>

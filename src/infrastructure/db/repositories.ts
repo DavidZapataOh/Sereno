@@ -13,6 +13,7 @@ import type { RuleRepository } from '@/domain/categorization/rule-repository';
 import type { IngestRepository } from '@/domain/ingest/ingest-repository';
 import type { TransferRepository } from '@/domain/ingest/transfer-repository';
 import type { AccountRepository } from '@/domain/ledger/account-repository';
+import type { CheckpointRepository } from '@/domain/ledger/checkpoint-repository';
 import type { TransactionRepository } from '@/domain/ledger/transaction-repository';
 import type { ReconciliationRepository } from '@/domain/reconciliation/reconciliation-repository';
 import type { RateRepository } from '@/domain/rates/rate-repository';
@@ -20,6 +21,7 @@ import type { SyncStateRepository } from '@/domain/sync/server-client';
 
 import type { Database } from './database';
 import { createDrizzleAccountRepository } from './drizzle-account-repository';
+import { createDrizzleCheckpointRepository } from './drizzle-checkpoint-repository';
 import { createDrizzleBatchRepository } from './drizzle-batch-repository';
 import { createDrizzleCardRepository } from './drizzle-card-repository';
 import { createDrizzleCategoryRepository } from './drizzle-category-repository';
@@ -41,6 +43,8 @@ import { createDrizzleWalletRepository } from './drizzle-wallet-repository';
 
 export interface Repositories {
   accounts: AccountRepository;
+  /** Los cortes de saldo. Caché derivado, nunca fuente de verdad (ADR 0006). */
+  cortes: CheckpointRepository;
   transactions: TransactionRepository;
   ingest: IngestRepository;
   transfers: TransferRepository;
@@ -65,6 +69,7 @@ export interface Repositories {
 export function createRepositories(db: Database): Repositories {
   return {
     accounts: createDrizzleAccountRepository(db),
+    cortes: createDrizzleCheckpointRepository(db),
     transactions: createDrizzleTransactionRepository(db),
     ingest: createDrizzleIngestRepository(db),
     transfers: createDrizzleTransferRepository(db),

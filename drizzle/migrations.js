@@ -27,6 +27,7 @@ import m0022 from './0022_quiet_steve_rogers.sql';
 import m0023 from './0023_bright_princess_powerful.sql';
 import m0024 from './0024_safe_masque.sql';
 import m0025 from './0025_majestic_flatman.sql';
+import m0026 from './0026_dizzy_risque.sql';
 
   export default {
     journal,
@@ -56,7 +57,8 @@ m0021,
 m0022,
 m0023,
 m0024,
-m0025
+m0025,
+m0026
     }
   }
   
