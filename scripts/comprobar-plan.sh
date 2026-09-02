@@ -19,6 +19,11 @@ set -uo pipefail
 #      obliga a corregir el plan o a justificarlo en progress.md.
 #   2. Ningún plan marcado ✅ tiene tareas o criterios de verificación sin
 #      recorrer.
+#   3. Ningún plan con todos sus pasos recorridos sigue diciendo «No iniciado»
+#      en la tabla. Este se añadió el 2026-09-01, cuando se encontraron los
+#      sprints 10 y 11 con los planes en `main` y la tabla entera sin tocar:
+#      el guion no dijo nada porque **solo miraba las filas ✅**, y una fila sin
+#      tocar se saltaba. Un registro que calla se lee igual que uno que miente.
 #
 # No decide nada por su cuenta: enseña la lista y para. Quien la lea decide si
 # es un renombrado o es trabajo que falta —pero ya no puede no verla.
@@ -58,6 +63,21 @@ for sprint in "$PLANES"/sprint-*/; do
       echo "  ? $(basename "$sprint")/$nombre — sin fila en la tabla de progress.md"
       continue
     fi
+    # Un plan con pasos recorridos y la fila sin tocar. No es que el registro
+    # mienta: es que no dice nada, y a las tres semanas eso se lee como «no se
+    # hizo».
+    #
+    # Basta **un** paso marcado: si se empezó, la fila tenía que decir 🔄, y si
+    # se terminó, ✅ o ⚠️. Exigir que estuvieran todos dejaba pasar justo el
+    # caso de en medio, que es cuando el registro más falta hace.
+    if echo "$linea" | grep -q 'No iniciado'; then
+      if [ "$(grep -c '^- \[x\] \*\*Step' "$plan")" -gt 0 ]; then
+        fallos=$((fallos + 1))
+        echo "  ✗ $(basename "$sprint")/$nombre — tiene pasos recorridos y la tabla dice «No iniciado»"
+      fi
+      continue
+    fi
+
     echo "$linea" | grep -q '✅' || continue
 
     pendientes=""
@@ -86,17 +106,19 @@ if [ "$fallos" -gt 0 ]; then
   cat <<'AVISO'
 
   ─────────────────────────────────────────────────────────────────────
-  Hay planes dados por terminados con trabajo sin recorrer.
+  Hay planes cuyo registro no coincide con lo que se hizo.
 
-  Antes de seguir, para cada uno: o se hace lo que falta, o se marca ⚠️
-  Parcial en progress.md diciendo qué falta y por qué. Un renombrado se
-  corrige en el plan.
+  Antes de seguir, para cada uno: o se hace lo que falta, o se pone en
+  progress.md el estado real —🔄 en curso, ⚠️ parcial— diciendo qué falta
+  y por qué. Un renombrado se corrige en el plan.
 
-  Lo que NO vale es dejarlo ✅. Un registro que miente es peor que el
-  código que falta, porque el código ausente se nota y el registro no.
+  Lo que NO vale es dejarlo ✅ con trabajo sin hacer, ni dejar la fila en
+  «No iniciado» con el trabajo hecho. Un registro que miente es peor que
+  el código que falta, porque el código ausente se nota y el registro no.
+  Y uno que calla se lee, a las tres semanas, igual que uno que miente.
   ─────────────────────────────────────────────────────────────────────
 AVISO
   exit 1
 fi
 
-echo "  ✓ Ningún plan ✅ con trabajo sin recorrer"
+echo "  ✓ El registro de los planes coincide con lo que se hizo"

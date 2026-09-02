@@ -108,6 +108,13 @@ export default function HoyScreen() {
       </Card>
       <Card style={{ padding: 0 }}>
         <NavRow
+          title="Preguntar"
+          subtitle="Hazle una pregunta a tus propios números"
+          onPress={() => {
+            router.push('/asistente');
+          }}
+        />
+        <NavRow
           title="Informes"
           subtitle="En qué se te va la plata"
           onPress={() => {

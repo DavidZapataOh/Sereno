@@ -165,6 +165,14 @@ export const SCREEN_MAP: readonly Screen[] = [
     fase: 11,
   },
   {
+    id: 'asistente',
+    titulo: 'Preguntar',
+    ruta: '/asistente',
+    padre: 'hoy',
+    pregunta: '¿Me alcanza para el viaje si sigo así?',
+    fase: 11,
+  },
+  {
     id: 'patrimonio',
     titulo: 'Patrimonio',
     ruta: '/patrimonio',
