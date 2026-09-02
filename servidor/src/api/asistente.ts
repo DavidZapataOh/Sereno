@@ -5,6 +5,7 @@ import { resumenPublicableSchema } from '@/domain/assistant/publishable-summary'
 
 import {
   costoDe,
+  detalleDeError,
   explicacionDe,
   motivoDeError,
   type RespuestaAsistente,
@@ -114,8 +115,14 @@ export function montarAsistente(
       return c.json({ ...respuesta, costoUsd: costoDe(respuesta.tokens) });
     } catch (error) {
       const motivo = motivoDeError(error);
-      observabilidad.captureError(error, { ruta: '/asistente', motivo });
-      return c.json({ error: explicacionDe(motivo), motivo }, motivo === 'tasa' ? 429 : 502);
+      // El detalle de la API, tachada cualquier cosa con forma de clave. Sin
+      // esto, un 400 es indistinguible de otro y no hay nada que arreglar.
+      const detalle = detalleDeError(error);
+      observabilidad.captureError(error, { ruta: '/asistente', motivo, detalle });
+      return c.json(
+        { error: explicacionDe(motivo), motivo, detalle },
+        motivo === 'tasa' ? 429 : 502,
+      );
     }
   });
 }

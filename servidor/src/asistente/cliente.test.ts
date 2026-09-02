@@ -1,7 +1,14 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { describe, expect, it, vi } from 'vitest';
 
-import { costoDe, crearClienteAsistente, explicacionDe, MODELO, motivoDeError } from './cliente';
+import {
+  costoDe,
+  crearClienteAsistente,
+  detalleDeError,
+  explicacionDe,
+  MODELO,
+  motivoDeError,
+} from './cliente';
 import { cifrasDe, sinLaLineaDeCifras, SISTEMA } from './prompt';
 
 /** Un SDK de mentira que recuerda con qué se le llamó. */
@@ -162,5 +169,40 @@ describe('explicacionDe', () => {
     expect(explicacionDe('tasa')).toMatch(/minuto/i);
     expect(explicacionDe('credenciales')).toMatch(/clave/i);
     expect(explicacionDe('desconocido')).not.toBe('');
+  });
+});
+
+describe('detalleDeError', () => {
+  /**
+   * Sin esto, un 400 es indistinguible de otro: puede ser un parámetro
+   * retirado, un modelo que la cuenta no tiene o un cuerpo demasiado grande.
+   * Es el mismo error que se cometió con Binance en el sprint 08.
+   */
+  it('devuelve lo que dijo la API', () => {
+    const error = new Anthropic.BadRequestError(
+      400,
+      undefined,
+      'thinking.budget_tokens: Extra inputs are not permitted',
+      new Headers(),
+    );
+
+    expect(detalleDeError(error)).toMatch(/budget_tokens/);
+  });
+
+  it('tacha cualquier cosa con forma de clave', () => {
+    const error = new Anthropic.BadRequestError(
+      400,
+      undefined,
+      'algo con sk-ant-api03-secretisima-de-verdad dentro',
+      new Headers(),
+    );
+
+    const detalle = detalleDeError(error);
+    expect(detalle).not.toContain('secretisima');
+    expect(detalle).toContain('<clave>');
+  });
+
+  it('lo que no es de la API no trae detalle: no hay nada que citar', () => {
+    expect(detalleDeError(new Error('se cayó la red'))).toBeUndefined();
   });
 });

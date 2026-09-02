@@ -102,6 +102,26 @@ export function explicacionDe(motivo: MotivoDeFallo): string {
   }
 }
 
+/**
+ * Lo que dijo la API, para poder arreglarlo.
+ *
+ * La primera versión de esto devolvía solo «La consulta no se pudo enviar como
+ * estaba», y con eso no se puede hacer nada: un 400 puede ser un parámetro
+ * retirado, un modelo que la cuenta no tiene o un cuerpo demasiado grande, y
+ * las tres piden cosas distintas. Es **el mismo error que se cometió con
+ * Binance en el sprint 08**, cuando el servidor decía «la clave no puede leer»
+ * y lo que pasaba era que la región estaba bloqueada.
+ *
+ * Lo que se devuelve es el mensaje de la API con cualquier cosa con forma de
+ * clave tachada. La clave nunca ha estado en estos mensajes —van en una
+ * cabecera, no en el cuerpo— pero tacharla cuesta una línea y el registro
+ * acaba en sitios que no controlamos.
+ */
+export function detalleDeError(error: unknown): string | undefined {
+  if (!(error instanceof Anthropic.APIError)) return undefined;
+  return error.message.replace(/sk-[A-Za-z0-9_-]{8,}/g, '<clave>').slice(0, 300);
+}
+
 /** Lo que costó una consulta, en dólares. Se enseña: es plata del usuario. */
 export function costoDe(tokens: { entrada: number; salida: number }): number {
   return (
