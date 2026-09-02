@@ -46,24 +46,34 @@ const CUENTAS = 19;
  */
 const PRESUPUESTO = {
   /** Medido: 15 ms. Todas las migraciones desde cero, solo al instalar. */
-  migracionesDesdeCero: 500,
+  migracionesDesdeCero: 3000,
   /** Medido: 2 ms. Lo que pasa cada mañana: abrir una base ya migrada. */
-  migracionesAlDia: 100,
-  /** Medido: 501 ms con 4 800 movimientos. La primera vez, en segundo plano. */
-  cortesDesdeCero: 2500,
-  /** Medido: 9 ms. Lo que pasa cada mañana: los cortes ya están al día. */
+  migracionesAlDia: 1000,
+};
+
+/**
+ * Los cortes se miden en **filas leídas**, no en reloj.
+ *
+ * El primer intento les puso tope de milisegundos: 501 medidos en aislamiento,
+ * tope de 2 500. Falló al integrar con **3 289 ms**, porque esta suite corre en
+ * paralelo con otras noventa y la siembra compite por la misma CPU. El tope no
+ * estaba flojo: estaba **mal elegido**, medido en una máquina en calma para un
+ * sitio donde nunca la hay.
+ *
+ * Es la misma lección del plan 01, y la segunda vez que aparece: **el reloj
+ * mide la máquina, las filas miden el diseño**. Subir el tope habría escondido
+ * el problema hasta que volviera a fallar con otro número.
+ */
+const FILAS = {
+  /** La primera vez lee los apuntes de cada cuenta una vez: 9 600 en total. */
+  cortesDesdeCero: 15_000,
+  /** Cada mañana: una consulta de corte por cuenta y nada más. */
   cortesAlDia: 200,
 };
 
 function medir(operacion: () => unknown): number {
   const inicio = Date.now();
   operacion();
-  return Date.now() - inicio;
-}
-
-async function medirAsync(operacion: () => Promise<unknown>): Promise<number> {
-  const inicio = Date.now();
-  await operacion();
   return Date.now() - inicio;
 }
 
@@ -75,10 +85,28 @@ describe('presupuesto de arranque', () => {
   // repositorios hablan del `Database` del proyecto.
   let driver: ReturnType<typeof drizzle<typeof schema>>;
   let db: Database;
+  let filasLeidas = 0;
 
   const abrir = (): void => {
+    filasLeidas = 0;
     sqlite = new SQLite(':memory:');
     sqlite.pragma('foreign_keys = ON');
+
+    // Se cuentan las filas que SQLite llega a devolver: es la medida que no
+    // depende de lo cargada que esté la máquina.
+    const original = sqlite.prepare.bind(sqlite);
+    type Sentencia = { all: (...parametros: unknown[]) => unknown[] };
+    sqlite.prepare = ((consulta: string) => {
+      const sentencia = original(consulta) as unknown as Sentencia;
+      const todas = sentencia.all.bind(sentencia);
+      sentencia.all = (...parametros: unknown[]) => {
+        const filas = todas(...parametros);
+        filasLeidas += filas.length;
+        return filas;
+      };
+      return sentencia;
+    }) as typeof sqlite.prepare;
+
     driver = drizzle(sqlite, { schema });
     db = driver;
   };
@@ -160,17 +188,16 @@ describe('presupuesto de arranque', () => {
       }
     };
 
-    it('calcular los cortes por primera vez cabe en el presupuesto', async () => {
+    it('calcular los cortes por primera vez lee cada apunte una sola vez', async () => {
       abrir();
       migrate(driver, { migrationsFolder: CARPETA });
       await sembrar();
       const cortes = createDrizzleCheckpointRepository(db);
 
-      const ms = await medirAsync(() =>
-        cortes.reconstruir('2026-08', '2026-09-01T10:00:00.000-05:00'),
-      );
+      const antes = filasLeidas;
+      await cortes.reconstruir('2026-08', '2026-09-01T10:00:00.000-05:00');
 
-      expect(ms).toBeLessThan(PRESUPUESTO.cortesDesdeCero);
+      expect(filasLeidas - antes).toBeLessThan(FILAS.cortesDesdeCero);
     });
 
     /**
@@ -184,11 +211,12 @@ describe('presupuesto de arranque', () => {
       const cortes = createDrizzleCheckpointRepository(db);
       await cortes.reconstruir('2026-08', '2026-09-01T10:00:00.000-05:00');
 
-      const ms = await medirAsync(() =>
-        cortes.reconstruir('2026-08', '2026-09-01T10:00:00.000-05:00'),
-      );
+      const antes = filasLeidas;
+      await cortes.reconstruir('2026-08', '2026-09-01T10:00:00.000-05:00');
 
-      expect(ms).toBeLessThan(PRESUPUESTO.cortesAlDia);
+      // Una consulta de corte por cuenta y ni un apunte más: si esto crece,
+      // es que se está releyendo el historial por algo.
+      expect(filasLeidas - antes).toBeLessThan(FILAS.cortesAlDia);
     });
   });
 });
